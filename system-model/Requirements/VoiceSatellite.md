@@ -4,6 +4,11 @@
 
 Mentre attende una nuova interazione, il satellite deve acquisire continuamente il segnale del microfono e riconoscere la wake word esclusivamente in locale.
 
+#### Concept References
+  * [Wake word](../Thesaurus/Lessico.md#wake-word)
+  * [Attivazione locale](../Thesaurus/Lessico.md#attivazione-locale)
+  * [Dispositivo audio](../Thesaurus/Lessico.md#dispositivo-audio)
+
 #### Metadata
   * type: requirement
 
@@ -73,6 +78,11 @@ Mentre riproduce la risposta di Ambrogio, il satellite deve attendere la fine de
 
 Quando riconosce la wake word mentre attende una nuova interazione, il satellite deve aprire il canale vocale pubblico del backend.
 
+#### Concept References
+  * [Attivazione locale](../Thesaurus/Lessico.md#attivazione-locale)
+  * [Interazione vocale](../Thesaurus/Lessico.md#interazione-vocale)
+  * [Backend vocale](../Thesaurus/Lessico.md#backend-vocale)
+
 #### Metadata
   * type: requirement
 
@@ -101,6 +111,10 @@ Quando non riesce ad avviare un’interazione perché il backend non è raggiung
 
 Il satellite deve mettere a disposizione più modelli di wake word distribuiti e supportati dal progetto, includendo Hey Jarvis come modello predefinito.
 
+#### Concept References
+  * [Catalogo delle wake word](../Thesaurus/Lessico.md#catalogo-delle-wake-word)
+  * [Modello di wake word](../Thesaurus/Lessico.md#modello-di-wake-word)
+
 #### Metadata
   * type: requirement
 
@@ -122,6 +136,11 @@ Il satellite deve scambiare audio ed eventi con il backend secondo una versione 
 ### Configurazione JSON unica
 
 Il satellite deve leggere da un file JSON la configurazione del backend, dei dispositivi audio e della wake word, usando gli stessi significati sull’host e nel container.
+
+#### Concept References
+  * [Configurazione del satellite](../Thesaurus/Lessico.md#configurazione-del-satellite)
+  * [Dispositivo audio](../Thesaurus/Lessico.md#dispositivo-audio)
+  * [Modello di wake word](../Thesaurus/Lessico.md#modello-di-wake-word)
 
 #### Metadata
   * type: requirement
@@ -155,6 +174,10 @@ Quando aggiunge contesto a un guasto inatteso, il satellite deve conservare l’
 ### Conservazione della richiesta continua
 
 Quando la famiglia pronuncia la wake word e la richiesta senza pausa, il satellite deve conservare temporaneamente in memoria il parlato necessario a non perdere l’inizio della richiesta durante il riconoscimento e l’apertura della connessione.
+
+#### Concept References
+  * [Riserva audio](../Thesaurus/Lessico.md#riserva-audio)
+  * [Turno vocale](../Thesaurus/Lessico.md#turno-vocale)
 
 #### Metadata
   * type: requirement
@@ -256,7 +279,11 @@ Il satellite deve emettere ogni evento diagnostico tecnico come una singola riga
 
 ### Modello autonomo del satellite
 
-Il satellite deve mantenere il proprio codice e modello Reqvire in un repository autonomo, registrando la dipendenza dal contratto pubblico posseduto dal backend.
+Il satellite deve mantenere codice, modello Reqvire, lessico dei concetti e ontologia strutturale nel proprio repository autonomo, in modo che i termini e le relazioni del dominio siano comprensibili senza consultare il modello del backend; deve registrare la dipendenza dal contratto pubblico posseduto dal backend.
+
+#### Concept References
+  * [Satellite vocale](../Thesaurus/Lessico.md#satellite-vocale)
+  * [Backend vocale](../Thesaurus/Lessico.md#backend-vocale)
 
 #### Metadata
   * type: requirement
@@ -293,6 +320,11 @@ Il satellite deve organizzare Domain, Application e adapter in un solo progetto,
 ### Replica richiesta dal backend
 
 Quando termina la riproduzione di una risposta per cui il backend segnala di attendere una replica, il satellite deve permettere alla famiglia di rispondere senza wake word nella stessa interazione, finché essa resta attiva.
+
+#### Concept References
+  * [Indicazione di replica attesa](../Thesaurus/Lessico.md#indicazione-di-replica-attesa)
+  * [Interazione vocale](../Thesaurus/Lessico.md#interazione-vocale)
+  * [Turno vocale](../Thesaurus/Lessico.md#turno-vocale)
 
 #### Metadata
   * type: requirement
@@ -332,6 +364,10 @@ Quando ha segnalato il fallimento di un’interazione per backend irraggiungibil
 ### Riproduzione della risposta vocale
 
 Quando riceve la risposta vocale del backend, il satellite deve riprodurla sul dispositivo di uscita configurato.
+
+#### Concept References
+  * [Risposta parlata](../Thesaurus/Lessico.md#risposta-parlata)
+  * [Dispositivo audio](../Thesaurus/Lessico.md#dispositivo-audio)
 
 #### Metadata
   * type: requirement
