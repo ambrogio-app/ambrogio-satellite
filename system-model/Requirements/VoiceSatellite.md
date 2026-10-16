@@ -230,6 +230,20 @@ Quando la famiglia pronuncia la wake word e la richiesta senza pausa, il satelli
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Contratti Application indipendenti dal Domain
+
+Quando gli adapter interagiscono con i casi d'uso del satellite, devono usare dati di ingresso e stato osservabile definiti in Application, senza esporre tipi, oggetti o nomi degli stati interni del Domain attraverso il contratto pubblico del caso d'uso.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * definedBy: [Contratto osservabile della sessione vocale](../Contracts/VoiceSatellite.md#contratto-osservabile-della-sessione-vocale)
+  * satisfiedBy: [micdrop-events.adapter.ts](../../src/adapters/in/micdrop-events.adapter.ts)
+  * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Delimitazione locale dei turni vocali
 
 Durante un'interazione vocale attiva, il satellite deve riconoscere localmente l'inizio e la fine del parlato della famiglia e consegnare al backend il turno risultante, preservando anche le risposte brevi e le richieste con pause interne.

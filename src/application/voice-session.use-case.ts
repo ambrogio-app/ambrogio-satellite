@@ -9,6 +9,20 @@ export type VoiceSessionPorts = Readonly<{
   reportFailure(error: Error): Promise<void>;
 }>;
 
+/** External observations accepted by Application, independent of Domain events. */
+export type VoiceSessionEvent =
+  | Readonly<{ kind: 'wake_detected' }>
+  | Readonly<{ kind: 'speech_started' }>
+  | Readonly<{ kind: 'speech_ended' }>
+  | Readonly<{ kind: 'assistant_message'; expectsReply: boolean | undefined }>
+  | Readonly<{ kind: 'response_played' }>;
+
+export type VoiceSessionStatus = Readonly<{
+  acceptsWakeWord: boolean;
+  acceptsSpeechEnd: boolean;
+  interactionActive: boolean;
+}>;
+
 /** Coordinates one local interaction; all backend and device work stays in ports. */
 export class VoiceSession {
   private current: VoiceTurnState = initialVoiceTurnState;
@@ -29,9 +43,27 @@ export class VoiceSession {
     }
   }
 
-  get state(): VoiceTurnState { return this.current; }
+  get status(): VoiceSessionStatus {
+    return {
+      acceptsWakeWord: this.current.phase === 'waiting_wake_word',
+      acceptsSpeechEnd: this.current.phase === 'recording',
+      interactionActive: this.current.phase !== 'waiting_wake_word' && this.current.phase !== 'closing_call',
+    };
+  }
 
-  dispatch(event: VoiceTurnEvent): void {
+  dispatch(event: VoiceSessionEvent): void {
+    switch (event.kind) {
+      case 'wake_detected': this.applyEvent({ kind: 'wake_detected' }); break;
+      case 'speech_started': this.applyEvent({ kind: 'speech_started' }); break;
+      case 'speech_ended': this.applyEvent({ kind: 'speech_ended' }); break;
+      case 'assistant_message':
+        this.applyEvent({ kind: 'assistant_message', expectsReply: event.expectsReply }); break;
+      case 'response_played': this.applyEvent({ kind: 'response_played' }); break;
+      default: { const unexpected: never = event; throw new Error('Unsupported session event', { cause: unexpected }); }
+    }
+  }
+
+  private applyEvent(event: VoiceTurnEvent): void {
     if (this.failureInProgress) return;
     const transition = advanceVoiceTurn(this.current, event);
     this.current = transition.state;
@@ -40,25 +72,25 @@ export class VoiceSession {
         case 'open_call': {
           const generation = ++this.generation;
           void this.ports.openCall().then(() => {
-            if (generation === this.generation) this.dispatch({ kind: 'call_opened' });
+            if (generation === this.generation) this.applyEvent({ kind: 'call_opened' });
           }, error => { if (generation === this.generation) void this.fail(error); });
           break;
         }
         case 'close_call': {
           const generation = ++this.generation;
           void this.ports.closeCall().then(() => {
-            if (generation === this.generation) this.dispatch({ kind: 'call_closed' });
+            if (generation === this.generation) this.applyEvent({ kind: 'call_closed' });
           }, error => { if (generation === this.generation) void this.fail(error); });
           break;
         }
         case 'arm_timeout':
           this.clearReplyTimer();
-          this.replyTimer = this.deadlines.schedule(this.replyTimeoutMs, () => this.dispatch({ kind: 'timeout' }));
+          this.replyTimer = this.deadlines.schedule(this.replyTimeoutMs, () => this.applyEvent({ kind: 'timeout' }));
           break;
         case 'clear_timeout': this.clearReplyTimer(); break;
         case 'arm_answer_timeout':
           this.clearAnswerTimer();
-          this.answerTimer = this.deadlines.schedule(this.answerTimeoutMs, () => this.dispatch({ kind: 'timeout' }));
+          this.answerTimer = this.deadlines.schedule(this.answerTimeoutMs, () => this.applyEvent({ kind: 'timeout' }));
           break;
         case 'clear_answer_timeout': this.clearAnswerTimer(); break;
         case 'enable_speech': this.ports.setSpeechEnabled(true); break;

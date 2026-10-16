@@ -325,6 +325,30 @@ Revisione di impatto: interessati assemblaggio, ingressi eventi, recupero locale
   * verify: [Rilascio completo delle risorse del satellite](../Requirements/VoiceSatellite.md#rilascio-completo-delle-risorse-del-satellite)
 ---
 
+### Prova del confine Application della sessione
+
+#### Details
+Controllare proiezioni osservabili durante attesa, apertura, registrazione, risposta, replica, chiusura e guasto; una fotografia precedente non cambia con le transizioni e la sua mutazione non modifica lo stato interno. Verificare che gli eventi di timeout e completamento delle porte non siano ammessi dall'API pubblica. L'adapter legge solo il contratto Application, converte metadati non booleani in indicazione assente e conserva filtro dei frame, conclusione del parlato e gestione delle disconnessioni. Eseguire typecheck, build e regressione completa senza cambiare le regole Domain.
+
+#### Evidenze del 16 ottobre 2026
+Esito: PASS sul worktree derivato da b1142bbd08d72c3780a1259729052b6b232233e4. Eseguiti typecheck completo, controllo core senza tipi ambientali, build ESM e suite Vitest: 83 test in 18 file, tutti superati.
+
+VoiceSessionEvent e VoiceSessionStatus sono dichiarati in Application, senza alias o riesportazioni Domain. dispatch traduce esplicitamente i cinque eventi esterni; applyEvent è privato e gestisce anche completamenti delle porte e timeout. Il getter status restituisce una nuova proiezione dei tre indicatori necessari all'adapter. Nessun cambio al sorgente Domain o alle sue transizioni.
+
+Le prove Application attraversano attesa, apertura, registrazione, risposta e chiusura, verificano il contratto durante recupero dal guasto e controllano fotografie distaccate dallo stato interno. Le asserzioni di tipo escludono state dall'API e timeout/call_opened/call_closed dagli eventi pubblici. I test preesistenti continuano a controllare replica, scadenze e arresto. Le prove inbound esercitano true, false, stringa, null e campo assente per expectsReply; controllano inoltre filtro dei frame, fine del parlato, rimozione dei listener e disconnessione inattiva rispetto ad attiva.
+
+Ispezionata la dichiarazione generata dist/application/voice-session.use-case.d.ts: nessun import o tipo Domain, nessuna fase interna esposta. Ricerca negli ingressi e nella composition root: nessun riferimento a state.phase, VoiceTurn o import Domain. Il cambiamento riguarda un confine interno: contratto vocale pubblico, durate e comportamento operativo restano invariati. Le dimostrazioni hardware non sono sostituite dalla regressione software.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [micdrop-events.test.ts](../../test/adapters/in/micdrop-events.test.ts)
+  * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
+  * verify: [Contratti Application indipendenti dal Domain](../Requirements/VoiceSatellite.md#contratti-application-indipendenti-dal-domain)
+---
+
 ### Prova delle scadenze indipendenti dal runtime
 
 #### Details

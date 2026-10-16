@@ -10,7 +10,7 @@ export function createMicdropEventsAdapter(options: Readonly<{
 }>) {
   const { playback } = options;
   const onFrames = (frames: Float32Array) => {
-    if (!options.isStopping() && options.getSession()?.state.phase === 'waiting_wake_word') options.pushWakeFrames(frames);
+    if (!options.isStopping() && options.getSession()?.status.acceptsWakeWord) options.pushWakeFrames(frames);
   };
   const onStateChange = (state: MicdropState, previous: MicdropState) => {
     if (options.isStopping()) return;
@@ -21,13 +21,13 @@ export function createMicdropEventsAdapter(options: Readonly<{
     }
     if (previous.isUserSpeaking && !state.isUserSpeaking) {
       queueMicrotask(() => {
-        if (options.isStopping() || session?.state.phase !== 'recording') return;
+        if (options.isStopping() || !session?.status.acceptsSpeechEnd) return;
         playback.begin();
         session.dispatch({ kind: 'speech_ended' });
       });
     }
     if (previous.isStarted && !state.isStarted && !options.isStopping()
-      && session && !['waiting_wake_word', 'closing_call'].includes(session.state.phase)) {
+      && session?.status.interactionActive) {
       void session.fail(new Error('Micdrop call closed unexpectedly'));
     }
   };
@@ -35,13 +35,14 @@ export function createMicdropEventsAdapter(options: Readonly<{
     if (options.isStopping()) return;
     const session = options.getSession();
     if (message.role === 'assistant') {
-      session?.dispatch({ kind: 'assistant_message', expectsReply: message.metadata?.expectsReply });
+      const value = message.metadata?.expectsReply;
+      session?.dispatch({ kind: 'assistant_message', expectsReply: typeof value === 'boolean' ? value : undefined });
     }
   };
   const onError = (error: Error) => {
     if (options.isStopping()) return;
     const session = options.getSession();
-    if (session && !['waiting_wake_word', 'closing_call'].includes(session.state.phase)) {
+    if (session?.status.interactionActive) {
       void session.fail(error);
     }
   };

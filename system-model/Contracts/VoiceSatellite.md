@@ -77,6 +77,16 @@ L'opzione di avvio `--config` seleziona esplicitamente il file JSON. I valori no
   * define: [Configurazione JSON unica](../Requirements/VoiceSatellite.md#configurazione-json-unica)
 ---
 
+### Contratto osservabile della sessione vocale
+
+VoiceSession espone un evento Application per wake word riconosciuta, inizio/fine parlato, indicazione della replica attesa e risposta riprodotta. Il flag expectsReply è booleano oppure assente: l'adapter Micdrop converte qualsiasi valore non booleano in assenza di indicazione, preservando la politica di chiusura sicura. Gli eventi tecnici di apertura/chiusura della porta e scadenza dei timer restano privati del caso d'uso.
+
+Lo stato osservabile è una proiezione Application immutabile per tipo, restituita come nuovo oggetto: acceptsWakeWord indica se inoltrare frame al riconoscimento, acceptsSpeechEnd se completare il parlato in corso, interactionActive se una disconnessione costituisce un guasto dell'interazione. Il primo valore corrisponde all'attesa della wake word, il secondo alla registrazione; interactionActive è falso durante attesa iniziale e chiusura. Non si espongono phase, enum o riferimenti allo stato Domain. Nessuna duplicazione della macchina a stati: Domain mantiene regole e transizioni, Application traduce gli eventi e proietta i soli dati necessari agli ingressi. Fail e stop conservano il comportamento concordato.
+
+#### Metadata
+  * type: specification
+---
+
 ### Contratto vocale backend di riferimento
 
 La revisione backend candidata per il satellite è ambrogio-backend al commit 512317c9e93b4e6ab7a1e32dd9c210436b7b5c06: https://github.com/adrianofoschi/ambrogio-backend/blob/512317c9e93b4e6ab7a1e32dd9c210436b7b5c06/system-model/Contracts/FamilyConversation.md . I contratti pertinenti sono Protocollo vocale del prodotto, Chiusura coordinata con la riproduzione, Stati dell'interazione vocale e Indicazione di attesa della replica vocale. Questa revisione implementa la concorrenza per conversazione, ammette e crea la conversazione prima dell'upgrade WebSocket, consegna `metadata.expectsReply` nei messaggi Micdrop dell'assistente e presenta i rifiuti dei turni vocali come risposte parlate con `expectsReply: false`. Il satellite possiede la decisione di chiusura dopo la riproduzione e l'intervallo locale di inattività. Le verifiche automatiche backend coprono ammissione, generazione strutturata, messaggio vocale e chiusura della sessione. La compatibilità della prima versione del satellite non è ancora dimostrata: occorrono il client e prove di integrazione contro questa revisione prima di dichiararla compatibile. Le relazioni Reqvire restano interne a ciascun repository; il riferimento esterno non fonde i grafi.

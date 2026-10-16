@@ -33,7 +33,7 @@ test('translates a spoken turn and follow-up, gates wake frames and removes list
     expect(playback.begin).toHaveBeenCalledOnce();
     client.emit('Message', { role: 'assistant', metadata: { expectsReply: true } });
     adapter.responsePlayed();
-    expect(session.state.phase).toBe('waiting_reply');
+    expect(session.status).toEqual({ acceptsWakeWord: false, acceptsSpeechEnd: false, interactionActive: true });
     expect(ports.openCall).toHaveBeenCalledTimes(1);
     expect(ports.setSpeechEnabled).toHaveBeenLastCalledWith(true);
   } finally {
@@ -42,4 +42,40 @@ test('translates a spoken turn and follow-up, gates wake frames and removes list
   }
   expect(mic.listenerCount('Frames')).toBe(0);
   for (const name of ['StateChange', 'Message', 'Error']) expect(client.listenerCount(name)).toBe(0);
+});
+
+test.each([
+  [true, true], [false, false], ['true', undefined], [null, undefined], [undefined, undefined],
+])('normalizes reply metadata %s into the Application contract', (value, expected) => {
+  const session = new VoiceSession({ openCall: async () => {}, closeCall: async () => {},
+    setSpeechEnabled() {}, reportFailure: async () => {} }, 15000, 60000, new ManualDeadlines());
+  const dispatch = vi.spyOn(session, 'dispatch');
+  const adapter = createMicdropEventsAdapter({ getSession: () => session,
+    isStopping: () => false, pushWakeFrames() {}, playback: { update() {}, begin() {} } });
+  adapter.attach();
+  try {
+    (Micdrop as unknown as EventEmitter).emit('Message', { role: 'assistant', metadata: { expectsReply: value } });
+    expect(dispatch).toHaveBeenCalledExactlyOnceWith({ kind: 'assistant_message', expectsReply: expected });
+  } finally { adapter.detach(); }
+});
+
+test('uses Application activity to ignore idle disconnects and report an active disconnect', async () => {
+  const reportFailure = vi.fn(async () => {});
+  const session = new VoiceSession({ openCall: async () => {}, closeCall: async () => {},
+    setSpeechEnabled() {}, reportFailure }, 15000, 60000, new ManualDeadlines());
+  const adapter = createMicdropEventsAdapter({ getSession: () => session,
+    isStopping: () => false, pushWakeFrames() {}, playback: { update() {}, begin() {} } });
+  const client = Micdrop as unknown as EventEmitter;
+  const connected = { isStarted: true, isUserSpeaking: false, isAssistantSpeaking: false };
+  const disconnected = { ...connected, isStarted: false };
+  adapter.attach();
+  try {
+    client.emit('StateChange', disconnected, connected);
+    expect(reportFailure).not.toHaveBeenCalled();
+    adapter.wakeDetected(); await Promise.resolve();
+    client.emit('StateChange', disconnected, connected);
+    for (let i = 0; i < 4; i++) await Promise.resolve();
+    expect(reportFailure).toHaveBeenCalledOnce();
+    expect(session.status.acceptsWakeWord).toBe(true);
+  } finally { adapter.detach(); await session.stop(); }
 });

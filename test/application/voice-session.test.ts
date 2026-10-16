@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import { ManualDeadlines } from '../support/manual-deadlines.js';
 import { VoiceSession } from '../../src/application/voice-session.use-case.js';
 
@@ -27,12 +27,12 @@ describe('voice session', () => {
     expect(setSpeechEnabled).toHaveBeenLastCalledWith(false);
     session.dispatch({ kind: 'assistant_message', expectsReply: true });
     session.dispatch({ kind: 'response_played' });
-    expect(session.state.phase).toBe('waiting_reply');
+    expect(session.status).toEqual({ acceptsWakeWord: false, acceptsSpeechEnd: false, interactionActive: true });
     expect(setSpeechEnabled).toHaveBeenLastCalledWith(true);
     deadlines.advanceBy(15_000);
     await Promise.resolve();
     expect(closeCall).toHaveBeenCalledOnce();
-    expect(session.state.phase).toBe('waiting_wake_word');
+    expect(session.status.acceptsWakeWord).toBe(true);
   });
 
   it('never waits forever when the answer produces no audio', async () => {
@@ -44,7 +44,7 @@ describe('voice session', () => {
     deadlines.advanceBy(1);
     await Promise.resolve();
     expect(closeCall).toHaveBeenCalledOnce();
-    expect(session.state.phase).toBe('waiting_wake_word');
+    expect(session.status.acceptsWakeWord).toBe(true);
   });
 
   it('reports a failed connection and becomes ready for a new wake word', async () => {
@@ -54,7 +54,7 @@ describe('voice session', () => {
     for (let i = 0; i < 6; i++) await Promise.resolve();
     expect(reportFailure).toHaveBeenCalledOnce();
     expect(closeCall).toHaveBeenCalledOnce();
-    expect(session.state.phase).toBe('waiting_wake_word');
+    expect(session.status.acceptsWakeWord).toBe(true);
   });
   it('cancels the old reply deadline when speech resumes and arms a fresh answer deadline', async () => {
     const { session, deadlines, closeCall } = fixture();
@@ -66,7 +66,7 @@ describe('voice session', () => {
     session.dispatch({ kind: 'speech_started' });
     expect(deadlines.pending).toBe(0);
     deadlines.advanceBy(1);
-    expect(session.state.phase).toBe('recording');
+    expect(session.status.acceptsSpeechEnd).toBe(true);
     session.dispatch({ kind: 'speech_ended' });
     expect(deadlines.pending).toBe(1);
     deadlines.advanceBy(59_999);
@@ -95,5 +95,45 @@ describe('voice session', () => {
       });
     }
   }
+
+  it('exposes Application observations across the interaction without exposing Domain state', async () => {
+    const { session, closeCall } = fixture();
+    const idle = session.status;
+    expect(idle).toEqual({ acceptsWakeWord: true, acceptsSpeechEnd: false, interactionActive: false });
+    session.dispatch({ kind: 'wake_detected' });
+    expect(session.status.interactionActive).toBe(true);
+    await Promise.resolve();
+    expect(session.status.acceptsSpeechEnd).toBe(false);
+    session.dispatch({ kind: 'speech_started' });
+    expect(session.status.acceptsSpeechEnd).toBe(true);
+    session.dispatch({ kind: 'speech_ended' });
+    expect(session.status).toEqual({ acceptsWakeWord: false, acceptsSpeechEnd: false, interactionActive: true });
+    session.dispatch({ kind: 'assistant_message', expectsReply: false });
+    session.dispatch({ kind: 'response_played' });
+    expect(session.status.interactionActive).toBe(false);
+    expect(closeCall).toHaveBeenCalledOnce();
+    await Promise.resolve();
+    expect(session.status).toEqual(idle);
+    expect(session.status).not.toBe(idle);
+    expectTypeOf<VoiceSession>().not.toHaveProperty('state');
+    type Input = Parameters<VoiceSession['dispatch']>[0];
+    expectTypeOf<Extract<Input, { kind: 'timeout' | 'call_opened' | 'call_closed' }>>().toEqualTypeOf<never>();
+  });
+
+  it('returns detached snapshots and hides interaction activity during failure cleanup', async () => {
+    const { session, closeCall } = fixture();
+    const snapshot = session.status;
+    // Simulates a JavaScript caller bypassing TypeScript readonly.
+    Object.assign(snapshot, { acceptsWakeWord: false });
+    expect(session.status.acceptsWakeWord).toBe(true);
+    await start(session);
+    let finish!: () => void;
+    closeCall.mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }));
+    const failing = session.fail(new Error('connection failed'));
+    expect(session.status).toEqual({ acceptsWakeWord: false, acceptsSpeechEnd: false, interactionActive: false });
+    finish(); await failing;
+    expect(session.status.acceptsWakeWord).toBe(true);
+    expect(snapshot.acceptsWakeWord).toBe(false);
+  });
 
 });
