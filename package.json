@@ -10,7 +10,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "postinstall": "node scripts/patch-micdrop.mjs"
   },
   "devDependencies": {
     "@types/node": "24.19.2",
@@ -18,6 +19,8 @@
     "vitest": "5.0.5"
   },
   "dependencies": {
-    "decibri": "5.8.0"
+    "@micdrop/client": "3.4.0",
+    "decibri": "5.8.0",
+    "onnxruntime-node": "1.30.0"
   }
 }
