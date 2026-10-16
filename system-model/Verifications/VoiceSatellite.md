@@ -313,6 +313,13 @@ Revisione di impatto: interessati assemblaggio, ingressi eventi, recupero locale
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [decibri-audio.test.ts](../../test/adapters/out/decibri-audio.test.ts)
+  * satisfiedBy: [micdrop-call-lifecycle.test.ts](../../test/adapters/out/micdrop-call-lifecycle.test.ts)
+  * satisfiedBy: [micdrop-decibri-drivers.test.ts](../../test/adapters/out/micdrop-decibri-drivers.test.ts)
+  * satisfiedBy: [onnx-lifecycle.test.ts](../../test/adapters/out/onnx-lifecycle.test.ts)
+  * satisfiedBy: [silero-lifecycle.test.ts](../../test/adapters/out/silero-lifecycle.test.ts)
+  * satisfiedBy: [satellite-lifecycle.test.ts](../../test/composition/satellite-lifecycle.test.ts)
+  * satisfiedBy: [satellite-process.test.ts](../../test/runtime/satellite-process.test.ts)
   * verify: [Arresto immediato del processo satellite](../Requirements/VoiceSatellite.md#arresto-immediato-del-processo-satellite)
   * verify: [Idempotenza dell'arresto del satellite](../Requirements/VoiceSatellite.md#idempotenza-dellarresto-del-satellite)
   * verify: [Rilascio completo delle risorse del satellite](../Requirements/VoiceSatellite.md#rilascio-completo-delle-risorse-del-satellite)
