@@ -74,7 +74,7 @@ La verifica delle immagini carica dipendenze native, modelli wake word e Silero 
 
 Il workflow `.github/workflows/ci.yml` definisce il check `Satellite checks` per ogni pull request, push a `main` e avvio manuale. Su Ubuntu 24.04 con Node.js 24 e pnpm 12.11.2 installa dal lockfile congelato ed esegue validazione e lint Reqvire 1.3.2, typecheck completo e dei layer interni, Vitest e build. Anche i rilievi del lint che richiedono revisione manuale fanno fallire il job. Le prove con periferiche audio e su arm64 restano separate.
 
-Il blocco del merge richiede inoltre una protezione di `main` che renda obbligatorio `Satellite checks`. Al controllo del 16 ottobre 2026 GitHub restituisce HTTP 403: per questo repository privato il piano attuale richiede GitHub Pro. La protezione non è attiva; la presenza del workflow da sola non impedisce il merge. L'esecuzione remota del nuovo workflow resta da verificare dopo il push.
+Il blocco del merge richiede inoltre una protezione di `main` che renda obbligatorio `Satellite checks`. Al controllo del 16 ottobre 2026 GitHub restituisce HTTP 403: per questo repository privato il piano attuale richiede GitHub Pro. La protezione non è attiva; la presenza del workflow da sola non impedisce il merge. Il workflow è stato eseguito con successo su GitHub sul commit `4583a41`: [run CI](https://github.com/adrianofoschi/ambrogio-satellite/actions/runs/38908867632), con tutti i controlli superati.
 
 ### Stato del modello
 
