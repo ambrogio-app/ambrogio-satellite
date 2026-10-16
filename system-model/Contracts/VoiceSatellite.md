@@ -206,6 +206,17 @@ Bozza upstream, non pubblicata: «Allow a configurable logger in @micdrop/client
   * define: [Serializzazione protetta dei guasti](../Requirements/VoiceSatellite.md#serializzazione-protetta-dei-guasti)
 ---
 
+### Profilo iniziale di osservabilità
+
+La diagnostica iniziale usa i log JSON applicativi già previsti. Non sono introdotti contatori o API applicative di metriche, exporter di tracing distribuito o registri di audit. I log non costituiscono un registro di audit garantito. Eventuali estensioni, per esempio conteggi delle attivazioni o tempi di risposta, richiedono un bisogno concreto concordato, requisiti e contratti propri, protezioni dei dati e verifiche dedicate. La raccolta esterna dei log resta responsabilità del deployment. Il profilo non introduce identificativi di correlazione o modifiche al protocollo vocale. La lacuna nota dei log diretti Micdrop resta aperta e non è risolta da questa delimitazione.
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Perimetro iniziale dei segnali di osservabilità](../Requirements/VoiceSatellite.md#perimetro-iniziale-dei-segnali-di-osservabilità)
+---
+
 ### Protezione degli invii Micdrop
 
 La versione pubblicata di `@micdrop/client` 3.4.0 può chiamare `WebSocket.send` mentre il socket è ancora in `CONNECTING`. Fino a una correzione upstream verificata, la distribuzione applica una patch locale ripetibile che consente gli invii del client soltanto quando il socket è aperto. La patch controlla versione e punti modificati e fa fallire la preparazione del pacchetto se il codice atteso cambia; non modifica silenziosamente una nuova versione.

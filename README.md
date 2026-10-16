@@ -60,6 +60,8 @@ Sono state recepite anche le regole del backend su composition root, confini deg
 
 ### Raccolta dei log
 
+Nella prima versione l'osservabilità applicativa usa i log strutturati. Metriche, tracing distribuito e registri di audit richiedono un'esigenza concordata e requisiti e verifiche dedicati prima di essere introdotti. I log non costituiscono un registro di audit garantito.
+
 Il satellite scrive i log applicativi JSON su stdout. Conservazione, rotazione ed eventuale inoltro centralizzato sono responsabilità dell'installazione: configurarle nel runtime Docker oppure nel gestore del servizio host, per esempio systemd/journald. L'applicazione non richiede un servizio di logging e non configura file, credenziali o endpoint di raccolta. L'avvio diretto da terminale non garantisce la conservazione dei log. La raccolta esterna non risolve la protezione ancora aperta dei log diretti di Micdrop.
 
 ### Controlli CI

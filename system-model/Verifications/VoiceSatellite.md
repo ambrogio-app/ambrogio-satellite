@@ -260,6 +260,21 @@ Usare una configurazione invalida e osservare che nessuna risorsa audio, wake wo
   * verify: [Validazione prima della costruzione delle risorse](../Requirements/VoiceSatellite.md#validazione-prima-della-costruzione-delle-risorse)
 ---
 
+### Ispezione del perimetro iniziale di osservabilità
+
+Ispezionare dipendenze, bootstrap, composition root, configurazione e logger: devono essere presenti soltanto i segnali diagnostici applicativi previsti, senza attivazione di sistemi separati di metriche, tracing distribuito o audit. Controllare che la documentazione non presenti i log come registro di audit garantito.
+
+#### Details
+2026-10-16: ispezione PASS sulla base 50f0329200b433f22132d3cd0c5dcc372ebc6986. Esaminati package.json, src/main.ts, src/composition/satellite.ts, src/adapters/out/diagnostics.ts, config.example.json e Dockerfile; ricerca dei riferimenti nei sorgenti senza integrazioni di metriche, tracing o audit. Il logger applicativo usa Pino su stdout. Il bootstrap imposta ORT_DISABLE_TELEMETRY prima dell’import dinamico della composition root; l’ispezione non è una misura del traffico delle librerie native. Modifica solo di modello e documentazione, senza nuove prove software o hardware. La protezione dei log diretti Micdrop resta una verifica separata aperta.
+
+#### Metadata
+  * type: inspection-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Perimetro iniziale dei segnali di osservabilità](../Requirements/VoiceSatellite.md#perimetro-iniziale-dei-segnali-di-osservabilità)
+---
+
 ### Ispezione del workflow CI del satellite
 
 Verificare eventi di attivazione, versioni, lockfile congelato, sequenza dei cinque controlli e fallimento del job senza continue-on-error. Eseguire localmente i comandi compatibili; una prova locale non attesta un’esecuzione GitHub Actions. Per la prova remota richiedere una run del workflow sul commit pubblicato.

@@ -504,6 +504,19 @@ Quando la famiglia attiva nuovamente il satellite dopo un fallimento per backend
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Perimetro iniziale dei segnali di osservabilità
+
+Nella prima versione, il satellite deve usare i log tecnici strutturati come segnali di osservabilità, senza introdurre sistemi applicativi separati di metriche, tracing distribuito o audit degli eventi.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Progetto unico del satellite
 
 Il satellite deve organizzare Domain, Application e adapter in un solo progetto, senza suddivisione in package di workspace.
