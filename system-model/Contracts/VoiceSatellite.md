@@ -13,7 +13,7 @@ La famiglia può pronunciare Hey Jarvis e la richiesta nella stessa frase. L’a
 
 ### Catalogo e selezione dei modelli
 
-Il file JSON seleziona un modello del catalogo fornito dal progetto. Hey Jarvis è il predefinito. La prima versione non carica percorsi di modelli personalizzati esterni. Il catalogo deve includere più modelli; i modelli aggiuntivi, i loro identificatori e il formato dei file saranno definiti dopo la scelta e la verifica del motore di riconoscimento. Un identificatore non disponibile è una configurazione invalida.
+Il file JSON seleziona un modello del catalogo fornito dal progetto. Hey Jarvis è il predefinito. La prima versione non carica percorsi di modelli personalizzati esterni. Il catalogo deve includere più modelli openWakeWord in formato ONNX utilizzabili dal motore locale nel processo Node.js. I modelli aggiuntivi, i loro identificatori, le versioni e le soglie di rilevamento saranno definiti dopo la verifica delle risorse candidabili e delle relative licenze. Un identificatore non disponibile è una configurazione invalida.
 
 #### Metadata
   * type: specification
@@ -80,6 +80,19 @@ Il tipo locale è `type Result<T, E> = Readonly<{ ok: true; value: T }> | Readon
 
 #### Relations
   * define: [Esiti previsti come valori tipizzati](../Requirements/VoiceSatellite.md#esiti-previsti-come-valori-tipizzati)
+---
+
+### Motore locale della wake word con ONNX
+
+La prima versione esegue nel processo TypeScript/Node.js del satellite la pipeline di riconoscimento openWakeWord con modelli ONNX, usando il binding Node.js di ONNX Runtime. Il riconoscimento della wake word rimane locale al satellite. I modelli e le risorse condivise necessari alla pipeline sono caricati dai file distribuiti con l'applicazione; il satellite non richiede un servizio Wyoming per questa funzione.
+
+Lo spike in `/home/adriano/projects/ambrogio-spike/satellite/spike/` dimostra la fattibilità iniziale su Raspberry Pi con Hey Jarvis, ma non costituisce una prova di affidabilità o prestazioni delle distribuzioni finali. Versioni dei pacchetti, soglie di rilevamento, catalogo dei modelli e limiti di risorse richiedono ancora specificazione e verifiche su Linux x86_64 e arm64, in esecuzione host e container. Il supporto dei binari Node.js per Linux x64 e arm64 è documentato da ONNX Runtime: https://onnxruntime.ai/docs/get-started/with-javascript/node.html .
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Ascolto locale della wake word](../Requirements/VoiceSatellite.md#ascolto-locale-della-wake-word)
 ---
 
 ### Recupero locale da backend irraggiungibile

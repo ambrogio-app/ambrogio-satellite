@@ -49,7 +49,7 @@ Rendere irraggiungibile il backend e attivare il satellite: si ascolta un messag
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
 
 #### Details
-Con ogni modello del catalogo, dimostrare attivazione locale e successiva apertura del canale. Prima della wake word osservare che non viene aperta l’interazione vocale backend. Con una frase continua nota controllare l’audio consegnato al backend e accertare che l’inizio della richiesta non sia perso. Ripetere su entrambe le architetture con latenza entro i limiti della riserva che saranno concordati. Verificare Hey Jarvis come scelta predefinita e almeno un modello alternativo. La prova non stabilisce ancora soglie statistiche di falsi positivi o falsi negativi.
+Con ogni modello del catalogo, dimostrare che la pipeline ONNX nel processo Node.js riconosce localmente la wake word e apre successivamente il canale, senza un servizio esterno di rilevamento. Prima della wake word osservare che non viene aperta l’interazione vocale backend. Con una frase continua nota controllare l’audio consegnato al backend e accertare che l’inizio della richiesta non sia perso. Ripetere su entrambe le architetture con latenza entro i limiti della riserva che saranno concordati. Verificare Hey Jarvis come scelta predefinita e almeno un modello alternativo. La prova non stabilisce ancora soglie statistiche di falsi positivi o falsi negativi.
 
 #### Metadata
   * type: demonstration-verification
@@ -106,7 +106,7 @@ Contro la revisione backend compatibile fissata nel contratto, riprodurre una ri
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
 
 #### Details
-Su host Linux x86_64 e arm64 dotati di microfono e speaker, installare ed eseguire la stessa versione sia direttamente sia in Docker; completare un’interazione vocale in ciascuna combinazione usando lo stesso schema di configurazione. Registrare sistema operativo, periferiche e dipendenze. Una build riuscita o una prova sotto emulazione non sostituisce la dimostrazione audio sulle due architetture.
+Su host Linux x86_64 e arm64 dotati di microfono e speaker, installare ed eseguire la stessa versione sia direttamente sia in Docker; completare un’interazione vocale in ciascuna combinazione usando lo stesso schema di configurazione. Registrare sistema operativo, periferiche, versioni e dipendenze native, inclusi ONNX Runtime e i file dei modelli caricati. Accertare che il rilevamento funzioni nel processo satellite sia su host sia nel container. Una build riuscita o una prova sotto emulazione non sostituisce la dimostrazione audio sulle due architetture.
 
 #### Metadata
   * type: demonstration-verification
