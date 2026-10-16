@@ -13,6 +13,7 @@ Mentre attende una nuova interazione, il satellite deve acquisire continuamente 
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [micdrop-events.adapter.ts](../../src/adapters/in/micdrop-events.adapter.ts)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -112,6 +113,7 @@ Quando non riesce ad avviare un’interazione perché il backend non è raggiung
 
 #### Relations
   * satisfiedBy: [backend-unavailable.wav](../../assets/backend-unavailable.wav)
+  * satisfiedBy: [micdrop-call.adapter.ts](../../src/adapters/out/micdrop-call.adapter.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -208,6 +210,7 @@ Quando la famiglia pronuncia la wake word e la richiesta senza pausa, il satelli
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [micdrop-call.adapter.ts](../../src/adapters/out/micdrop-call.adapter.ts)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -224,6 +227,7 @@ Durante un'interazione vocale attiva, il satellite deve riconoscere localmente l
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [micdrop-events.adapter.ts](../../src/adapters/in/micdrop-events.adapter.ts)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -332,6 +336,7 @@ Il satellite deve emettere ogni evento diagnostico tecnico come una singola riga
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [local-notice.ts](../../src/adapters/out/local-notice.ts)
   * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -359,6 +364,9 @@ I file del codice di produzione devono seguire una convenzione esplicita e unifo
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [micdrop-events.adapter.ts](../../src/adapters/in/micdrop-events.adapter.ts)
+  * satisfiedBy: [micdrop-call.adapter.ts](../../src/adapters/out/micdrop-call.adapter.ts)
+  * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
