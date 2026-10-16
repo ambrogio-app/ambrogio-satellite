@@ -6,7 +6,7 @@ export interface VoiceSessionPorts {
   readonly openCall: () => Promise<void>;
   readonly closeCall: () => Promise<void>;
   readonly setSpeechEnabled: (enabled: boolean) => void;
-  readonly reportFailure: (error: Error) => Promise<void>;
+  readonly reportFailure: (error: unknown) => Promise<void>;
 }
 
 /** External observations accepted by Application, independent of Domain events. */
@@ -107,10 +107,9 @@ export class VoiceSession {
     this.clearReplyTimer();
     this.clearAnswerTimer();
     this.current = { phase: 'closing_call' };
-    const cause = error instanceof Error ? error : new Error(String(error));
     try { await this.ports.closeCall(); }
     catch { /* The original failure remains the useful diagnostic. */ }
-    try { await this.ports.reportFailure(cause); }
+    try { await this.ports.reportFailure(error); }
     finally {
       this.current = initialVoiceTurnState;
       this.failureInProgress = false;

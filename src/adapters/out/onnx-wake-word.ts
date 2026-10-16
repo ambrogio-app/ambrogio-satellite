@@ -17,7 +17,7 @@ export type WakeWordOptions = Readonly<{
   cooldownMs: number;
   maxQueuedChunks: number;
   detected(score: number): void;
-  failed(error: Error): void;
+  failed(error: unknown): void;
 }>;
 
 function firstTensor(outputs: ort.InferenceSession.OnnxValueMapType, name: string): Float32Array {
@@ -91,7 +91,7 @@ export class OnnxWakeWord {
       const chunk = Float32Array.from(this.pending.splice(0, CHUNK_SAMPLES));
       this.queuedChunks++;
       this.tail = this.tail.then(() => this.closing ? undefined : this.process(chunk))
-        .catch(error => { if (!this.closing) this.options.failed(error instanceof Error ? error : new Error(String(error))); })
+        .catch(error => { if (!this.closing) this.options.failed(error); })
         .finally(() => { this.queuedChunks--; });
     }
     return true;

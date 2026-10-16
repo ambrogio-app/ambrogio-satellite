@@ -322,6 +322,17 @@ Quando Domain, Application o una porta prevedono un esito negativo nel proprio c
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Eventi diagnostici stabili
+
+Quando emette un log tecnico, il satellite deve includere un nome event stabile indipendente dai dati ricevuti.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Forma TypeScript dei contratti Application
 
 Quando Application del satellite dichiara una porta a oggetto con operazioni nominate, deve usare interface; quando dichiara dati, unioni o contratti callable, deve usare type.
@@ -644,6 +655,17 @@ Il satellite deve separare regole e stati in Domain, coordinamento e porte in Ap
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Serializzazione protetta dei guasti
+
+Quando registra un guasto inatteso, il satellite deve passare al logger il campo err con l’Error originale o un Error con causa originale per valori diversi, serializzando soltanto una vista sicura senza modificare il guasto in memoria.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Stack TypeScript e Node.js
 
 Il satellite deve essere implementato in TypeScript ed eseguito su Node.js.
@@ -679,6 +701,17 @@ Quando un guasto raggiunge il confine tecnico responsabile della sua gestione, i
 
 #### Relations
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Uso di Pino per la diagnostica
+
+Il satellite deve emettere i propri log tecnici mediante Pino al confine responsabile della diagnosi.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 

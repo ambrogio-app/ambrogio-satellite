@@ -25,6 +25,7 @@
   "dependencies": {
     "@micdrop/client": "3.4.0",
     "decibri": "5.8.0",
-    "onnxruntime-node": "1.30.0"
+    "onnxruntime-node": "1.30.0",
+    "pino": "10.4.0"
   }
 }

@@ -10,7 +10,7 @@ describe('distributed ONNX wake word models', () => {
     expect([...distributedWakeWordIds].sort()).toEqual(['hey_jarvis', 'hey_mycroft']);
     for (const id of ['hey_jarvis', 'hey_mycroft'] as const) {
       const detected: number[] = [];
-      const failures: Error[] = [];
+      const failures: unknown[] = [];
       const detector = await OnnxWakeWord.open(wakeWordFiles(id), {
         threshold: 0.5,
         cooldownMs: 0,

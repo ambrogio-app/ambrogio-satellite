@@ -50,7 +50,7 @@ export function createMicdropEventsAdapter(options: Readonly<{
   return {
     wakeDetected() { if (!options.isStopping()) options.getSession()?.dispatch({ kind: 'wake_detected' }); },
     responsePlayed() { if (!options.isStopping()) options.getSession()?.dispatch({ kind: 'response_played' }); },
-    failed(error: Error) {
+    failed(error: unknown) {
       if (!options.isStopping()) void options.getSession()?.fail(error);
     },
     attach() {

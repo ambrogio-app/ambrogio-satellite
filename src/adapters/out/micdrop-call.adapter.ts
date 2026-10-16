@@ -1,7 +1,7 @@
 import { Micdrop, SileroVAD } from '@micdrop/client';
 import type { VoiceSessionPorts } from '../../application/voice-session.use-case.js';
 import { playPcm16 } from './decibri-audio.js';
-import { logFailure } from './local-notice.js';
+import { diagnostics } from './diagnostics.js';
 
 /** Implements the session's outbound call, speech and failure-notice ports. */
 export function createMicdropCallAdapter(options: Readonly<{
@@ -82,11 +82,11 @@ export function createMicdropCallAdapter(options: Readonly<{
     },
     async reportFailure(error) {
       if (options.isStopping()) return;
-      logFailure(error);
+      diagnostics.failure('satellite_failure', error);
       const work = playPcm16((async function* () { yield notice; })(), options.speaker, noticeAbort.signal)
         .catch(playbackError => {
           if (noticeAbort.signal.aborted) { noticeErrors.push(playbackError); return; }
-          logFailure(playbackError instanceof Error ? playbackError : new Error(String(playbackError)));
+          diagnostics.failure('satellite_notice_failed', playbackError);
         });
       noticeWork = work;
       try { await work; } finally { if (noticeWork === work) noticeWork = undefined; }

@@ -88,7 +88,7 @@ export class DecibriSpeakerDriver extends SpeakerDriver {
   private playing = false;
   private generation = 0;
 
-  constructor(private selector?: string, private readonly onFailure?: (error: Error) => void) { super(); }
+  constructor(private selector?: string, private readonly onFailure?: (error: unknown) => void) { super(); }
 
   get isPlaying(): boolean { return this.playing; }
   get deviceId(): string | undefined { return this.selector; }
@@ -136,7 +136,7 @@ export class DecibriSpeakerDriver extends SpeakerDriver {
     }).catch(error => {
       if (generation !== this.generation) return;
       this.stopAudio();
-      this.onFailure?.(error instanceof Error ? error : new Error(String(error)));
+      this.onFailure?.(error);
     });
   }
 

@@ -3,11 +3,6 @@ import { fileURLToPath } from 'node:url';
 
 const NOTICE_FILE = fileURLToPath(new URL('../../../assets/backend-unavailable.wav', import.meta.url));
 
-export function logFailure(error: Error): void {
-  const code = 'code' in error && typeof error.code === 'string' ? error.code : error.name;
-  console.log(JSON.stringify({ level: 'error', event: 'satellite_failure', code }));
-}
-
 /** WAV is a bundled, known-format asset, but validate its header before playback. */
 export async function noticeSamples(): Promise<Int16Array> {
   const wav = await readFile(NOTICE_FILE);
@@ -36,4 +31,3 @@ export async function noticeSamples(): Promise<Int16Array> {
   for (let i = 0; i < samples.length; i++) samples[i] = audio.readInt16LE(i * 2);
   return samples;
 }
-

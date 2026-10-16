@@ -56,6 +56,12 @@ describe('voice session', () => {
     expect(closeCall).toHaveBeenCalledOnce();
     expect(session.status.acceptsWakeWord).toBe(true);
   });
+  it('passes a thrown value unchanged and reports concurrent failure notifications once', async () => {
+    const { session, reportFailure } = fixture();
+    const value = { toString() { throw new Error('must not stringify'); } };
+    await Promise.all([session.fail(value), session.fail(value)]);
+    expect(reportFailure).toHaveBeenCalledExactlyOnceWith(value);
+  });
   it('cancels the old reply deadline when speech resumes and arms a fresh answer deadline', async () => {
     const { session, deadlines, closeCall } = fixture();
     await start(session);

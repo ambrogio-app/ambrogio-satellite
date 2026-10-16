@@ -378,6 +378,29 @@ Ispezionata la dichiarazione generata dist/application/voice-session.use-case.d.
   * verify: [Contratti Application indipendenti dal Domain](../Requirements/VoiceSatellite.md#contratti-application-indipendenti-dal-domain)
 ---
 
+### Prova della diagnostica Pino
+
+Acquisire le righe reali di Pino: JSON, event stabili, nessun dato sensibile da message, name, stack, code, cause o proprietà aggiuntive. Controllare identità e immutabilità degli originali, valori lanciati non Error, cause cicliche, getter e aggregati. Iniettare un guasto di interazione e uno di riproduzione: un evento distinto per ciascun guasto e avviso parlato indipendente. Verificare avvio e rifiuti di configurazione senza log automatici di errore.
+
+#### Details
+Esecuzione del 2026-10-16: npm run typecheck, npm test (89 test, 19 file) e npm run build PASS. Prova CLI dei rifiuti per argomenti e configurazione assente: singola riga JSON info su stdout, uscita 2. Le prove automatiche coprono il logger applicativo, la propagazione del valore originale e gli eventi distinti di interazione e avviso. Non attestano i log diretti di Micdrop 3.4.0: l’ispezione della dipendenza rileva console.error/console.warn con dati grezzi; protezione ancora aperta e soggetta a decisione sulla patch locale. Le dimostrazioni su backend e periferiche reali restano da eseguire.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [micdrop-call-lifecycle.test.ts](../../test/adapters/out/micdrop-call-lifecycle.test.ts)
+  * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
+  * verify: [Conservazione della causa dei guasti](../Requirements/VoiceSatellite.md#conservazione-della-causa-dei-guasti)
+  * verify: [Eventi diagnostici stabili](../Requirements/VoiceSatellite.md#eventi-diagnostici-stabili)
+  * verify: [Log tecnici JSON su stdout](../Requirements/VoiceSatellite.md#log-tecnici-json-su-stdout)
+  * verify: [Selezione esplicita dei dati diagnostici](../Requirements/VoiceSatellite.md#selezione-esplicita-dei-dati-diagnostici)
+  * verify: [Serializzazione protetta dei guasti](../Requirements/VoiceSatellite.md#serializzazione-protetta-dei-guasti)
+  * verify: [Unicità della diagnosi definitiva](../Requirements/VoiceSatellite.md#unicità-della-diagnosi-definitiva)
+  * verify: [Uso di Pino per la diagnostica](../Requirements/VoiceSatellite.md#uso-di-pino-per-la-diagnostica)
+---
+
 ### Prova delle scadenze indipendenti dal runtime
 
 #### Details
