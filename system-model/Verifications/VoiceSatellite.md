@@ -390,6 +390,7 @@ Esecuzione del 2026-10-16: npm run typecheck, npm test (89 test, 19 file) e npm 
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [diagnostics.test.ts](../../test/adapters/out/diagnostics.test.ts)
   * satisfiedBy: [micdrop-call-lifecycle.test.ts](../../test/adapters/out/micdrop-call-lifecycle.test.ts)
   * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
   * verify: [Conservazione della causa dei guasti](../Requirements/VoiceSatellite.md#conservazione-della-causa-dei-guasti)

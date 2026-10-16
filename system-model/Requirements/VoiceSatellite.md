@@ -210,6 +210,7 @@ Quando aggiunge contesto a un guasto inatteso, il satellite deve conservare l’
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -330,6 +331,7 @@ Quando emette un log tecnico, il satellite deve includere un nome event stabile 
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -418,7 +420,7 @@ Il satellite deve emettere ogni evento diagnostico tecnico come una singola riga
   * type: requirement
 
 #### Relations
-  * satisfiedBy: [local-notice.ts](../../src/adapters/out/local-notice.ts)
+  * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -639,6 +641,7 @@ Il satellite deve includere nei log soltanto campi diagnostici selezionati espli
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -663,6 +666,7 @@ Quando registra un guasto inatteso, il satellite deve passare al logger il campo
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -712,6 +716,7 @@ Il satellite deve emettere i propri log tecnici mediante Pino al confine respons
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
