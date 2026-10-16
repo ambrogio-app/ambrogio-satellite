@@ -190,6 +190,17 @@ GitHub Actions esegue il job stabile `Satellite checks` su ogni pull request, su
   * define: [Controlli CI delle modifiche del satellite](../Requirements/VoiceSatellite.md#controlli-ci-delle-modifiche-del-satellite)
 ---
 
+### Profilo di pubblicazione Docker del satellite
+
+GitHub Actions pubblica ghcr.io/adrianofoschi/ambrogio-satellite al push di un tag vMAJOR.MINOR.PATCH, con versione corrispondente a package.json. Il tag immagine finale coincide con il tag Git; nessun latest. Prima della pubblicazione si esegue la CI del medesimo commit, poi si costruiscono e verificano entrambe le immagini linux/amd64 e linux/arm64. Le immagini verificate ricevono i tag tecnici <versione>-amd64 e <versione>-arm64; il tag di release riunisce entrambe in un manifest. Nessun push avviene prima che entrambe le verifiche locali siano riuscite. GITHUB_TOKEN usa packages:write per GHCR; un push ordinario su main non pubblica. L’emulazione è ammessa per build e smoke test arm64, ma non dimostra audio o prestazioni su hardware reale. Docker resta facoltativo. Il workflow non cambia la visibilità del pacchetto nel registro.
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Pubblicazione delle immagini Docker del satellite](../Requirements/VoiceSatellite.md#pubblicazione-delle-immagini-docker-del-satellite)
+---
+
 ### Profilo diagnostico Pino
 
 Pino emette una riga JSON su stdout, con livello testuale, timestamp ed event costante. Nessuna acquisizione automatica di configurazione, audio, messaggi, hostname o dati ricevuti. I rifiuti previsti di avvio sono eventi informativi, senza err; i guasti di processo, interazione e riproduzione dell’avviso hanno eventi distinti. La normalizzazione al confine conserva l’identità di Error e incapsula gli altri valori con messaggio costante e cause originale, senza conversione a stringa. La vista JSON di err usa descrizioni costanti, nasconde name, message, stack, code e proprietà aggiuntive; conserva soltanto la struttura delle cause e degli AggregateError con limiti di profondità e numerosità, senza invocare getter o modificare gli originali. Il messaggio parlato resta l’asset locale indipendente dalla diagnosi. Domain e Application non importano logger.

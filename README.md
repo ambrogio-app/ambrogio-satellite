@@ -64,6 +64,12 @@ Nella prima versione l'osservabilità applicativa usa i log strutturati. Metrich
 
 Il satellite scrive i log applicativi JSON su stdout. Conservazione, rotazione ed eventuale inoltro centralizzato sono responsabilità dell'installazione: configurarle nel runtime Docker oppure nel gestore del servizio host, per esempio systemd/journald. L'applicazione non richiede un servizio di logging e non configura file, credenziali o endpoint di raccolta. L'avvio diretto da terminale non garantisce la conservazione dei log. La raccolta esterna non risolve la protezione ancora aperta dei log diretti di Micdrop.
 
+### Pubblicazione Docker
+
+Il workflow `publish-image.yml` pubblica su `ghcr.io/adrianofoschi/ambrogio-satellite` al push di un tag `vMAJOR.MINOR.PATCH` corrispondente alla versione in `package.json`. Esegue prima la CI del commit, poi costruisce e verifica le immagini amd64 e arm64. Dopo il successo di entrambe pubblica i tag tecnici `<versione>-amd64` e `<versione>-arm64` e il tag unico `<versione>` con entrambe le piattaforme. Non pubblica `latest`; i push ordinari a `main` non creano release. Il workflow non modifica la visibilità del pacchetto GHCR.
+
+La verifica delle immagini carica dipendenze native, modelli wake word e Silero e avviso parlato, e controlla il rifiuto sicuro dell'avvio senza configurazione. Si può ripetere con `node scripts/verify-docker-image.mjs <immagine> <amd64|arm64>`. La prova arm64 può usare emulazione; le prove audio su hardware reale restano necessarie prima del rilascio. La modalità host rimane supportata.
+
 ### Controlli CI
 
 Il workflow `.github/workflows/ci.yml` definisce il check `Satellite checks` per ogni pull request, push a `main` e avvio manuale. Su Ubuntu 24.04 con Node.js 24 e pnpm 12.11.2 installa dal lockfile congelato ed esegue validazione e lint Reqvire 1.3.2, typecheck completo e dei layer interni, Vitest e build. Anche i rilievi del lint che richiedono revisione manuale fanno fallire il job. Le prove con periferiche audio e su arm64 restano separate.

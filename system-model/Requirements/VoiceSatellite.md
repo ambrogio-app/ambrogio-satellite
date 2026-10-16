@@ -544,6 +544,17 @@ Quando programma o annulla una scadenza dell'interazione vocale, Application dev
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Pubblicazione delle immagini Docker del satellite
+
+Quando viene creato un tag di release valido, il progetto deve pubblicare su GHCR un’immagine del satellite per Linux amd64 e arm64 soltanto dopo il superamento dei controlli software e delle verifiche delle immagini di entrambe le architetture.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Replica richiesta dal backend
 
 Quando termina la riproduzione di una risposta per cui il backend segnala di attendere una replica, il satellite deve permettere alla famiglia di rispondere senza wake word nella stessa interazione, finché essa resta attiva.

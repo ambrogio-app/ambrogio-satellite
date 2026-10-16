@@ -1,0 +1,57 @@
+import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+
+const [image, arch] = process.argv.slice(2);
+assert(image && ['amd64', 'arm64'].includes(arch), 'Usage: node scripts/verify-docker-image.mjs <image> <amd64|arm64>');
+function docker(args, input) {
+  const result = spawnSync('docker', args, { input, encoding: 'utf8', timeout: 180_000, maxBuffer: 4 * 1024 * 1024 });
+  if (result.error) throw result.error;
+  return result;
+}
+function success(result) {
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  return result.stdout;
+}
+assert.equal(success(docker(['image', 'inspect', '--format', '{{.Os}}/{{.Architecture}}', image])).trim(), `linux/${arch}`);
+const run = ['run', '--rm', '--network', 'none', '--platform', `linux/${arch}`, '--env', 'ORT_DISABLE_TELEMETRY=1'];
+const startup = docker([...run, image]);
+assert.equal(startup.status, 2, startup.stderr || startup.stdout);
+const lines = startup.stdout.trim().split('\n');
+assert.equal(lines.length, 1);
+assert.equal(JSON.parse(lines[0]).event, 'invalid_configuration');
+assert.equal(startup.stderr, '');
+
+success(docker([...run, '--interactive', '--entrypoint', 'node', image, '--input-type=module', '-'], `
+import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+import { EventEmitter } from 'node:events';
+assert.equal(process.arch, ${JSON.stringify(arch === 'amd64' ? 'x64' : 'arm64')});
+assert.equal(existsSync('/app/config.json'), false);
+assert.equal(existsSync('/config/satellite.json'), false);
+await import('decibri');
+await import('onnxruntime-node');
+const { noticeSamples } = await import('./dist/adapters/out/local-notice.js');
+assert((await noticeSamples()).length > 0);
+const { OnnxWakeWord } = await import('./dist/adapters/out/onnx-wake-word.js');
+const { wakeWordFiles, distributedWakeWordIds } = await import('./dist/adapters/out/wake-word-catalog.js');
+assert(distributedWakeWordIds.size > 0);
+for (const id of distributedWakeWordIds) {
+  const failures = [];
+  const detector = await OnnxWakeWord.open(wakeWordFiles(id), {
+    threshold: 0.5, cooldownMs: 0, maxQueuedChunks: 20,
+    detected() { throw new Error('Wake word detected in silence'); }, failed(error) { failures.push(error); },
+  });
+  try {
+    for (let i = 0; i < 18; i++) assert(detector.push(new Float32Array(1280)));
+    await detector.waitUntilIdle();
+    assert.deepEqual(failures, []);
+  } finally { await detector.close(); }
+}
+const { installNodeSilero } = await import('./dist/adapters/out/silero-node.js');
+const { SileroVAD } = await import('@micdrop/client');
+const silero = installNodeSilero();
+const vad = new SileroVAD();
+try { await vad.start(new EventEmitter()); assert(vad.isStarted); }
+finally { await vad.stop(); await silero.close(); }
+`));
+console.log(`Verified ${image}: ${arch}, native imports, models, notice and safe startup without configuration.`);

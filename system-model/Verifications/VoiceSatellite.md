@@ -487,3 +487,33 @@ La revisione non cambia durate o protocollo pubblico; README aggiornato per il n
   * verify: [Indipendenza tecnica di Domain e Application](../Requirements/VoiceSatellite.md#indipendenza-tecnica-di-domain-e-application)
   * verify: [Programmazione delle scadenze tramite porta Application](../Requirements/VoiceSatellite.md#programmazione-delle-scadenze-tramite-porta-application)
 ---
+
+### Prova software delle immagini del satellite
+
+Su ciascuna immagine verificare architettura, import delle dipendenze native Decibri e ONNX, caricamento e inferenza silenziosa dei modelli wake word distribuiti, caricamento Silero e asset dell’avviso. Eseguire il processo senza configurazione: uscita 2 e JSON informativo, nessun avvio audio. Verificare assenza della configurazione personale. Le prove devono funzionare senza rete né periferiche e fallire se manca un artefatto necessario; non sostituiscono le prove audio reali.
+
+#### Details
+2026-10-16: build Docker linux/amd64 e scripts/verify-docker-image.mjs sull’immagine ambrogio-satellite:release-check (ID c7081aca3a0b) PASS. Verificati import nativi, inferenza silenziosa di entrambi i modelli wake word, caricamento Silero, avviso locale, assenza della configurazione e rifiuto di avvio con uscita 2 e JSON informativo. La prova usa --network none e nessuna periferica. Arm64 NON eseguito localmente: Buildx ed emulazione assenti; il workflow li prepara e blocca la pubblicazione finché entrambe le prove non riescono. Non attestate periferiche audio reali.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Pubblicazione delle immagini Docker del satellite](../Requirements/VoiceSatellite.md#pubblicazione-delle-immagini-docker-del-satellite)
+---
+
+### Verifica della pubblicazione Docker del satellite
+
+Ispezionare trigger, formato versione, corrispondenza package.json, dipendenza dalla CI e assenza di latest. Controllare che la pubblicazione segua le verifiche di entrambe le immagini, che il manifest riporti amd64 e arm64 e che le credenziali siano fornite dal workflow. La verifica effettiva di pubblicazione richiede una release autorizzata; nessuna release viene creata per questa preparazione.
+
+#### Details
+2026-10-16: ispezione del workflow e actionlint 1.7.12 PASS (shellcheck non disponibile). Tag validato e confrontato con package.json; job di pubblicazione dipendente dalla CI riutilizzabile; entrambe le verifiche precedono login e push; manifest controllato per amd64 e arm64. Nessun tag latest. Build e smoke amd64 locali PASS. Run GitHub, prova arm64 e pubblicazione/lettura del manifest remoto NON eseguite: richiedono pubblicazione del workflow e una release autorizzata. Nessun tag di release creato e nessuna immagine pubblicata.
+
+#### Metadata
+  * type: inspection-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Pubblicazione delle immagini Docker del satellite](../Requirements/VoiceSatellite.md#pubblicazione-delle-immagini-docker-del-satellite)
+---
