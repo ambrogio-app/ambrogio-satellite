@@ -13,7 +13,7 @@ La famiglia può pronunciare Hey Jarvis e la richiesta nella stessa frase. L’a
 
 ### Catalogo e selezione dei modelli
 
-Il file JSON seleziona un modello del catalogo fornito dal progetto. Hey Jarvis è il predefinito. La prima versione non carica percorsi di modelli personalizzati esterni. Il catalogo deve includere più modelli openWakeWord in formato ONNX utilizzabili dal motore locale nel processo Node.js. I modelli aggiuntivi, i loro identificatori, le versioni e le soglie di rilevamento saranno definiti dopo la verifica delle risorse candidabili e delle relative licenze. Un identificatore non disponibile è una configurazione invalida.
+Il file JSON seleziona un modello del catalogo fornito dal progetto. Hey Jarvis è il predefinito. La prima versione non carica percorsi di modelli personalizzati esterni. Il catalogo iniziale contiene le frasi «Hey Jarvis», «Hey Mycroft» e «Hey Alexa», ciascuna associata a un modello ONNX distribuito e verificato con il motore locale Node.js. I modelli openWakeWord per Hey Jarvis e Hey Mycroft sono candidati diretti. Il modello openWakeWord denominato «alexa» è addestrato per «Alexa»: la documentazione segnala che «Hey Alexa» può funzionare con più mancati riconoscimenti (https://github.com/dscripka/openWakeWord/blob/main/docs/models/alexa.md). Per la voce «Hey Alexa» occorre quindi dimostrare il riconoscimento della frase esatta con il modello candidato; se non è adeguato, serve un altro modello ONNX verificato prima di dichiarare il catalogo completo. Identificatori della configurazione, versioni dei file e soglie di rilevamento restano da specificare dopo la verifica dei modelli e delle licenze. Un identificatore non disponibile è una configurazione invalida.
 
 #### Metadata
   * type: specification
