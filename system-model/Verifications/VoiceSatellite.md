@@ -187,6 +187,58 @@ Esaminare manifest, import di produzione e di soli tipi, composition root e test
   * verify: [Progetto unico del satellite](../Requirements/VoiceSatellite.md#progetto-unico-del-satellite)
 ---
 
+### Ispezione dei nomi secondo le responsabilità
+
+#### Details
+Partire dall'elenco completo dei file di produzione, dalle porte Application e dai punti di ingresso; non limitare la ricerca ai nomi che contengono già `.adapter` o `.use-case`. Per ciascun componente interessato registrare percorso, responsabilità, eventuale porta implementata o caso d'uso invocato, classificazione e nome atteso.
+
+L'ispezione passa se tutti i casi d'uso hanno il suffisso `.use-case.ts`, tutti gli adapter di ingresso e di uscita hanno il suffisso `.adapter.ts` e i file di supporto non sono classificati come adapter soltanto per la cartella che li contiene. Considerare anche le implementazioni strutturali di porte a oggetto o callable; non affidarsi al solo `implements`. I ruoli ambigui devono essere risolti con motivazione documentata. L'ispezione fallisce se manca un suffisso richiesto o se un suffisso descrive un ruolo non realizzato.
+
+Per ogni rinomina controllare import, export pubblici, riferimenti nei test e collegamenti Reqvire. La compilazione e i test pertinenti devono continuare a passare. Registrare revisione Git esaminata, elenco dei file classificati, difetti ed esito; la presenza di una relazione `satisfiedBy` e il successo di `validate` o `lint` non sostituiscono questa ispezione.
+
+#### Esito dell'ispezione del 16 ottobre 2026
+Esito: PASS sul worktree successivo alla revisione base `cf91098f0504b947913e82e883ece157c5b6525c`. Esaminati tutti i 17 file TypeScript di produzione, comprese le implementazioni strutturali delle porte e i punti di ingresso. Nessuna non conformità residua di naming nel perimetro esaminato.
+
+Identificazione riproducibile dei sorgenti esaminati: SHA-256 `a82690bb206e72c594037bc6f27731f8e8b5bbd895850b42ae094fa98aa2241f`, calcolato concatenando, in ordine lessicografico, percorso relativo UTF-8, byte NUL, contenuto del file, byte NUL, per tutti i file dell'inventario. Il risultato riguarda questo stato del worktree, non attesta modifiche successive.
+
+Rinominato VoiceSession in `voice-session.use-case.ts`: lo stato e la forma a classe non ne cambiano il ruolo. Estratte dalla composition root la traduzione degli eventi inbound e l'implementazione outbound di VoiceSessionPorts. Il loader dell'avviso WAV è un supporto tecnico separato. Driver ONNX, Silero e Decibri restano senza suffisso perché realizzano contratti di libreria e non porte Application.
+
+#### Inventario completo
+Il percorso in tabella è anche il nome atteso. Classificazione basata su responsabilità, porte e chiamate esaminate; la cartella non determina il ruolo.
+
+| File di produzione e nome atteso | Responsabilità e classificazione | Controllo |
+| --- | --- | --- |
+| `src/adapters/in/config-arguments.ts` | Supporto CLI: parsing argomenti, nessun caso d'uso invocato. | Nome descrittivo, nessun suffisso richiesto |
+| `src/adapters/in/micdrop-events.adapter.ts` | Adapter inbound: eventi microfono, wake word, Micdrop e playback → VoiceSession. | Suffisso richiesto presente |
+| `src/adapters/out/backend-url.ts` | Supporto configurazione: costruzione URL. | Nome descrittivo, nessun suffisso richiesto |
+| `src/adapters/out/config-file.ts` | Supporto bootstrap: lettura configurazione. | Nome descrittivo, nessun suffisso richiesto |
+| `src/adapters/out/configuration.ts` | Supporto: schema e validazione configurazione. | Nome descrittivo, nessun suffisso richiesto |
+| `src/adapters/out/decibri-audio.ts` | Driver audio tecnico; non implementa una porta Application. | Nome descrittivo, nessun suffisso richiesto |
+| `src/adapters/out/local-notice.ts` | Supporto: caricamento WAV e formattazione diagnostica. | Nome descrittivo, nessun suffisso richiesto |
+| `src/adapters/out/micdrop-call.adapter.ts` | Adapter outbound: implementa VoiceSessionPorts (chiamata, mute, chiusura e avviso). | Suffisso richiesto presente |
+| `src/adapters/out/micdrop-decibri-drivers.ts` | Driver microfono/speaker di Micdrop; non implementano porte Application. | Nome descrittivo, nessun suffisso richiesto |
+| `src/adapters/out/micdrop-playback.ts` | Supporto tecnico: rilevamento della fine riproduzione. | Nome descrittivo, nessun suffisso richiesto |
+| `src/adapters/out/onnx-wake-word.ts` | Driver inferenza ONNX; segnala callback all'adapter inbound. | Nome descrittivo, nessun suffisso richiesto |
+| `src/adapters/out/silero-node.ts` | Driver VAD di Micdrop; non implementa una porta Application. | Nome descrittivo, nessun suffisso richiesto |
+| `src/adapters/out/wake-word-catalog.ts` | Supporto: catalogo e percorsi modelli. | Nome descrittivo, nessun suffisso richiesto |
+| `src/application/voice-session.use-case.ts` | Caso d'uso: interazione vocale con stato, timeout e VoiceSessionPorts. | Suffisso richiesto presente |
+| `src/composition/satellite.ts` | Composition root: costruisce e collega risorse, casi d'uso e adapter. | Nome descrittivo, nessun suffisso richiesto |
+| `src/domain/voice-turn.ts` | Domain: macchina a stati pura del turno. | Nome descrittivo, nessun suffisso richiesto |
+| `src/main.ts` | Bootstrap del processo e arresto delle risorse. | Nome descrittivo, nessun suffisso richiesto |
+
+#### Evidenze eseguite
+`./node_modules/.bin/tsc --noEmit` e `./node_modules/.bin/tsc -p tsconfig.build.json`: PASS. `./node_modules/.bin/vitest run`: 12 file di test, 52 test PASS. Il nuovo `test/adapters/in/micdrop-events.test.ts` controlla un turno e la replica senza altra wake word, il filtro dei frame e la rimozione dei listener. Caricamento WAV dal modulo compilato spostato: PASS, 48384 campioni.
+
+Riesaminati import relativi, export, riferimenti dei test e collegamenti del modello aggiornati dalle rinomine MCP. Questa ispezione attesta la convenzione dei nomi e la regressione software pertinente; non sostituisce le dimostrazioni audio su hardware o la validazione generale del prodotto.
+
+#### Metadata
+  * type: inspection-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Nomi dei file secondo il ruolo architetturale](../Requirements/VoiceSatellite.md#nomi-dei-file-secondo-il-ruolo-architetturale)
+---
+
 ### Ispezione del bootstrap della configurazione
 
 Verifica pianificata; nessuna evidenza di esecuzione disponibile.
@@ -236,4 +288,3 @@ Per ogni modello presente nel catalogo confrontare file, origine, versione, lice
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Condizioni di distribuzione dei modelli wake word](../Requirements/VoiceSatellite.md#condizioni-di-distribuzione-dei-modelli-wake-word)
 ---
-

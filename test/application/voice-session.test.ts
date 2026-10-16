@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { VoiceSession } from '../../src/application/voice-session.js';
+import { VoiceSession } from '../../src/application/voice-session.use-case.js';
 
 describe('voice session', () => {
   beforeEach(() => vi.useFakeTimers());

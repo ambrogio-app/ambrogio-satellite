@@ -1,7 +1,5 @@
 # Elements
 
-# VoiceSatellite
-
 ### Ontologia del satellite vocale
 
 Schema strutturale autonomo del sistema satellite. Il backend è un sistema esterno: qui si rappresenta il suo ruolo al confine vocale, senza importare la sua ontologia o la sua storia conversazionale.
@@ -131,4 +129,3 @@ sat:theSatellite a owl:NamedIndividual, sat:VoiceSatellite ;
   * ontology_base: https://github.com/adrianofoschi/ambrogio-satellite/ontology/voice-satellite
   * ontology_prefix: sat
 ---
-

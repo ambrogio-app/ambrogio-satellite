@@ -1,0 +1,65 @@
+import { Mic, Micdrop, type MicdropState } from '@micdrop/client';
+import type { VoiceSession } from '../../application/voice-session.use-case.js';
+
+/** Translates microphone, wake-word and Micdrop events into the session use case. */
+export function createMicdropEventsAdapter(options: Readonly<{
+  getSession(): VoiceSession | undefined;
+  isStopping(): boolean;
+  pushWakeFrames(frames: Float32Array): void;
+  playback: Readonly<{ update(playing: boolean): void; begin(): void }>;
+}>) {
+  const { playback } = options;
+  const onFrames = (frames: Float32Array) => {
+    if (options.getSession()?.state.phase === 'waiting_wake_word') options.pushWakeFrames(frames);
+  };
+  const onStateChange = (state: MicdropState, previous: MicdropState) => {
+    const session = options.getSession();
+    playback.update(state.isAssistantSpeaking);
+    if (!previous.isUserSpeaking && state.isUserSpeaking) {
+      session?.dispatch({ kind: 'speech_started' });
+    }
+    if (previous.isUserSpeaking && !state.isUserSpeaking) {
+      queueMicrotask(() => {
+        if (session?.state.phase !== 'recording') return;
+        playback.begin();
+        session.dispatch({ kind: 'speech_ended' });
+      });
+    }
+    if (previous.isStarted && !state.isStarted && !options.isStopping()
+      && session && !['waiting_wake_word', 'closing_call'].includes(session.state.phase)) {
+      void session.fail(new Error('Micdrop call closed unexpectedly'));
+    }
+  };
+  const onMessage = (message: { role: string; metadata?: Record<string, unknown> }) => {
+    const session = options.getSession();
+    if (message.role === 'assistant') {
+      session?.dispatch({ kind: 'assistant_message', expectsReply: message.metadata?.expectsReply });
+    }
+  };
+  const onError = (error: Error) => {
+    const session = options.getSession();
+    if (session && !['waiting_wake_word', 'closing_call'].includes(session.state.phase)) {
+      void session.fail(error);
+    }
+  };
+
+  return {
+    wakeDetected() { options.getSession()?.dispatch({ kind: 'wake_detected' }); },
+    responsePlayed() { options.getSession()?.dispatch({ kind: 'response_played' }); },
+    failed(error: Error) {
+      if (!options.isStopping()) void options.getSession()?.fail(error);
+    },
+    attach() {
+      Mic.on('Frames', onFrames);
+      Micdrop.on('StateChange', onStateChange);
+      Micdrop.on('Message', onMessage);
+      Micdrop.on('Error', onError);
+    },
+    detach() {
+      Mic.off('Frames', onFrames);
+      Micdrop.off('StateChange', onStateChange);
+      Micdrop.off('Message', onMessage);
+      Micdrop.off('Error', onError);
+    },
+  };
+}

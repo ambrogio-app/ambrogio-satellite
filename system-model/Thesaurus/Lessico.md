@@ -175,4 +175,3 @@ Espressione pronunciata dalla famiglia che permette di attivare il satellite qua
   * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
   * related: [Modello di wake word](#modello-di-wake-word)
 ---
-
