@@ -253,6 +253,7 @@ Quando una modifica viene proposta tramite pull request, la CI del satellite dev
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [ci.yml](../../.github/workflows/ci.yml)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
