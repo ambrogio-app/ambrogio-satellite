@@ -296,6 +296,17 @@ I chiamanti delle porte e dei casi d’uso devono gestire esplicitamente tutte l
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Invio sicuro durante connessione e riconnessione
+
+Quando il canale vocale è in apertura o riconnessione, il satellite deve impedire l'invio di comandi e frame audio su una WebSocket non aperta, senza terminare il processo per un errore di stato della connessione. Il ripristino dell'interazione e l'eventuale perdita di un turno seguono le regole di recupero del satellite, senza reinvio automatico di audio già trasmesso.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Log tecnici JSON su stdout
 
 Il satellite deve emettere ogni evento diagnostico tecnico come una singola riga JSON su stdout.

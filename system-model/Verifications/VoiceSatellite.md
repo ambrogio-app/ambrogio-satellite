@@ -44,6 +44,22 @@ Rendere irraggiungibile il backend e attivare il satellite: si ascolta un messag
   * verify: [Ripristino dopo backend irraggiungibile](../Requirements/VoiceSatellite.md#ripristino-dopo-backend-irraggiungibile)
 ---
 
+### Dimostrazione del trasporto Micdrop
+
+Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
+
+#### Details
+Installare `@micdrop/client` 3.4.0 senza modifiche e documentare i punti di invio che possono usare una WebSocket non aperta; applicare due volte la patch locale e verificare che sia idempotente. Alterare il codice atteso in una copia di prova e verificare che la preparazione fallisca in modo esplicito. Con una WebSocket controllata, provocare eventi audio e comandi durante apertura iniziale, disconnessione e riconnessione: nessun `send` in stato `CONNECTING`, nessuna eccezione non gestita e nessun turno dichiarato consegnato se non trasmesso. Ripetere contro la revisione backend di riferimento, verificando `Message.metadata.expectsReply`, `Played` sulla stessa connessione dopo la riproduzione Decibri e la chiusura dell'interazione. Conservare versione del pacchetto, esiti e log della prova.
+
+#### Metadata
+  * type: demonstration-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Compatibilità con il canale vocale backend](../Requirements/VoiceSatellite.md#compatibilità-con-il-canale-vocale-backend)
+  * verify: [Invio sicuro durante connessione e riconnessione](../Requirements/VoiceSatellite.md#invio-sicuro-durante-connessione-e-riconnessione)
+---
+
 ### Dimostrazione della attivazione locale
 
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.

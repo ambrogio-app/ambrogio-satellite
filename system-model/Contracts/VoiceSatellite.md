@@ -110,6 +110,19 @@ Lo spike in `/home/adriano/projects/ambrogio-spike/satellite/spike/` dimostra la
   * define: [Ascolto locale della wake word](../Requirements/VoiceSatellite.md#ascolto-locale-della-wake-word)
 ---
 
+### Protezione degli invii Micdrop
+
+La versione pubblicata di `@micdrop/client` 3.4.0 può chiamare `WebSocket.send` mentre il socket è ancora in stato `CONNECTING`, all'apertura e dopo una disconnessione. Fino a una correzione upstream verificata, la distribuzione applica una patch locale ripetibile che consente gli invii del client soltanto quando il socket è aperto. La patch controlla versione e punti modificati e fa fallire la preparazione del pacchetto se il codice atteso cambia; non modifica silenziosamente una nuova versione.
+
+La patch è temporanea: quando una versione pubblicata corregge il difetto, la prova di apertura e riconnessione va ripetuta su tale versione prima di rimuoverla. Il satellite non interpreta la mancata trasmissione durante `CONNECTING` come consegna riuscita del turno.
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Invio sicuro durante connessione e riconnessione](../Requirements/VoiceSatellite.md#invio-sicuro-durante-connessione-e-riconnessione)
+---
+
 ### Recupero locale da backend irraggiungibile
 
 Il messaggio di fallimento è una registrazione audio disponibile localmente nella distribuzione, riproducibile anche quando il backend non risponde. Dopo il messaggio il processo resta attivo e torna ad attendere la wake word. Una nuova attivazione tenta una nuova interazione. Non si conserva la richiesta fallita per reinviarla automaticamente. Il testo della registrazione e il comportamento per disconnessioni a turno già avviato restano da definire.
@@ -167,5 +180,18 @@ Il modello Silero e la sua licenza devono accompagnare la distribuzione: https:/
 
 #### Relations
   * define: [Delimitazione locale dei turni vocali](../Requirements/VoiceSatellite.md#delimitazione-locale-dei-turni-vocali)
+---
+
+### Trasporto vocale con Micdrop
+
+La prima versione usa `@micdrop/client` 3.4.0 nell'adapter outbound del canale vocale, riutilizzando i driver Decibri e la segmentazione locale Silero per il protocollo pubblico del backend. Domain e Application dipendono soltanto dalle porte del satellite. La revisione del backend da provare è quella registrata nel «Contratto vocale backend di riferimento»; l'uso della stessa libreria non dimostra da solo la compatibilità.
+
+Il client 3.4.0 non espone un metodo pubblico per inviare il comando `Played` richiesto dal backend. L'adapter deve disporre di un modo verificabile per inviarlo sulla stessa connessione dopo il completamento effettivo della riproduzione Decibri; il meccanismo di estensione resta da concordare prima del codice. Anche la ricezione di `Message.metadata.expectsReply` e la chiusura sicura dell'interazione richiedono una prova contro il backend.
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Compatibilità con il canale vocale backend](../Requirements/VoiceSatellite.md#compatibilità-con-il-canale-vocale-backend)
 ---
 

@@ -4,7 +4,7 @@ Client satellite per l'interazione vocale con Ambrogio. Il repository possiede i
 
 ## Stato
 
-Modello salvato tramite MCP Reqvire: una capability, un lessico locale con 14 concetti, un’ontologia strutturale, 41 requisiti, 14 contratti, un obiettivo di verifica e 12 verifiche pianificate. L’implementazione non è ancora iniziata. Il modello è il riferimento autorevole; questo README ne riepiloga le decisioni.
+Modello salvato tramite MCP Reqvire: una capability, un lessico locale con 14 concetti, un’ontologia strutturale, 42 requisiti, 16 contratti, un obiettivo di verifica e 13 verifiche pianificate. L’implementazione non è ancora iniziata. Il modello è il riferimento autorevole; questo README ne riepiloga le decisioni.
 
 ## Decisioni concordate il 16 ottobre 2026
 
@@ -18,6 +18,7 @@ Modello salvato tramite MCP Reqvire: una capability, un lessico locale con 14 co
 - Il riconoscimento locale della wake word usa modelli openWakeWord ONNX nel processo Node.js, tramite ONNX Runtime. Non richiede un servizio Wyoming separato. Lo spike ne mostra la fattibilità iniziale, ma la distribuzione finale va provata su x86_64 e arm64.
 - La delimitazione dei turni vocali usa Silero VAD ONNX nel processo Node.js. Deve preservare risposte brevi e richieste con pause interne; versione del modello, soglie, latenza e consumo di CPU saranno fissati dopo prove sulle due architetture.
 - Gli adapter audio usano Decibri per microfono e speaker. La fine della risposta coincide con la fine effettiva della riproduzione; l'esecuzione Linux deve includere la libreria runtime ALSA e l'accesso ai dispositivi configurati.
+- Il trasporto vocale usa `@micdrop/client` 3.4.0. Una patch locale temporanea protegge gli invii durante apertura e riconnessione della WebSocket; una prova deve coprire entrambi i casi e la compatibilità con il backend. Il client non espone un invio pubblico di `Played`: il meccanismo per emetterlo sulla stessa connessione resta da concordare prima del codice.
 - I modelli wake word distribuiti sono destinati all'uso non commerciale; ogni modello incluso deve avere origine, licenza, condizioni di redistribuzione e attribuzioni verificate e consegnate con i pacchetti host e container. La licenza dei modelli è distinta da quella del codice del satellite.
 - È possibile pronunciare «Hey Jarvis» e la richiesta senza una pausa obbligatoria. Una riserva temporanea di audio in memoria evita di perdere l'inizio della richiesta durante riconoscimento e apertura della connessione.
 - La prima versione attende la fine della risposta parlata e non permette di interromperla con la voce.
@@ -34,7 +35,7 @@ Le decisioni sono registrate in [lessico](system-model/Thesaurus/Lessico.md), [o
 
 Le verifiche pianificate coprono frase continua, riconoscimento locale, catalogo distribuito, repliche richieste dal backend, assenza di interruzioni vocali, recupero con messaggio locale, configurazione, architettura ed esecuzione su entrambe le architetture con e senza Docker. I collegamenti di verifica non indicano prove eseguite. Prima del codice occorre completare i contratti aperti e preparare i test pertinenti secondo `AGENTS.md`.
 
-Lo spike in `/home/adriano/projects/ambrogio-spike/satellite/spike/` è una fonte di evidenze e limiti tecnici, non un vincolo sul protocollo o sul codice definitivo. Restano da scegliere libreria di trasporto e versioni delle dipendenze e dei modelli distribuiti. Il testo del messaggio locale, le soglie di riconoscimento, i limiti della riserva audio e la gestione dei guasti durante un'interazione richiedono ancora specificazione.
+Lo spike in `/home/adriano/projects/ambrogio-spike/satellite/spike/` è una fonte di evidenze e limiti tecnici, non un vincolo sul protocollo o sul codice definitivo. Restano da scegliere le versioni delle altre dipendenze e dei modelli distribuiti. Il testo del messaggio locale, le soglie di riconoscimento, i limiti della riserva audio e la gestione dei guasti durante un'interazione richiedono ancora specificazione.
 
 Il contratto vocale da esaminare è «Protocollo vocale del prodotto» in `ambrogio-backend/system-model/Contracts/FamilyConversation.md`, al commit candidato `1e7c9fbc7a91876f53aae98f4c1fc41f6400472e`. Il backend avverte che il satellite dello spike potrebbe richiedere un aggiornamento: l'integrazione va verificata contro questa revisione.
 
