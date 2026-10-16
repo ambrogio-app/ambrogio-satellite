@@ -65,7 +65,7 @@ Il satellite non deve conservare su memoria persistente l’audio acquisito dall
 
 ### Attesa della fine della risposta
 
-Mentre riproduce la risposta di Ambrogio, il satellite deve attendere la fine della riproduzione senza consentire interruzioni vocali né ammettere nuovi turni.
+Mentre riproduce la risposta di Ambrogio, il satellite deve impedire interruzioni vocali e nuovi turni. Nella prima versione usa lo stato di riproduzione di Micdrop e la conclusione della coda Decibri: dopo il primo avvio della riproduzione aspetta che `isAssistantSpeaking` resti falso per 1000 ms. Un nuovo blocco audio durante l'attesa azzera l'intervallo. La riapertura della replica o la chiusura avviene soltanto dopo l'intervallo e la riproduzione dei campioni accodati. Se l'audio non inizia o non termina, il satellite chiude per timeout. Questa regola è euristica: una pausa del TTS più lunga dell'intervallo può essere scambiata per la fine della risposta; la verifica deve misurarla prima del rilascio.
 
 #### Metadata
   * type: requirement
