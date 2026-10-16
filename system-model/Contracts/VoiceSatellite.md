@@ -1,5 +1,20 @@
 # Elements
 
+### Adapter audio con Decibri
+
+La prima versione usa Decibri negli adapter tecnici del processo Node.js per acquisire audio dal microfono configurato e riprodurre le risposte sul dispositivo di uscita configurato. La stessa selezione logica dei dispositivi vale su host e nel container; gli identificatori fisici disponibili possono differire tra macchine. Domain e Application vedono soltanto le porte audio, senza importare tipi o oggetti Decibri.
+
+L'adapter di uscita conserva l'ordine dei blocchi audio e considera completata una risposta soltanto dopo che i campioni accodati sono stati effettivamente riprodotti. Chiude o rilascia lo speaker quando non serve più; lo spike ha osservato errori ricorrenti lasciando un'uscita ALSA inattiva aperta. Errori di apertura, disconnessione o riproduzione attraversano le porte come esiti o guasti appropriati secondo le regole del satellite.
+
+Decibri fornisce binari nativi per Linux x64 e arm64 e richiede la libreria runtime ALSA `libasound.so.2`; versione da fissare e comportamento reale da provare su entrambe le architetture, su host e in Docker. API e dipendenze documentate: https://decibri.com/docs/apis/node .
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Configurazione JSON unica](../Requirements/VoiceSatellite.md#configurazione-json-unica)
+---
+
 ### Attivazione e riserva audio
 
 La famiglia può pronunciare Hey Jarvis e la richiesta nella stessa frase. L’audio necessario è conservato temporaneamente in memoria durante il riconoscimento locale e l’apertura del canale; la trasmissione del turno comincia soltanto dopo l’ammissione prevista dal backend. Il modello della wake word può essere diverso se selezionato dal catalogo distribuito. Capacità della riserva, limite di attesa della connessione e comportamento al superamento dei limiti restano da concordare: non si assume una memoria illimitata né una garanzia in presenza di una connessione che non si apre.
@@ -62,7 +77,7 @@ Decisione concordata e implementata nel backend: sono ammessi turni in parallelo
 
 ### Esecuzione host e container
 
-L’applicazione TypeScript su Node.js funziona direttamente su Linux x86_64 e arm64 con dipendenze e modelli installati. Docker è una modalità facoltativa che confeziona la stessa applicazione per linux/amd64 e linux/arm64. La configurazione ha lo stesso significato in entrambe le modalità. La baseline Linux, le dipendenze native, l’accesso audio e le istruzioni di installazione devono essere definiti e verificati; il solo supporto dell’architettura non dimostra compatibilità con ogni distribuzione o periferica.
+L’applicazione TypeScript su Node.js funziona direttamente su Linux x86_64 e arm64 con dipendenze e modelli installati. Docker è una modalità facoltativa che confeziona la stessa applicazione per linux/amd64 e linux/arm64. La configurazione ha lo stesso significato in entrambe le modalità. L'adapter audio Decibri richiede il proprio binario nativo per la piattaforma e la libreria runtime ALSA `libasound.so.2`; il pacchetto host documenta la dipendenza e l'immagine container la include con accesso esplicito alle periferiche. La baseline Linux, la versione di Decibri, le altre dipendenze native e le istruzioni di installazione devono essere definite e verificate; il solo supporto dell’architettura non dimostra compatibilità con ogni distribuzione o periferica.
 
 #### Metadata
   * type: specification

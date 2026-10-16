@@ -68,7 +68,7 @@ Con ogni modello del catalogo, dimostrare che la pipeline ONNX nel processo Node
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
 
 #### Details
-Avviare usando un file JSON valido selezionato esplicitamente e verificare backend, dispositivi audio e modello scelti. Impostare variabili d’ambiente contrastanti e verificare che non modifichino i valori. Ripetere con JSON invalido e selezione di modello non distribuito: l’avvio operativo è impedito con errore comprensibile. Eseguire i casi sia sull’host sia nel container dopo aver definito lo schema completo.
+Avviare usando un file JSON valido selezionato esplicitamente e verificare backend, modello scelto e apertura tramite Decibri dei dispositivi audio configurati; dove disponibili più periferiche, accertare che non venga usato il dispositivo predefinito al posto di quello selezionato. Impostare variabili d’ambiente contrastanti e verificare che non modifichino i valori. Ripetere con JSON invalido e selezione di modello non distribuito: l’avvio operativo è impedito con errore comprensibile. Eseguire i casi sia sull’host sia nel container dopo aver definito lo schema completo.
 
 #### Metadata
   * type: demonstration-verification
@@ -86,7 +86,7 @@ Avviare usando un file JSON valido selezionato esplicitamente e verificare backe
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
 
 #### Details
-Contro la revisione backend compatibile fissata nel contratto, riprodurre una risposta completa; parlare durante la riproduzione e verificare che non la interrompa né apra un turno. Provare `Message` Micdrop dell'assistente con `metadata.expectsReply` uguale a `true` e `false`, sia prima sia dopo la fine effettiva dell'audio: solo nel primo caso una replica senza wake word appartiene alla stessa interazione. Verificare che `Played` venga inviato alla fine della riproduzione. Con metadati assenti, valore non booleano o messaggio che non arriva, il satellite non deve inferire una risposta dalla punteggiatura né aprire una replica; dopo al massimo l'intervallo di inattività configurato chiude e torna alla wake word. Dopo la chiusura per inattività occorre una nuova wake word. Prerequisito: implementazione del segnale nel backend.
+Contro la revisione backend compatibile fissata nel contratto, riprodurre una risposta completa; parlare durante la riproduzione e verificare che non la interrompa né apra un turno. Provare `Message` Micdrop dell'assistente con `metadata.expectsReply` uguale a `true` e `false`, sia prima sia dopo la fine effettiva dell'audio: solo nel primo caso una replica senza wake word appartiene alla stessa interazione. Verificare che `Played` venga inviato soltanto dopo che Decibri ha completato la riproduzione di tutti i campioni accodati, non alla sola ricezione dell'ultimo blocco audio. Con metadati assenti, valore non booleano o messaggio che non arriva, il satellite non deve inferire una risposta dalla punteggiatura né aprire una replica; dopo al massimo l'intervallo di inattività configurato chiude e torna alla wake word. Dopo la chiusura per inattività occorre una nuova wake word. Prerequisito: implementazione del segnale nel backend.
 
 #### Metadata
   * type: demonstration-verification
@@ -106,7 +106,7 @@ Contro la revisione backend compatibile fissata nel contratto, riprodurre una ri
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
 
 #### Details
-Su host Linux x86_64 e arm64 dotati di microfono e speaker, installare ed eseguire la stessa versione sia direttamente sia in Docker; completare un’interazione vocale in ciascuna combinazione usando lo stesso schema di configurazione. Registrare sistema operativo, periferiche, versioni e dipendenze native, inclusi ONNX Runtime e i file dei modelli caricati. Accertare che il rilevamento funzioni nel processo satellite sia su host sia nel container. Una build riuscita o una prova sotto emulazione non sostituisce la dimostrazione audio sulle due architetture.
+Su host Linux x86_64 e arm64 dotati di microfono e speaker, installare ed eseguire la stessa versione sia direttamente sia in Docker; completare un’interazione vocale in ciascuna combinazione usando lo stesso schema di configurazione. Registrare sistema operativo, periferiche, versioni e dipendenze native, inclusi Decibri, `libasound.so.2`, ONNX Runtime e i file dei modelli caricati. Acquisire dal microfono e riprodurre fino alla fine una risposta sullo speaker configurato in tutte le combinazioni. Accertare che il rilevamento funzioni nel processo satellite sia su host sia nel container. Una build riuscita o una prova sotto emulazione non sostituisce la dimostrazione audio sulle due architetture.
 
 #### Metadata
   * type: demonstration-verification
