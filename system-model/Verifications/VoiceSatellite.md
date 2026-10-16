@@ -344,6 +344,9 @@ La revisione non cambia durate o protocollo pubblico; README aggiornato per il n
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [node-deadline-scheduler.test.ts](../../test/adapters/out/node-deadline-scheduler.test.ts)
+  * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
+  * satisfiedBy: [tsconfig.core.json](../../tsconfig.core.json)
   * verify: [Indipendenza tecnica di Domain e Application](../Requirements/VoiceSatellite.md#indipendenza-tecnica-di-domain-e-application)
   * verify: [Programmazione delle scadenze tramite porta Application](../Requirements/VoiceSatellite.md#programmazione-delle-scadenze-tramite-porta-application)
 ---

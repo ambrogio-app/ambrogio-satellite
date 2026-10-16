@@ -355,6 +355,7 @@ Domain e Application del satellite devono usare soltanto API standard ECMAScript
 
 #### Relations
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
+  * satisfiedBy: [tsconfig.core.json](../../tsconfig.core.json)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -448,6 +449,8 @@ Quando programma o annulla una scadenza dell'interazione vocale, Application dev
 
 #### Relations
   * definedBy: [Porta di programmazione delle scadenze](../Contracts/VoiceSatellite.md#porta-di-programmazione-delle-scadenze)
+  * satisfiedBy: [node-deadline-scheduler.adapter.ts](../../src/adapters/out/node-deadline-scheduler.adapter.ts)
+  * satisfiedBy: [deadline-scheduler.ts](../../src/application/deadline-scheduler.ts)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
