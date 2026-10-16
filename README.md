@@ -58,6 +58,10 @@ Sono state recepite anche le regole del backend su composition root, confini deg
 
 ## Modello e lavoro ancora aperto
 
+### Raccolta dei log
+
+Il satellite scrive i log applicativi JSON su stdout. Conservazione, rotazione ed eventuale inoltro centralizzato sono responsabilità dell'installazione: configurarle nel runtime Docker oppure nel gestore del servizio host, per esempio systemd/journald. L'applicazione non richiede un servizio di logging e non configura file, credenziali o endpoint di raccolta. L'avvio diretto da terminale non garantisce la conservazione dei log. La raccolta esterna non risolve la protezione ancora aperta dei log diretti di Micdrop.
+
 ### Controlli CI
 
 Il workflow `.github/workflows/ci.yml` definisce il check `Satellite checks` per ogni pull request, push a `main` e avvio manuale. Su Ubuntu 24.04 con Node.js 24 e pnpm 12.11.2 installa dal lockfile congelato ed esegue validazione e lint Reqvire 1.3.2, typecheck completo e dei layer interni, Vitest e build. Anche i rilievi del lint che richiedono revisione manuale fanno fallire il job. Le prove con periferiche audio e su arm64 restano separate.

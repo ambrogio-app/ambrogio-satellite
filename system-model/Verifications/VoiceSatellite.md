@@ -338,6 +338,21 @@ Controllare via GitHub che main richieda il check `Satellite checks` e impedisca
   * verify: [Controlli obbligatori prima del merge](../Requirements/VoiceSatellite.md#controlli-obbligatori-prima-del-merge)
 ---
 
+### Ispezione della raccolta esterna dei log
+
+Ispezionare costruzione del logger, call site, configurazione, dipendenze e avvio container: nessuna destinazione file o remota applicativa, nessun meccanismo di rotazione interno, nessun servizio di logging richiesto per avviare il satellite. Verificare che la documentazione assegni conservazione, rotazione e inoltro all’installazione.
+
+#### Details
+2026-10-16: ispezione PASS su base 2a2aa358d51b731cc3b77722e6108123610326ab. diagnostics.ts costruisce l’istanza di produzione con process.stdout; la destinazione alternativa è usata dai test per acquisire le righe. Nessun transport Pino o backend di raccolta nelle dipendenze e nei sorgenti. Dockerfile avvia direttamente Node senza redirezioni verso file. Non sono state configurate o provate politiche reali di conservazione nel deployment. I log diretti di Micdrop rimangono una lacuna separata.
+
+#### Metadata
+  * type: inspection-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Gestione dei log affidata al deployment](../Requirements/VoiceSatellite.md#gestione-dei-log-affidata-al-deployment)
+---
+
 ### Ispezione delle licenze dei modelli distribuiti
 
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.

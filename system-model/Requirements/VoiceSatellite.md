@@ -384,6 +384,18 @@ Quando si verifica un guasto inatteso, il satellite deve propagarlo come eccezio
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Gestione dei log affidata al deployment
+
+Quando l’installazione richiede conservazione, rotazione o inoltro dei log tecnici, tali funzioni devono essere gestite dal deployment; il satellite deve continuare a emettere su stdout senza integrare archivi o servizi di raccolta specifici.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Gestione esaustiva dei rifiuti previsti
 
 I chiamanti delle porte e dei casi d’uso devono gestire esplicitamente tutte le varianti dei rifiuti previsti dai rispettivi contratti.
