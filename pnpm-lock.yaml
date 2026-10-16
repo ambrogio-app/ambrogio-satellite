@@ -165,6 +165,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      decibri:
+        specifier: 5.8.0
+        version: 5.8.0
     devDependencies:
       '@types/node':
         specifier: 24.19.2
@@ -177,6 +181,31 @@ importers:
         version: 5.0.5(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2))
 
 packages:
+
+  '@decibri/decibri-darwin-arm64@5.8.0':
+    resolution: {integrity: sha512-dv86BvRoP+IlS/ucJ73vGP/mzGgRcLvyoS0MxoCAkSnrlWKFhKzW6fbm7rqberIkODsiJPHjUfXuSIAd06KC+g==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@decibri/decibri-linux-arm64-gnu@5.8.0':
+    resolution: {integrity: sha512-wlzVMVh5aWzVyZgaSNJ0ZfpUfyGsb+plNGdlEcg5bLZ5KFhnT5D/y9YBA+Q+NKLdyzO/mgrsuZpf9VS6ZDJHbw==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@decibri/decibri-linux-x64-gnu@5.8.0':
+    resolution: {integrity: sha512-+43s3AzpktZiDy2ws47v59TzUivhFo8TQYUKU/EcDdRRebYCnlEHGSeoSDkjI30lW4m85nURETfxEWsGbKtcGg==}
+    cpu: [x64]
+    os: [linux]
+
+  '@decibri/decibri-win32-arm64-msvc@5.8.0':
+    resolution: {integrity: sha512-FS1yvuj0UpG9WDTG3JIcDR1UyGDBNKw+Ht7LVhqJDs4uoJmSnrMTTuHzqyY5QuznVE6jyFkTCIl+/XKku48GoA==}
+    cpu: [arm64]
+    os: [win32]
+
+  '@decibri/decibri-win32-x64-msvc@5.8.0':
+    resolution: {integrity: sha512-pAmKh6fp3VLaOVD6bChCZFLqThM+pzohb/2BYDN99+3thrb9/cZYgfTocXZ/WjRuHHvR6ErjgQ1wed63unQKYQ==}
+    cpu: [x64]
+    os: [win32]
 
   '@jridgewell/resolve-uri@3.1.2':
     resolution: {integrity: sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==}
@@ -444,6 +473,12 @@ packages:
     resolution: {integrity: sha512-XWAtwJ6OHO+tj0EKCs0Y2UamnyOxseZWltU4x2U2wh8g4AigdjwvtUjvLP2tqkA/avxHEtzxNaqGq/YGNwckKg==}
     engines: {node: '>=18'}
 
+  decibri@5.8.0:
+    resolution: {integrity: sha512-mAIFQ0jMmGj4UqF56UDHtX53PvUMpEE4odTUfhvR8ejG2VvohiSPc4hSk83IUNRxj1unrEuSeF0G6RPtaegR6Q==}
+    engines: {node: '>=18.0.0'}
+    cpu: [x64, arm64]
+    os: [win32, darwin, linux]
+
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
@@ -692,6 +727,21 @@ packages:
 
 snapshots:
 
+  '@decibri/decibri-darwin-arm64@5.8.0':
+    optional: true
+
+  '@decibri/decibri-linux-arm64-gnu@5.8.0':
+    optional: true
+
+  '@decibri/decibri-linux-x64-gnu@5.8.0':
+    optional: true
+
+  '@decibri/decibri-win32-arm64-msvc@5.8.0':
+    optional: true
+
+  '@decibri/decibri-win32-x64-msvc@5.8.0':
+    optional: true
+
   '@jridgewell/resolve-uri@3.1.2': {}
 
   '@jridgewell/sourcemap-codec@1.6.0': {}
@@ -837,6 +887,14 @@ snapshots:
   assertion-error@2.0.1: {}
 
   chai@6.3.0: {}
+
+  decibri@5.8.0:
+    optionalDependencies:
+      '@decibri/decibri-darwin-arm64': 5.8.0
+      '@decibri/decibri-linux-arm64-gnu': 5.8.0
+      '@decibri/decibri-linux-x64-gnu': 5.8.0
+      '@decibri/decibri-win32-arm64-msvc': 5.8.0
+      '@decibri/decibri-win32-x64-msvc': 5.8.0
 
   detect-libc@2.1.2: {}
 
