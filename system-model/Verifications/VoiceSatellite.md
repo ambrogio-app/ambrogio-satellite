@@ -10,7 +10,7 @@ Organizzare le dimostrazioni operative e le ispezioni della prima versione. Le a
 
 ### Dimostrazione degli esiti e della diagnostica
 
-Verifica pianificata; nessuna evidenza di esecuzione disponibile.
+Verifica parziale del 2026-10-16: mapping dei due rifiuti di configurazione esplicito nel bootstrap con default assertNever. In una copia temporanea dei sorgenti è stata aggiunta la variante audit_probe: compilazione rifiutata in main.ts con TS2345 verso never. I sorgenti di lavoro non contengono la variante. Suite di 89 test, typecheck e build PASS; le prove Pino e Application conservano le evidenze su unicità e cause. La verifica globale resta aperta per i log diretti Micdrop; nessuna nuova prova vocale reale.
 
 #### Details
 Esaminare firme Result e mapping esaustivi dei rifiuti; introdurre una nuova variante in una prova controllata e verificare che il mapping incompleto sia rilevato. Iniettare un guasto attraverso più componenti: una sola diagnosi definitiva al confine, causa originale conservata e nessun logger nei layer interni. Acquisire stdout e verificare una riga JSON per evento. Un rifiuto previsto non diventa automaticamente un log di errore e il messaggio pubblico non contiene dettagli tecnici.
@@ -140,7 +140,7 @@ Su host Linux x86_64 e arm64 dotati di microfono e speaker, installare ed esegui
 
 ### Dimostrazione della protezione dei dati locali
 
-Verifica pianificata; nessuna evidenza di esecuzione disponibile.
+Verifica operativa ancora aperta. Ispezione parziale del 2026-10-16: Dockerfile usa COPY espliciti per artefatti, dipendenze, modelli e avviso; .dockerignore esclude config.json e *.local.json; config.example.json contiene solo valori dimostrativi senza credenziali. Il test software dell’immagine amd64 ha già verificato assenza della configurazione personale nei percorsi di avvio. Nessuna nuova misura delle scritture durante interazioni reali; resta aperta la protezione dei log Micdrop.
 
 #### Details
 Durante interazioni riuscite e fallite controllare scritture su disco e log usando audio, testo e credenziali riconoscibili: non devono comparire registrazioni persistenti né contenuti o credenziali nei log. Ispezionare gli artefatti host e container e gli esempi per escludere configurazioni personali. Le registrazioni preregistrate distribuite per gli avvisi locali restano ammesse.
@@ -172,10 +172,10 @@ Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare il model
 
 ### Ispezione dei confini interni
 
-Verifica pianificata; nessuna evidenza di esecuzione disponibile.
+Esaminare manifest, import di produzione e di soli tipi, composition root e test. Accertare un solo progetto, assemblaggio delle porte nella composition root e rispetto della matrice di importazione nei test. I test Application devono poter usare porte simulate senza hardware.
 
 #### Details
-Esaminare manifest, import di produzione e di soli tipi, composition root e test. Accertare un solo progetto, assemblaggio delle porte nella composition root e rispetto della matrice di importazione nei test. I test Application devono poter usare porte simulate senza hardware.
+2026-10-16: PASS. Ispezionati import statici, dinamici, di soli tipi e vi.mock in test/domain, test/application, test/adapters/in, test/adapters/out, test/runtime, test/composition e test/support. Domain importa produzione Domain; Application importa Application; inbound usa il proprio ingresso e Application; outbound usa integrazioni outbound, senza ingressi. I test di composition sono integrazione esplicita. ManualDeadlines dipende dalla porta Application. Nessun workspace/package business separato. Typecheck completo e core, 89 test in 19 file e build PASS. Non attestate periferiche reali.
 
 #### Metadata
   * type: inspection-verification
@@ -292,7 +292,7 @@ Verificare eventi di attivazione, versioni, lockfile congelato, sequenza dei cin
 
 ### Ispezione della architettura e degli esiti
 
-Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
+Revisione del 2026-10-16: repository Git autonomo, namespace dei concetti e ontologia appartenenti al satellite, contratto backend registrato localmente. Export MCP Turtle di ontologie e concetti riuscito; validazione strutturale verificata separatamente. Separazione e tipi già coperti dalle prove Application e core; 89 test, typecheck e build PASS. Questa ispezione non attesta la compatibilità operativa con il backend né chiude le lacune dei log Micdrop.
 
 #### Details
 Esaminare codice, import e firme: TypeScript eseguito da Node.js; stati e regole in Domain; coordinamento e porte in Application; librerie audio, wake word e trasporto negli adapter. Per ogni esito negativo dichiarato verificare la rappresentazione tipizzata; per i guasti inattesi verificare propagazione e gestione diagnostica al confine tecnico. Accertare repository e modello autonomi con riferimento esplicito al contratto backend, senza grafi fusi. Controllare che il lessico e l'ontologia locali definiscano i termini e le relazioni essenziali senza dipendere dal modello backend, che i riferimenti ai concetti risolvano e che le esportazioni semantiche e la validazione Reqvire abbiano esito corretto.

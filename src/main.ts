@@ -12,7 +12,14 @@ if (!args.ok) {
 } else {
   const config = await loadSatelliteConfig(args.value.filename, distributedWakeWordIds);
   if (!config.ok) {
-    diagnostics.info('invalid_configuration');
+    switch (config.error.kind) {
+      case 'invalid_configuration':
+      case 'configuration_unavailable':
+        diagnostics.info('invalid_configuration');
+        break;
+      default:
+        assertNever(config.error);
+    }
     process.exitCode = 2;
   } else {
     // ONNX Runtime reads this before the first runtime import.
@@ -29,4 +36,8 @@ if (!args.ok) {
       process.exitCode = 1;
     }
   }
+}
+
+function assertNever(_value: never): never {
+  throw new Error('Unexpected configuration rejection');
 }

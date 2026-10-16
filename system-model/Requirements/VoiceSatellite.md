@@ -199,6 +199,10 @@ I test del satellite devono rispettare i confini di importazione del layer verif
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [micdrop-events.test.ts](../../test/adapters/in/micdrop-events.test.ts)
+  * satisfiedBy: [micdrop-call-lifecycle.test.ts](../../test/adapters/out/micdrop-call-lifecycle.test.ts)
+  * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
+  * satisfiedBy: [voice-turn.test.ts](../../test/domain/voice-turn.test.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -316,6 +320,9 @@ Il satellite deve escludere configurazioni personali e credenziali dagli artefat
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [.dockerignore](../../.dockerignore)
+  * satisfiedBy: [Dockerfile](../../Dockerfile)
+  * satisfiedBy: [config.example.json](../../config.example.json)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -404,6 +411,7 @@ I chiamanti delle porte e dei casi d’uso devono gestire esplicitamente tutte l
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -472,6 +480,9 @@ Il satellite deve mantenere codice, modello Reqvire, lessico dei concetti e onto
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [AGENTS.md](../../AGENTS.md)
+  * satisfiedBy: [README.md](../../README.md)
+  * satisfiedBy: [package.json](../../package.json)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
