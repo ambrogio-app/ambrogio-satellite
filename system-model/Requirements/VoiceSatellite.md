@@ -552,6 +552,7 @@ Quando viene creato un tag di release valido, il progetto deve pubblicare su GHC
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [publish-image.yml](../../.github/workflows/publish-image.yml)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
