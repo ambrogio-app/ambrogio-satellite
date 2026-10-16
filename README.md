@@ -24,7 +24,7 @@ Sono state recepite anche le regole del backend su composition root, confini deg
 
 ## Modello e lavoro ancora aperto
 
-Le decisioni sono registrate in [requisiti](system-model/Requirements/VoiceSatellite.md), [contratti](system-model/Contracts/VoiceSatellite.md) e [verifiche](system-model/Verifications/VoiceSatellite.md). Nel modello backend sono stati aggiunti gli obblighi di determinare e segnalare l’attesa di una replica, il relativo contratto e una dimostrazione pianificata. L'agente produrrà durante la generazione il booleano strutturato `expectsReply`, senza una seconda chiamata al modello. Il codice backend della revisione di riferimento non comunica ancora questo segnale: schema dell'evento pubblico e compatibilità con il satellite restano da definire e verificare.
+Le decisioni sono registrate in [requisiti](system-model/Requirements/VoiceSatellite.md), [contratti](system-model/Contracts/VoiceSatellite.md) e [verifiche](system-model/Verifications/VoiceSatellite.md). Il backend produce durante la generazione il booleano strutturato `expectsReply`, senza una seconda chiamata al modello dedicata alla classificazione, e lo invia in `Message.metadata.expectsReply` di Micdrop. La compatibilità con il satellite resta da verificare con il client reale.
 
 È implementata e verificata nel backend l’elaborazione parallela di conversazioni diverse, con al massimo un turno attivo per ciascuna conversazione. Eventuali limiti globali di capacità restano da concordare.
 
@@ -32,7 +32,7 @@ Le verifiche pianificate coprono frase continua, riconoscimento locale, catalogo
 
 Lo spike in `/home/adriano/projects/ambrogio-spike/satellite/spike/` è una fonte di evidenze e limiti tecnici, non un vincolo sulle librerie o sul protocollo. Non sono ancora scelti motore wake word, VAD, libreria audio, libreria di trasporto, versioni delle dipendenze e catalogo aggiuntivo dei modelli distribuiti. Il testo del messaggio locale, i limiti della riserva audio e la gestione dei guasti durante un'interazione richiedono ancora specificazione.
 
-Il contratto vocale da esaminare è «Protocollo vocale del prodotto» in `ambrogio-backend/system-model/Contracts/FamilyConversation.md`, al commit `b223daac073fe217cf6609d2173394f7f5bd6d04`. Il backend avverte che il satellite dello spike potrebbe richiedere un aggiornamento: l'integrazione va verificata contro la versione che implementerà `expectsReply`.
+Il contratto vocale da esaminare è «Protocollo vocale del prodotto» in `ambrogio-backend/system-model/Contracts/FamilyConversation.md`, al commit candidato `1e7c9fbc7a91876f53aae98f4c1fc41f6400472e`. Il backend avverte che il satellite dello spike potrebbe richiedere un aggiornamento: l'integrazione va verificata contro questa revisione.
 
 ## Modello
 
