@@ -13,6 +13,7 @@ Mentre attende una nuova interazione, il satellite deve acquisire continuamente 
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -24,6 +25,7 @@ Il satellite deve assemblare le porte e le risorse tecniche nella composition ro
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -35,6 +37,7 @@ Domain e casi d’uso Application del satellite devono restare indipendenti dal 
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [voice-session.ts](../../src/application/voice-session.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -61,6 +64,7 @@ Il satellite non deve conservare su memoria persistente l’audio acquisito dall
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -92,6 +96,7 @@ Quando riconosce la wake word mentre attende una nuova interazione, il satellite
   * [Contratto vocale backend di riferimento](../Contracts/VoiceSatellite.md#contratto-vocale-backend-di-riferimento)
 
 #### Relations
+  * satisfiedBy: [voice-session.ts](../../src/application/voice-session.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -106,6 +111,7 @@ Quando non riesce ad avviare un’interazione perché il backend non è raggiung
   * [Recupero locale da backend irraggiungibile](../Contracts/VoiceSatellite.md#recupero-locale-da-backend-irraggiungibile)
 
 #### Relations
+  * satisfiedBy: [backend-unavailable.wav](../../assets/backend-unavailable.wav)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -202,6 +208,7 @@ Quando la famiglia pronuncia la wake word e la richiesta senza pausa, il satelli
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -217,6 +224,7 @@ Durante un'interazione vocale attiva, il satellite deve riconoscere localmente l
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -239,6 +247,7 @@ La composition root del satellite deve fornire a ciascun componente soltanto i v
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -264,6 +273,7 @@ Il satellite deve poter essere installato ed eseguito direttamente sul sistema h
   * [Esecuzione host e container](../Contracts/VoiceSatellite.md#esecuzione-host-e-container)
 
 #### Relations
+  * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -287,6 +297,7 @@ Quando si verifica un guasto inatteso, il satellite deve propagarlo come eccezio
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [voice-session.ts](../../src/application/voice-session.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -321,6 +332,7 @@ Il satellite deve emettere ogni evento diagnostico tecnico come una singola riga
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -350,6 +362,7 @@ Quando la famiglia attiva nuovamente il satellite dopo un fallimento per backend
   * [Recupero locale da backend irraggiungibile](../Contracts/VoiceSatellite.md#recupero-locale-da-backend-irraggiungibile)
 
 #### Relations
+  * satisfiedBy: [voice-session.ts](../../src/application/voice-session.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -396,6 +409,7 @@ Quando la configurazione è invalida, il satellite deve impedirne l’avvio oper
   * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
 
 #### Relations
+  * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -407,6 +421,7 @@ Quando ha segnalato il fallimento di un’interazione per backend irraggiungibil
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [voice-session.ts](../../src/application/voice-session.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -471,6 +486,7 @@ Il satellite deve permettere di selezionare il percorso del file di configurazio
   * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
 
 #### Relations
+  * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -494,6 +510,7 @@ Il satellite deve includere nei log soltanto campi diagnostici selezionati espli
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -505,6 +522,7 @@ Il satellite deve separare regole e stati in Domain, coordinamento e porte in Ap
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [voice-session.ts](../../src/application/voice-session.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -542,6 +560,7 @@ Quando un guasto raggiunge il confine tecnico responsabile della sua gestione, i
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [voice-session.ts](../../src/application/voice-session.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -553,6 +572,7 @@ Il satellite deve caricare e validare la configurazione prima di costruire le ri
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
