@@ -37,6 +37,9 @@ Un solo file JSON configura indirizzo del backend, dispositivi di ingresso e usc
 
 La base pubblicata da esaminare è ambrogio-backend al commit 76e656f08f2e6675762bd93f28208b3ac3fe299d: https://github.com/adrianofoschi/ambrogio-backend/blob/76e656f08f2e6675762bd93f28208b3ac3fe299d/system-model/Contracts/FamilyConversation.md . I contratti pertinenti sono Protocollo vocale del prodotto, Conferma della fine della risposta parlata e Stati dell’interazione vocale. Tale revisione NON contiene ancora il segnale esplicito di attesa di replica deciso per il satellite. La compatibilità della prima versione del satellite non è quindi dimostrata né dichiarata rispetto a quel commit: occorre una revisione backend che realizzi Segnalazione della replica vocale attesa e il relativo contratto Indicazione di attesa della replica vocale. Dopo la sua implementazione si fisserà la revisione compatibile e si eseguiranno prove di integrazione. Le relazioni Reqvire restano interne a ciascun repository; il riferimento esterno non fonde i grafi.
 
+#### Evoluzione della concorrenza
+Decisione concordata: il backend permette turni in parallelo tra conversazioni diverse e ammette al massimo un turno attivo per ciascuna conversazione. Il conflitto riguarda la stessa conversazione, indipendentemente dal client o dal canale; i turni rifiutati non sono accodati. Ogni satellite mantiene il proprio ciclo locale e le interazioni degli altri client non ne sostituiscono lo stato. Questa politica è registrata nel modello backend ma deve ancora essere implementata e verificata. Il passaggio ad AI SDK non ne dimostra il funzionamento. Eventuali limiti globali di capacità restano da concordare; la revisione backend compatibile sarà fissata dopo le prove di integrazione.
+
 #### Metadata
   * type: source
 
@@ -57,7 +60,7 @@ L’applicazione TypeScript su Node.js funziona direttamente su Linux x86_64 e a
 
 ### Esiti e diagnostica del satellite
 
-Gli esiti negativi previsti dai contratti di Domain, Application e porte sono valori tipizzati distinguibili dal successo, coerentemente con l’approccio Result del backend. I guasti inattesi risalgono come eccezioni fino al confine tecnico che li gestisce e ne cura la diagnostica. I rifiuti del protocollo backend vengono interpretati dall’adapter secondo il loro significato pubblico. Le varianti concrete degli esiti, le politiche di recupero non ancora concordate e la libreria di logging restano da specificare.
+Il tipo locale è `type Result<T, E> = Readonly<{ ok: true; value: T }> | Readonly<{ ok: false; error: E }>`. I rifiuti previsti sono tipi nominati immutabili, distinti mediante `kind`, senza classi o instanceof. Ogni porta e caso d’uso dichiara i propri rifiuti; non esiste un catalogo globale. Application interpreta gli esiti delle porte e restituisce le proprie varianti, gestite esaustivamente dagli adapter inbound. I guasti inattesi sono Error; un nuovo Error aggiunge contesto soltanto quando utile, preservando l’originale con cause. Il confine tecnico responsabile produce la diagnosi definitiva; i passaggi intermedi propagano senza log duplicati. Gli esiti previsti non producono automaticamente log di errore. Il messaggio pubblico resta separato dalla diagnosi tecnica. Le varianti concrete, le politiche di recupero ancora aperte e la libreria di logging restano da specificare.
 
 #### Metadata
   * type: specification
@@ -88,9 +91,20 @@ Il backend è l’autorità che determina e comunica se la risposta attende una 
   * define: [Replica richiesta dal backend](../Requirements/VoiceSatellite.md#replica-richiesta-dal-backend)
 ---
 
+### Regole di importazione dei test
+
+I test Domain importano codice di produzione soltanto da Domain. I test Application importano soltanto Application e Domain. I test inbound importano il proprio adapter inbound e Application, senza Domain. I test outbound importano il proprio adapter outbound, Application e Domain, senza adapter inbound. Le regole valgono anche per i soli tipi. Le prove di integrazione della composition root possono attraversare i layer; non sono test unitari di un layer. Nei test Application le porte permettono di simulare audio, riconoscimento e backend senza dispositivi reali. Il runner resta da scegliere.
+
+#### Metadata
+  * type: constraint
+
+#### Relations
+  * define: [Confini degli import nei test](../Requirements/VoiceSatellite.md#confini-degli-import-nei-test)
+---
+
 ### Responsabilità interne del satellite
 
-Domain contiene gli stati e le regole dell’interazione locale. Application coordina i casi d’uso attraverso porte che ne esprimono i bisogni. Gli adapter integrano acquisizione e riproduzione audio, motore wake word e trasporto verso il backend. Le dipendenze tecniche non entrano in Domain e Application. La suddivisione vive in un unico repository e non impone un monorepo. Il processo usa TypeScript e Node.js; versioni, librerie e organizzazione fisica dei package restano da scegliere.
+Domain contiene stati e regole dell’interazione locale. Application coordina i casi d’uso e dichiara porte nei termini delle capacità richieste. Gli adapter inbound invocano Application; gli adapter outbound realizzano le porte. Audio, wake word e trasporto restano negli adapter; Domain e Application non importano librerie tecniche, neppure soltanto per i tipi. La composition root costruisce risorse e collega le porte. Il satellite resta un solo progetto nel proprio repository, senza workspace multipackage. Non si introducono contenitori generici shared, common o utils senza una decisione esplicita. Nomi delle cartelle, versioni e librerie restano da scegliere.
 
 #### Metadata
   * type: specification

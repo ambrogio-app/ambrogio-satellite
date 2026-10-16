@@ -11,6 +11,28 @@ Mentre attende una nuova interazione, il satellite deve acquisire continuamente 
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Assemblaggio delle risorse nella composition root
+
+Il satellite deve assemblare le porte e le risorse tecniche nella composition root del processo.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Assenza di logger nei layer interni
+
+Domain e casi d’uso Application del satellite devono restare indipendenti dal logger.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Assenza di override da ambiente
 
 Il satellite deve preservare i valori letti dal file JSON senza sovrascriverli mediante variabili d’ambiente.
@@ -20,6 +42,17 @@ Il satellite deve preservare i valori letti dal file JSON senza sovrascriverli m
 
 #### Contract References
   * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Assenza di registrazioni audio persistenti
+
+Il satellite non deve conservare su memoria persistente l’audio acquisito dalle persone o ricevuto come risposta durante le interazioni.
+
+#### Metadata
+  * type: requirement
 
 #### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
@@ -97,6 +130,28 @@ Il satellite deve leggere da un file JSON la configurazione del backend, dei dis
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Confini degli import nei test
+
+I test del satellite devono rispettare i confini di importazione del layer verificato, anche per gli import di soli tipi.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Conservazione della causa dei guasti
+
+Quando aggiunge contesto a un guasto inatteso, il satellite deve conservare l’errore originale nella catena delle cause.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Conservazione della richiesta continua
 
 Quando la famiglia pronuncia la wake word e la richiesta senza pausa, il satellite deve conservare temporaneamente in memoria il parlato necessario a non perdere l’inizio della richiesta durante il riconoscimento e l’apertura della connessione.
@@ -111,6 +166,28 @@ Quando la famiglia pronuncia la wake word e la richiesta senza pausa, il satelli
 ### Distribuzione Docker facoltativa
 
 Il satellite deve offrire una distribuzione Docker facoltativa per Linux x86_64 e arm64 che esegua la stessa applicazione con lo stesso contratto di configurazione dell’esecuzione diretta.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Distribuzione mirata della configurazione
+
+La composition root del satellite deve fornire a ciascun componente soltanto i valori validati necessari, senza letture dirette della configurazione di processo da Domain e casi d’uso Application.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Esclusione delle configurazioni personali dagli artefatti
+
+Il satellite deve escludere configurazioni personali e credenziali dagli artefatti distribuiti e dagli esempi di configurazione.
 
 #### Metadata
   * type: requirement
@@ -155,6 +232,28 @@ Quando si verifica un guasto inatteso, il satellite deve propagarlo come eccezio
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Gestione esaustiva dei rifiuti previsti
+
+I chiamanti delle porte e dei casi d’uso devono gestire esplicitamente tutte le varianti dei rifiuti previsti dai rispettivi contratti.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Log tecnici JSON su stdout
+
+Il satellite deve emettere ogni evento diagnostico tecnico come una singola riga JSON su stdout.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Modello autonomo del satellite
 
 Il satellite deve mantenere il proprio codice e modello Reqvire in un repository autonomo, registrando la dipendenza dal contratto pubblico posseduto dal backend.
@@ -175,6 +274,17 @@ Quando la famiglia attiva nuovamente il satellite dopo un fallimento per backend
 
 #### Contract References
   * [Recupero locale da backend irraggiungibile](../Contracts/VoiceSatellite.md#recupero-locale-da-backend-irraggiungibile)
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Progetto unico del satellite
+
+Il satellite deve organizzare Domain, Application e adapter in un solo progetto, senza suddivisione in package di workspace.
+
+#### Metadata
+  * type: requirement
 
 #### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
@@ -287,6 +397,17 @@ Quando carica la configurazione, il satellite deve selezionare il modello di wak
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Selezione esplicita dei dati diagnostici
+
+Il satellite deve includere nei log soltanto campi diagnostici selezionati esplicitamente, escludendo audio, contenuti conversazionali e credenziali.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Separazione Domain Application e adapter
 
 Il satellite deve separare regole e stati in Domain, coordinamento e porte in Application e integrazioni tecniche negli adapter, mantenendo Domain e Application indipendenti dalle librerie tecniche.
@@ -318,6 +439,28 @@ Il satellite deve poter essere eseguito su Linux x86_64 e arm64 senza richiedere
 
 #### Contract References
   * [Esecuzione host e container](../Contracts/VoiceSatellite.md#esecuzione-host-e-container)
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Unicità della diagnosi definitiva
+
+Quando un guasto raggiunge il confine tecnico responsabile della sua gestione, il satellite deve emettere una sola diagnosi definitiva senza duplicarla nei componenti intermedi.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Validazione prima della costruzione delle risorse
+
+Il satellite deve caricare e validare la configurazione prima di costruire le risorse operative.
+
+#### Metadata
+  * type: requirement
 
 #### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
