@@ -150,7 +150,7 @@ Il satellite deve distribuire nel proprio catalogo soltanto modelli wake word la
 
 ### Configurazione JSON unica
 
-Il satellite deve leggere da un file JSON la configurazione del backend, dei dispositivi audio e della wake word, usando gli stessi significati sull’host e nel container.
+Il satellite deve leggere da un file JSON la configurazione del backend, dei dispositivi audio, della wake word e dell'intervallo locale di inattività, usando gli stessi significati sull'host e nel container.
 
 #### Concept References
   * [Configurazione del satellite](../Thesaurus/Lessico.md#configurazione-del-satellite)
@@ -436,7 +436,7 @@ Quando termina la riproduzione di una risposta per cui il backend segnala di non
 
 ### Ritorno alla wake word per inattività
 
-Quando il backend chiude l’interazione per inattività, il satellite deve tornare in attesa della wake word.
+Quando dopo una risposta che attende replica scade l'intervallo locale di inattività senza un nuovo turno, il satellite deve chiudere la chiamata Micdrop e tornare in attesa della wake word.
 
 #### Metadata
   * type: requirement
