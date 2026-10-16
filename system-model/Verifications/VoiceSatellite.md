@@ -86,7 +86,7 @@ Avviare usando un file JSON valido selezionato esplicitamente e verificare backe
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
 
 #### Details
-Contro la revisione backend compatibile fissata nel contratto, riprodurre una risposta completa; parlare durante la riproduzione e verificare che non la interrompa né apra un turno. Provare risposte con attesa di replica vera e falsa: solo nel primo caso una risposta senza wake word appartiene alla stessa interazione. Dopo la chiusura per inattività occorre una nuova wake word. Verificare l’invio della conferma di riproduzione alla sua fine effettiva. Prerequisito: definizione e implementazione del nuovo segnale nel backend.
+Contro la revisione backend compatibile fissata nel contratto, riprodurre una risposta completa; parlare durante la riproduzione e verificare che non la interrompa né apra un turno. Provare `Message` Micdrop dell'assistente con `metadata.expectsReply` uguale a `true` e `false`, sia prima sia dopo la fine effettiva dell'audio: solo nel primo caso una replica senza wake word appartiene alla stessa interazione. Verificare che `Played` venga inviato alla fine della riproduzione. Con metadati assenti, valore non booleano o messaggio che non arriva, il satellite non deve inferire una risposta dalla punteggiatura né aprire una replica; dopo al massimo l'intervallo di inattività configurato chiude e torna alla wake word. Dopo la chiusura per inattività occorre una nuova wake word. Prerequisito: implementazione del segnale nel backend.
 
 #### Metadata
   * type: demonstration-verification
