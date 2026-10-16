@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "bin": { "ambrogio-satellite": "dist/main.js" },
+  "bin": {
+    "ambrogio-satellite": "dist/main.js"
+  },
   "packageManager": "pnpm@12.11.2",
   "engines": {
     "node": ">=24"
@@ -11,7 +13,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.core.json",
     "test": "vitest run",
     "postinstall": "node scripts/patch-micdrop.mjs"
   },

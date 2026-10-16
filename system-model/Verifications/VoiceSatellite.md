@@ -324,3 +324,26 @@ Revisione di impatto: interessati assemblaggio, ingressi eventi, recupero locale
   * verify: [Idempotenza dell'arresto del satellite](../Requirements/VoiceSatellite.md#idempotenza-dellarresto-del-satellite)
   * verify: [Rilascio completo delle risorse del satellite](../Requirements/VoiceSatellite.md#rilascio-completo-delle-risorse-del-satellite)
 ---
+
+### Prova delle scadenze indipendenti dal runtime
+
+#### Details
+Con una porta controllata verificare scadenza della risposta e della replica ai limiti concordati, cancellazione alla replica, sostituzione dopo un nuovo turno, arresto e guasto senza callback residui. I test Application non devono usare fake timer globali né importare l'adapter Node.js. Provare separatamente l'adapter: esecuzione singola differita, cancellazione ripetuta e cancellazione dopo esecuzione. Riesaminare tutti i file Domain e Application, inclusi import di soli tipi, per escludere API e tipi dell'ambiente; eseguire compilazione e regressione.
+
+#### Evidenze del 16 ottobre 2026
+Esito: PASS sul worktree derivato da 33bdc28450057c48501893aa3c687e45481aa042. Suite Vitest: 75 test in 18 file, tutti superati. Typecheck completo, compilazione dei layer interni con tsconfig.core.json (lib ES2024, types vuoto) e build ESM superati.
+
+VoiceSession riceve DeadlineScheduler dalla composition root; ScheduledDeadline espone solo cancel() senza handle runtime. Riesaminati tutti i sorgenti interni: domain/voice-turn.ts, application/voice-session.use-case.ts e application/deadline-scheduler.ts. Gli import puntano soltanto a Domain o Application; non sono presenti API o tipi Node.js, DOM, timer globali o dipendenze tecniche. Il nuovo node-deadline-scheduler.adapter.ts implementa la porta e rispetta la convenzione dei nomi; la dichiarazione della porta non è un adapter.
+
+I test Application usano ManualDeadlines: timeout di risposta a 60000 ms, finestra di replica a 15000 ms, cancellazione alla ripresa del parlato e nuova scadenza per il turno successivo; arresto e guasto annullano entrambe le categorie di scadenza senza chiusure tardive. I test dell'adapter usano timer Node.js reali per verificare esecuzione differita singola, cancellazione ripetuta, indipendenza fra registrazioni e ritardo zero asincrono. Il tentativo iniziale con fake timer globali non intercettava gli import node:timers ed è stato sostituito da queste prove reali.
+
+La revisione non cambia durate o protocollo pubblico; README aggiornato per il nuovo controllo architetturale. La compilazione senza tipi ambientali integra la revisione degli import, ma non sostituisce un controllo contro ogni possibile dipendenza tecnica futura. La regressione comprende i test di arresto e degli ingressi Micdrop; le dimostrazioni audio hardware rimangono fuori da questa verifica.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Indipendenza tecnica di Domain e Application](../Requirements/VoiceSatellite.md#indipendenza-tecnica-di-domain-e-application)
+  * verify: [Programmazione delle scadenze tramite porta Application](../Requirements/VoiceSatellite.md#programmazione-delle-scadenze-tramite-porta-application)
+---

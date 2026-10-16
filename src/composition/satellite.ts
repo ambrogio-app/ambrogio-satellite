@@ -1,4 +1,5 @@
 import { Mic, Speaker, setMicdropStorage } from '@micdrop/client';
+import { NodeDeadlineScheduler } from '../adapters/out/node-deadline-scheduler.adapter.js';
 import { VoiceSession } from '../application/voice-session.use-case.js';
 import { createMicdropEventsAdapter } from '../adapters/in/micdrop-events.adapter.js';
 import { createMicdropCallAdapter } from '../adapters/out/micdrop-call.adapter.js';
@@ -79,7 +80,7 @@ export async function startSatellite(config: SatelliteConfig, signal?: AbortSign
       notice, playback, wake,
       isStopping: () => stopping,
     });
-    session = new VoiceSession(call, config.interaction.replyTimeoutMs, ANSWER_TIMEOUT_MS);
+    session = new VoiceSession(call, config.interaction.replyTimeoutMs, ANSWER_TIMEOUT_MS, new NodeDeadlineScheduler());
     events.attach();
     await call.startListening();
     checkStopping();

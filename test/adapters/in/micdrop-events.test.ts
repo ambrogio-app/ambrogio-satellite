@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { expect, test, vi } from 'vitest';
 import { Mic, Micdrop } from '@micdrop/client';
+import { ManualDeadlines } from '../../support/manual-deadlines.js';
 import { VoiceSession } from '../../../src/application/voice-session.use-case.js';
 import { createMicdropEventsAdapter } from '../../../src/adapters/in/micdrop-events.adapter.js';
 
@@ -9,7 +10,7 @@ vi.mock('@micdrop/client', () => ({ Mic: new EventEmitter(), Micdrop: new EventE
 test('translates a spoken turn and follow-up, gates wake frames and removes listeners', async () => {
   const ports = { openCall: vi.fn(async () => {}), closeCall: vi.fn(async () => {}),
     setSpeechEnabled: vi.fn(), reportFailure: vi.fn(async () => {}) };
-  const session = new VoiceSession(ports, 15_000, 60_000);
+  const session = new VoiceSession(ports, 15_000, 60_000, new ManualDeadlines());
   const pushWakeFrames = vi.fn();
   const playback = { update: vi.fn(), begin: vi.fn() };
   const adapter = createMicdropEventsAdapter({ getSession: () => session,

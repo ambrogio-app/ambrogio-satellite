@@ -346,6 +346,18 @@ Quando riceve richieste ripetute o concorrenti di arresto, il satellite deve con
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Indipendenza tecnica di Domain e Application
+
+Domain e Application del satellite devono usare soltanto API standard ECMAScript indipendenti dall'ambiente, senza dipendere da API Node.js o da librerie tecniche, anche tramite import di soli tipi.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Invio sicuro durante connessione e riconnessione
 
 Quando il canale vocale è in apertura o riconnessione, il satellite deve impedire l'invio di comandi e frame audio su una WebSocket non aperta, senza terminare il processo per un errore di stato della connessione. Il ripristino dell'interazione e l'eventuale perdita di un turno seguono le regole di recupero del satellite, senza reinvio automatico di audio già trasmesso.
@@ -424,6 +436,19 @@ Il satellite deve organizzare Domain, Application e adapter in un solo progetto,
 
 #### Relations
   * satisfiedBy: [package.json](../../package.json)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Programmazione delle scadenze tramite porta Application
+
+Quando programma o annulla una scadenza dell'interazione vocale, Application deve usare una capacità fornita dalla composition root, senza invocare direttamente timer dell'ambiente di esecuzione.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * definedBy: [Porta di programmazione delle scadenze](../Contracts/VoiceSatellite.md#porta-di-programmazione-delle-scadenze)
+  * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 

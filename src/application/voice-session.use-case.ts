@@ -1,3 +1,4 @@
+import type { DeadlineScheduler, ScheduledDeadline } from './deadline-scheduler.js';
 import { advanceVoiceTurn, initialVoiceTurnState, type VoiceTurnEvent,
   type VoiceTurnState } from '../domain/voice-turn.js';
 
@@ -11,8 +12,8 @@ export type VoiceSessionPorts = Readonly<{
 /** Coordinates one local interaction; all backend and device work stays in ports. */
 export class VoiceSession {
   private current: VoiceTurnState = initialVoiceTurnState;
-  private replyTimer?: ReturnType<typeof setTimeout>;
-  private answerTimer?: ReturnType<typeof setTimeout>;
+  private replyTimer?: ScheduledDeadline;
+  private answerTimer?: ScheduledDeadline;
   private generation = 0;
   private failureInProgress = false;
 
@@ -20,6 +21,7 @@ export class VoiceSession {
     private readonly ports: VoiceSessionPorts,
     private readonly replyTimeoutMs: number,
     private readonly answerTimeoutMs: number,
+    private readonly deadlines: DeadlineScheduler,
   ) {
     if (!Number.isSafeInteger(replyTimeoutMs) || replyTimeoutMs <= 0
       || !Number.isSafeInteger(answerTimeoutMs) || answerTimeoutMs <= 0) {
@@ -51,12 +53,12 @@ export class VoiceSession {
         }
         case 'arm_timeout':
           this.clearReplyTimer();
-          this.replyTimer = setTimeout(() => this.dispatch({ kind: 'timeout' }), this.replyTimeoutMs);
+          this.replyTimer = this.deadlines.schedule(this.replyTimeoutMs, () => this.dispatch({ kind: 'timeout' }));
           break;
         case 'clear_timeout': this.clearReplyTimer(); break;
         case 'arm_answer_timeout':
           this.clearAnswerTimer();
-          this.answerTimer = setTimeout(() => this.dispatch({ kind: 'timeout' }), this.answerTimeoutMs);
+          this.answerTimer = this.deadlines.schedule(this.answerTimeoutMs, () => this.dispatch({ kind: 'timeout' }));
           break;
         case 'clear_answer_timeout': this.clearAnswerTimer(); break;
         case 'enable_speech': this.ports.setSpeechEnabled(true); break;
@@ -93,12 +95,12 @@ export class VoiceSession {
   }
 
   private clearReplyTimer(): void {
-    if (this.replyTimer !== undefined) clearTimeout(this.replyTimer);
+    this.replyTimer?.cancel();
     this.replyTimer = undefined;
   }
 
   private clearAnswerTimer(): void {
-    if (this.answerTimer !== undefined) clearTimeout(this.answerTimer);
+    this.answerTimer?.cancel();
     this.answerTimer = undefined;
   }
 }
