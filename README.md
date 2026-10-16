@@ -4,7 +4,7 @@ Client satellite per l'interazione vocale con Ambrogio. Il repository possiede i
 
 ## Stato
 
-Modello iniziale salvato tramite MCP Reqvire: una capability, 39 requisiti, 10 contratti, un obiettivo di verifica e 10 verifiche pianificate. L’implementazione non è ancora iniziata. Il modello è il riferimento autorevole; questo README ne riepiloga le decisioni.
+Modello salvato tramite MCP Reqvire: una capability, un lessico locale con 13 concetti, un’ontologia strutturale, 39 requisiti, 10 contratti, un obiettivo di verifica e 10 verifiche pianificate. L’implementazione non è ancora iniziata. Il modello è il riferimento autorevole; questo README ne riepiloga le decisioni.
 
 ## Decisioni concordate il 16 ottobre 2026
 
@@ -24,7 +24,7 @@ Sono state recepite anche le regole del backend su composition root, confini deg
 
 ## Modello e lavoro ancora aperto
 
-Le decisioni sono registrate in [requisiti](system-model/Requirements/VoiceSatellite.md), [contratti](system-model/Contracts/VoiceSatellite.md) e [verifiche](system-model/Verifications/VoiceSatellite.md). Il backend produce durante la generazione il booleano strutturato `expectsReply`, senza una seconda chiamata al modello dedicata alla classificazione, e lo invia in `Message.metadata.expectsReply` di Micdrop. La compatibilità con il satellite resta da verificare con il client reale.
+Le decisioni sono registrate in [lessico](system-model/Thesaurus/Lessico.md), [ontologia](system-model/Ontologies/VoiceSatellite.md), [requisiti](system-model/Requirements/VoiceSatellite.md), [contratti](system-model/Contracts/VoiceSatellite.md) e [verifiche](system-model/Verifications/VoiceSatellite.md). Lessico e ontologia appartengono al satellite e definiscono i suoi termini e le sue relazioni senza dipendere dal modello backend. Il backend produce durante la generazione il booleano strutturato `expectsReply`, senza una seconda chiamata al modello dedicata alla classificazione, e lo invia in `Message.metadata.expectsReply` di Micdrop. La compatibilità con il satellite resta da verificare con il client reale.
 
 È implementata e verificata nel backend l’elaborazione parallela di conversazioni diverse, con al massimo un turno attivo per ciascuna conversazione. Eventuali limiti globali di capacità restano da concordare.
 
