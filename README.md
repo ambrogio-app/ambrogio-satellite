@@ -4,7 +4,7 @@ Client satellite per l'interazione vocale con Ambrogio. Il repository possiede i
 
 ## Stato
 
-Modello salvato tramite MCP Reqvire: una capability, un lessico locale con 13 concetti, un’ontologia strutturale, 39 requisiti, 10 contratti, un obiettivo di verifica e 10 verifiche pianificate. L’implementazione non è ancora iniziata. Il modello è il riferimento autorevole; questo README ne riepiloga le decisioni.
+Modello salvato tramite MCP Reqvire: una capability, un lessico locale con 13 concetti, un’ontologia strutturale, 40 requisiti, 11 contratti, un obiettivo di verifica e 11 verifiche pianificate. L’implementazione non è ancora iniziata. Il modello è il riferimento autorevole; questo README ne riepiloga le decisioni.
 
 ## Decisioni concordate il 16 ottobre 2026
 
@@ -15,6 +15,7 @@ Modello salvato tramite MCP Reqvire: una capability, un lessico locale con 13 co
 - File JSON validato all'avvio, contenente indirizzo del backend, dispositivi audio e selezione del modello della wake word. Un'opzione seleziona il percorso del file; le variabili d'ambiente non sovrascrivono i valori. Una configurazione invalida impedisce l'avvio.
 - Ascolto continuo con riconoscimento della wake word esclusivamente sul satellite; la connessione per l'interazione vocale si apre dopo l'attivazione.
 - Wake word predefinita «Hey Jarvis», selezionabile tramite configurazione fra i modelli distribuiti e supportati dal progetto. La prima versione non accetta modelli personalizzati esterni.
+- I modelli wake word distribuiti sono destinati all'uso non commerciale; ogni modello incluso deve avere origine, licenza, condizioni di redistribuzione e attribuzioni verificate e consegnate con i pacchetti host e container. La licenza dei modelli è distinta da quella del codice del satellite.
 - È possibile pronunciare «Hey Jarvis» e la richiesta senza una pausa obbligatoria. Una riserva temporanea di audio in memoria evita di perdere l'inizio della richiesta durante riconoscimento e apertura della connessione.
 - La prima versione attende la fine della risposta parlata e non permette di interromperla con la voce.
 - Quando l'assistente richiede una replica, la persona risponde senza ripetere la wake word nella stessa interazione. Il backend stabilisce e segnala esplicitamente se attende una replica. Altrimenti il satellite torna in attesa della wake word.

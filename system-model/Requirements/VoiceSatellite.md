@@ -133,6 +133,21 @@ Il satellite deve scambiare audio ed eventi con il backend secondo una versione 
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Condizioni di distribuzione dei modelli wake word
+
+Il satellite deve distribuire nel proprio catalogo soltanto modelli wake word la cui redistribuzione per l'uso non commerciale previsto è consentita, accompagnando ciascun modello con fonte, licenza e attribuzioni richieste. La licenza dei modelli deve essere indicata separatamente da quella del codice del satellite.
+
+#### Concept References
+  * [Catalogo delle wake word](../Thesaurus/Lessico.md#catalogo-delle-wake-word)
+  * [Modello di wake word](../Thesaurus/Lessico.md#modello-di-wake-word)
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Configurazione JSON unica
 
 Il satellite deve leggere da un file JSON la configurazione del backend, dei dispositivi audio e della wake word, usando gli stessi significati sull’host e nel container.

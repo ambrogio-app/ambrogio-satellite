@@ -187,3 +187,18 @@ Esaminare codice, import e firme: TypeScript eseguito da Node.js; stati e regole
   * verify: [Stack TypeScript e Node.js](../Requirements/VoiceSatellite.md#stack-typescript-e-nodejs)
 ---
 
+### Ispezione delle licenze dei modelli distribuiti
+
+Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
+
+#### Details
+Per ogni modello presente nel catalogo confrontare file, origine, versione, licenza, condizioni di redistribuzione e attribuzioni con le fonti del titolare. Verificare che le informazioni necessarie accompagnino sia il pacchetto host sia l'immagine container e che la licenza del codice sia presentata separatamente. Fallire l'ispezione se un modello distribuito non ha condizioni verificabili o manca una delle informazioni richieste.
+
+#### Metadata
+  * type: inspection-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Condizioni di distribuzione dei modelli wake word](../Requirements/VoiceSatellite.md#condizioni-di-distribuzione-dei-modelli-wake-word)
+---
+

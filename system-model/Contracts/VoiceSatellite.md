@@ -22,6 +22,19 @@ Il file JSON seleziona un modello del catalogo fornito dal progetto. Hey Jarvis 
   * define: [Selezione della wake word configurata](../Requirements/VoiceSatellite.md#selezione-della-wake-word-configurata)
 ---
 
+### Condizioni del catalogo non commerciale
+
+La distribuzione dei modelli wake word del satellite è destinata all'uso non commerciale. Prima di includere un modello nel catalogo, registrare origine e versione del file, condizioni di redistribuzione, licenza e attribuzioni richieste; consegnare tali informazioni sia con l'installazione host sia con l'immagine container. Non dedurre la licenza del codice del satellite da quella dei modelli.
+
+Il progetto openWakeWord dichiara il proprio codice Apache-2.0 e i modelli preaddestrati inclusi CC BY-NC-SA 4.0: https://github.com/dscripka/openWakeWord#license . Questa è una fonte per valutare i modelli candidati, non una scelta già compiuta del motore o dei file da distribuire. La licenza e la provenienza di ciascun file effettivamente selezionato vanno verificate prima del confezionamento.
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Condizioni di distribuzione dei modelli wake word](../Requirements/VoiceSatellite.md#condizioni-di-distribuzione-dei-modelli-wake-word)
+---
+
 ### Configurazione del processo satellite
 
 Un solo file JSON configura indirizzo del backend, dispositivi di ingresso e uscita audio e modello della wake word. Un’opzione di avvio seleziona il file; i valori non sono sovrascritti dalle variabili d’ambiente. La configurazione viene validata prima dell’avvio operativo e una configurazione invalida produce un errore comprensibile. Host e container usano lo stesso schema. Nomi dei campi, nome dell’opzione, schema completo e impostazioni aggiuntive richiedono ancora specificazione; non sono definiti URL predefiniti del backend.
