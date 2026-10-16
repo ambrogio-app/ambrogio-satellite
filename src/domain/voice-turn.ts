@@ -24,7 +24,8 @@ export type VoiceTurnEvent =
   | Readonly<{ kind: 'timeout' }>
   | Readonly<{ kind: 'call_closed' }>;
 
-export type VoiceTurnAction = 'open_call' | 'close_call' | 'arm_timeout' | 'clear_timeout';
+export type VoiceTurnAction = 'open_call' | 'close_call' | 'arm_timeout' | 'clear_timeout'
+  | 'arm_answer_timeout' | 'clear_answer_timeout' | 'enable_speech' | 'disable_speech';
 export type VoiceTurnTransition = Readonly<{ state: VoiceTurnState; actions: readonly VoiceTurnAction[] }>;
 
 export const initialVoiceTurnState: VoiceTurnState = { phase: 'waiting_wake_word' };
@@ -38,7 +39,7 @@ function decide(expectsReply: boolean): VoiceTurnTransition {
 /** Turn policy independent of Micdrop events and audio device timing. */
 export function advanceVoiceTurn(state: VoiceTurnState, event: VoiceTurnEvent): VoiceTurnTransition {
   if (event.kind === 'call_closed') {
-    return { state: initialVoiceTurnState, actions: ['clear_timeout'] };
+    return { state: initialVoiceTurnState, actions: ['clear_timeout', 'clear_answer_timeout'] };
   }
   switch (state.phase) {
     case 'waiting_wake_word':
@@ -47,7 +48,7 @@ export function advanceVoiceTurn(state: VoiceTurnState, event: VoiceTurnEvent): 
         : { state, actions: [] };
     case 'opening_call':
       return event.kind === 'call_opened'
-        ? { state: { phase: 'listening' }, actions: [] }
+        ? { state: { phase: 'listening' }, actions: ['enable_speech'] }
         : { state, actions: [] };
     case 'listening':
       return event.kind === 'speech_started'
@@ -55,20 +56,28 @@ export function advanceVoiceTurn(state: VoiceTurnState, event: VoiceTurnEvent): 
         : { state, actions: [] };
     case 'recording':
       return event.kind === 'speech_ended'
-        ? { state: { phase: 'waiting_answer' }, actions: [] }
+        ? { state: { phase: 'waiting_answer' }, actions: ['disable_speech', 'arm_answer_timeout'] }
         : { state, actions: [] };
     case 'waiting_answer':
     case 'waiting_metadata': {
       if (event.kind === 'assistant_message' && typeof event.expectsReply === 'boolean') {
         if (state.responsePlayed) {
           const decision = decide(event.expectsReply);
-          return { ...decision, actions: ['clear_timeout', ...decision.actions] };
+          return { ...decision, actions: ['clear_timeout', 'clear_answer_timeout', ...decision.actions,
+            ...(event.expectsReply ? ['enable_speech' as const] : [])] };
         }
         return { state: { ...state, expectsReply: event.expectsReply }, actions: [] };
       }
       if (event.kind === 'response_played') {
-        if (typeof state.expectsReply === 'boolean') return decide(state.expectsReply);
-        return { state: { phase: 'waiting_metadata', responsePlayed: true }, actions: ['arm_timeout'] };
+        if (typeof state.expectsReply === 'boolean') {
+          const decision = decide(state.expectsReply);
+          return { ...decision, actions: ['clear_answer_timeout', ...decision.actions,
+            ...(state.expectsReply ? ['enable_speech' as const] : [])] };
+        }
+        return { state: { phase: 'waiting_metadata', responsePlayed: true }, actions: ['clear_answer_timeout', 'arm_timeout'] };
+      }
+      if (event.kind === 'timeout' && state.phase === 'waiting_answer') {
+        return { state: { phase: 'closing_call' }, actions: ['clear_answer_timeout', 'close_call'] };
       }
       if (event.kind === 'timeout' && state.phase === 'waiting_metadata') {
         return { state: { phase: 'closing_call' }, actions: ['clear_timeout', 'close_call'] };

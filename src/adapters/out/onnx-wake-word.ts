@@ -94,6 +94,11 @@ export class OnnxWakeWord {
 
   /** Prevents an old detection score from immediately reopening a new call. */
   reset(): void {
+    this.pending = [];
+    this.raw = [];
+    this.melFrames = Array.from(
+      { length: MEL_WINDOW_FRAMES }, () => new Float32Array(MEL_BANDS).fill(1),
+    );
     this.embeddings = [];
     this.lastDetectedAt = Date.now();
   }

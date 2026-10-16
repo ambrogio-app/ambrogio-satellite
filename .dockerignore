@@ -1,0 +1,12 @@
+.git
+.codex
+node_modules
+dist
+system-model
+test
+config.json
+*.local.json
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*

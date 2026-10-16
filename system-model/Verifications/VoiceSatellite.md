@@ -32,7 +32,7 @@ Esaminare firme Result e mapping esaustivi dei rifiuti; introdurre una nuova var
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
 
 #### Details
-Rendere irraggiungibile il backend e attivare il satellite: si ascolta un messaggio preregistrato locale e il processo torna in attesa. Ripristinare il backend: senza una nuova attivazione non viene reinviata la richiesta fallita; con una nuova wake word viene tentata una nuova interazione.
+Rendere irraggiungibile il backend e attivare il satellite: si ascolta il file locale «Non riesco a contattare Ambrogio. Riprova tra poco.» e il processo torna in attesa. Verificare formato PCM16 mono 16 kHz, integrità SHA-256 e attribuzione dell'asset. Ripristinare il backend: senza una nuova attivazione non viene reinviata la richiesta fallita; con una nuova wake word viene tentata una nuova interazione. Ripetere con una disconnessione durante la chiamata.
 
 #### Metadata
   * type: demonstration-verification
@@ -67,7 +67,7 @@ Contro la revisione backend di riferimento completare un'interazione e una repli
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
 
 #### Details
-Con ogni modello del catalogo, dimostrare che la pipeline ONNX nel processo Node.js riconosce localmente la wake word e apre successivamente il canale, senza un servizio esterno di rilevamento. Prima della wake word osservare che non viene aperta l’interazione vocale backend. Con una frase continua nota controllare l’audio consegnato al backend e accertare che l’inizio della richiesta non sia perso. Ripetere su entrambe le architetture con latenza entro i limiti della riserva che saranno concordati. Verificare Hey Jarvis come scelta predefinita e provare separatamente le frasi esatte «Hey Jarvis», «Hey Mycroft» e «Hey Alexa», anche seguite senza pausa da una richiesta. La voce «Hey Alexa» non supera la verifica se il modello candidato riconosce soltanto «Alexa» in modo affidabile. Registrare i mancati riconoscimenti e le attivazioni spurie osservati; le soglie statistiche di accettazione restano da concordare.
+Con ogni modello distribuito dimostrare che la pipeline ONNX riconosce localmente la wake word senza servizio esterno. Prima della wake word non si apre la chiamata backend. Con soglia iniziale 0,5 e cooldown 2000 ms, misurare attivazioni corrette e spurie. Provare Hey Jarvis e Hey Mycroft su x86_64 e arm64. La voce Hey Alexa rimane fuori dal catalogo fino alla prova della frase esatta; il modello Alexa addestrato per la sola parola non basta senza evidenza. Pronunciare la wake word e la richiesta senza pausa, verificando che la riserva scorrevole di 1500 ms consegni l'inizio della richiesta dopo la connessione. Saturare la coda d'inferenza di 32 blocchi e verificare un guasto diagnostico senza crescita illimitata.
 
 #### Metadata
   * type: demonstration-verification
@@ -104,9 +104,9 @@ Avviare usando un file JSON valido selezionato con `--config` e verificare `back
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
 
 #### Details
-Contro la revisione backend compatibile fissata nel contratto, riprodurre una risposta completa; parlare durante la riproduzione e verificare che non la interrompa né apra un turno. Provare `Message` Micdrop dell'assistente con `metadata.expectsReply` uguale a `true` e `false`, sia prima sia dopo la fine dell'audio: solo nel primo caso una replica senza wake word appartiene alla stessa interazione. Con audio controllato, inserire pause inferiori, uguali e superiori a 1000 ms fra i blocchi: la riproduzione e la finestra di stabilità devono ripartire a ogni nuovo blocco, e va registrato il rischio di chiusura prematura per le pause più lunghe. Provare messaggio prima del primo audio e audio prima del messaggio, senza chiusura prima del primo audio. Decibri deve svuotare la propria coda prima del completamento stimato. Se l'audio non inizia o non termina, il timeout chiude la chiamata senza aprire la replica.
+Contro la revisione backend compatibile fissata nel contratto, riprodurre una risposta completa; parlare durante la riproduzione e verificare che non la interrompa né apra un turno. Provare `Message` Micdrop dell'assistente con `metadata.expectsReply` uguale a `true` e `false`, sia prima sia dopo la fine dell'audio: solo nel primo caso una replica senza wake word appartiene alla stessa interazione. Con audio controllato, inserire pause inferiori, uguali e superiori a 1000 ms fra i blocchi: la finestra di stabilità deve ripartire a ogni nuovo blocco e va registrato il rischio di chiusura prematura per le pause più lunghe. Provare messaggio prima del primo audio e audio prima del messaggio; Decibri deve svuotare la coda prima del completamento stimato. Se l'audio non inizia o non termina entro 60 secondi dalla fine della richiesta, chiudere senza aprire la replica.
 
-Con metadati assenti, valore non booleano o messaggio che non arriva, il satellite non inferisce una risposta dalla punteggiatura né apre una replica; dopo al massimo l'intervallo di inattività configurato chiude e torna alla wake word. Provare anche un rifiuto vocale parlato con `expectsReply: false`: la chiamata termina solo dopo la riproduzione, senza conservare il turno rifiutato. Dopo la chiusura per inattività occorre una nuova wake word. Non è richiesto un nuovo segnale backend; registrare l'esito della prova con i soli stati standard Micdrop.
+Con metadati assenti, valore non booleano o messaggio assente, non inferire dal testo e chiudere dopo l'intervallo locale. Provare un rifiuto vocale parlato con `expectsReply: false`. Dopo inattività occorre una nuova wake word. Non è richiesto un nuovo segnale backend.
 
 #### Metadata
   * type: demonstration-verification
@@ -160,7 +160,7 @@ Durante interazioni riuscite e fallite controllare scritture su disco e log usan
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
 
 #### Details
-Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare Silero ONNX per una richiesta continua dopo la wake word, una replica breve come «sì» e una frase con una pausa interna. Accertare che ogni turno ammesso produca un solo `StartSpeaking`, i frame PCM16 mono a 16 kHz e un solo `StopSpeaking`, senza perdere la replica breve né spezzare la frase alla pausa. Durante la riproduzione della risposta non devono partire nuovi turni. Registrare tempi di delimitazione e consumo di CPU; soglie quantitative di accettazione restano da definire prima della prova finale.
+Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare il modello Silero ONNX incluso in Decibri 5.8.0, verificando hash e licenza. Con redemptionFrames 20 provare una richiesta continua dopo la wake word, una replica breve come «sì» e una frase con una pausa interna. Accertare che ogni turno ammesso produca un solo StartSpeaking, i frame PCM16 mono a 16 kHz e un solo StopSpeaking, senza perdere la replica breve né spezzare la frase alla pausa. Durante la riproduzione della risposta non devono partire nuovi turni. Registrare tempi di delimitazione e consumo di CPU su entrambe le architetture.
 
 #### Metadata
   * type: demonstration-verification

@@ -49,6 +49,7 @@ Il satellite deve preservare i valori letti dal file JSON senza sovrascriverli m
   * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
 
 #### Relations
+  * satisfiedBy: [config-file.ts](../../src/adapters/out/config-file.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -65,12 +66,13 @@ Il satellite non deve conservare su memoria persistente l’audio acquisito dall
 
 ### Attesa della fine della risposta
 
-Mentre riproduce la risposta di Ambrogio, il satellite deve impedire interruzioni vocali e nuovi turni. Nella prima versione usa lo stato di riproduzione di Micdrop e la conclusione della coda Decibri: dopo il primo avvio della riproduzione aspetta che `isAssistantSpeaking` resti falso per 1000 ms. Un nuovo blocco audio durante l'attesa azzera l'intervallo. La riapertura della replica o la chiusura avviene soltanto dopo l'intervallo e la riproduzione dei campioni accodati. Se l'audio non inizia o non termina, il satellite chiude per timeout. Questa regola è euristica: una pausa del TTS più lunga dell'intervallo può essere scambiata per la fine della risposta; la verifica deve misurarla prima del rilascio.
+Mentre riproduce la risposta di Ambrogio, il satellite deve impedire interruzioni vocali e nuovi turni. Nella prima versione usa lo stato di riproduzione di Micdrop e la conclusione della coda Decibri: dopo il primo avvio della riproduzione aspetta che `isAssistantSpeaking` resti falso per 1000 ms. Un nuovo blocco audio durante l'attesa azzera l'intervallo. La riapertura della replica o la chiusura avviene soltanto dopo l'intervallo e la riproduzione dei campioni accodati. Se l'audio non inizia o non termina entro 60 secondi dalla fine della richiesta, il satellite chiude la chiamata. Questa regola è euristica: una pausa del TTS più lunga dell'intervallo può essere scambiata per la fine della risposta; la verifica deve misurarla prima del rilascio.
 
 #### Metadata
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [micdrop-playback.ts](../../src/adapters/out/micdrop-playback.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -145,6 +147,7 @@ Il satellite deve distribuire nel proprio catalogo soltanto modelli wake word la
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [README.md](../../models/wakeword/README.md)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -161,6 +164,7 @@ Il satellite deve leggere da un file JSON la configurazione del backend, dei dis
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [configuration.ts](../../src/adapters/out/configuration.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -271,6 +275,7 @@ Quando Domain, Application o una porta prevedono un esito negativo nel proprio c
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [configuration.ts](../../src/adapters/out/configuration.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -304,6 +309,7 @@ Quando il canale vocale è in apertura o riconnessione, il satellite deve impedi
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [patch-micdrop.mjs](../../scripts/patch-micdrop.mjs)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -355,6 +361,7 @@ Il satellite deve organizzare Domain, Application e adapter in un solo progetto,
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [package.json](../../package.json)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -374,6 +381,7 @@ Quando termina la riproduzione di una risposta per cui il backend segnala di att
   * [Contratto vocale backend di riferimento](../Contracts/VoiceSatellite.md#contratto-vocale-backend-di-riferimento)
 
 #### Relations
+  * satisfiedBy: [voice-turn.ts](../../src/domain/voice-turn.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -417,6 +425,7 @@ Quando riceve la risposta vocale del backend, il satellite deve riprodurla sul d
   * [Contratto vocale backend di riferimento](../Contracts/VoiceSatellite.md#contratto-vocale-backend-di-riferimento)
 
 #### Relations
+  * satisfiedBy: [micdrop-decibri-drivers.ts](../../src/adapters/out/micdrop-decibri-drivers.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -431,6 +440,7 @@ Quando termina la riproduzione di una risposta per cui il backend segnala di non
   * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
 
 #### Relations
+  * satisfiedBy: [voice-turn.ts](../../src/domain/voice-turn.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -446,6 +456,7 @@ Quando dopo una risposta che attende replica scade l'intervallo locale di inatti
   * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
 
 #### Relations
+  * satisfiedBy: [voice-turn.ts](../../src/domain/voice-turn.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -471,6 +482,7 @@ Quando carica la configurazione, il satellite deve selezionare il modello di wak
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [wake-word-catalog.ts](../../src/adapters/out/wake-word-catalog.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -504,6 +516,7 @@ Il satellite deve essere implementato in TypeScript ed eseguito su Node.js.
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [package.json](../../package.json)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 

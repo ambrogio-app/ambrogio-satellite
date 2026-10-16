@@ -1,2 +1,6 @@
 allowBuilds:
   onnxruntime-node: true
+minimumReleaseAgeExclude:
+  - vitest@5.0.5
+  - '@vitest/mocker@5.0.5'
+  - '@vitest/spy@5.0.5'
