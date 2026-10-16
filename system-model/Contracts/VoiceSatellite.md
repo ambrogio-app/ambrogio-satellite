@@ -2,7 +2,7 @@
 
 ### Adapter audio con Decibri
 
-La prima versione usa Decibri negli adapter tecnici del processo Node.js per acquisire audio dal microfono configurato e riprodurre le risposte sul dispositivo di uscita configurato. La stessa selezione logica dei dispositivi vale su host e nel container; gli identificatori fisici disponibili possono differire tra macchine. Domain e Application vedono soltanto le porte audio, senza importare tipi o oggetti Decibri.
+La prima versione usa Decibri negli adapter tecnici del processo Node.js per acquisire audio dal microfono e riprodurre le risposte sullo speaker. Se il JSON indica un selettore `audio.microphone` o `audio.speaker`, l'adapter usa il dispositivo corrispondente; in assenza del selettore usa il dispositivo predefinito del sistema. Una selezione esplicita non deve essere sostituita silenziosamente dal dispositivo predefinito. La stessa selezione logica vale su host e nel container; gli identificatori fisici disponibili possono differire tra macchine. Domain e Application vedono soltanto le porte audio, senza importare tipi o oggetti Decibri.
 
 L'adapter di uscita conserva l'ordine dei blocchi audio e considera completata una risposta soltanto dopo che i campioni accodati sono stati effettivamente riprodotti. Chiude o rilascia lo speaker quando non serve più; lo spike ha osservato errori ricorrenti lasciando un'uscita ALSA inattiva aperta. Errori di apertura, disconnessione o riproduzione attraversano le porte come esiti o guasti appropriati secondo le regole del satellite.
 
@@ -28,7 +28,7 @@ La famiglia può pronunciare Hey Jarvis e la richiesta nella stessa frase. L’a
 
 ### Catalogo e selezione dei modelli
 
-Il file JSON seleziona un modello del catalogo fornito dal progetto. Hey Jarvis è il predefinito. La prima versione non carica percorsi di modelli personalizzati esterni. Il catalogo iniziale contiene le frasi «Hey Jarvis», «Hey Mycroft» e «Hey Alexa», ciascuna associata a un modello ONNX distribuito e verificato con il motore locale Node.js. I modelli openWakeWord per Hey Jarvis e Hey Mycroft sono candidati diretti. Il modello openWakeWord denominato «alexa» è addestrato per «Alexa»: la documentazione segnala che «Hey Alexa» può funzionare con più mancati riconoscimenti (https://github.com/dscripka/openWakeWord/blob/main/docs/models/alexa.md). Per la voce «Hey Alexa» occorre quindi dimostrare il riconoscimento della frase esatta con il modello candidato; se non è adeguato, serve un altro modello ONNX verificato prima di dichiarare il catalogo completo. Identificatori della configurazione, versioni dei file e soglie di rilevamento restano da specificare dopo la verifica dei modelli e delle licenze. Un identificatore non disponibile è una configurazione invalida.
+Il file JSON seleziona con `wakeWord.model` un identificatore del catalogo effettivamente distribuito. L'identificatore predefinito per Hey Jarvis è `hey_jarvis`; gli identificatori degli altri modelli saranno fissati dopo la verifica dei rispettivi file. La prima versione non carica percorsi di modelli personalizzati esterni. Il catalogo iniziale previsto contiene le frasi «Hey Jarvis», «Hey Mycroft» e «Hey Alexa», ciascuna da associare a un modello ONNX distribuito e verificato con il motore locale Node.js. I modelli openWakeWord per Hey Jarvis e Hey Mycroft sono candidati diretti. Il modello openWakeWord denominato «alexa» è addestrato per «Alexa»: la documentazione segnala che «Hey Alexa» può funzionare con più mancati riconoscimenti (https://github.com/dscripka/openWakeWord/blob/main/docs/models/alexa.md). Per la voce «Hey Alexa» occorre quindi dimostrare il riconoscimento della frase esatta con il modello candidato; se non è adeguato, serve un altro modello ONNX verificato prima di dichiarare il catalogo completo. Versioni dei file e soglie di rilevamento restano da specificare dopo la verifica dei modelli e delle licenze. Un identificatore non presente fra i modelli distribuiti è una configurazione invalida.
 
 #### Metadata
   * type: specification
@@ -52,7 +52,11 @@ Il progetto openWakeWord dichiara il proprio codice Apache-2.0 e i modelli pread
 
 ### Configurazione del processo satellite
 
-Un solo file JSON configura indirizzo del backend, dispositivi di ingresso e uscita audio, modello della wake word e intervallo locale di inattività per la replica. Un'opzione di avvio seleziona il file; i valori non sono sovrascritti dalle variabili d'ambiente. L'intervallo è positivo e ha valore predefinito di 15 secondi. La configurazione viene validata prima dell'avvio operativo e una configurazione invalida produce un errore comprensibile. Host e container usano lo stesso schema. Nomi dei campi, nome dell'opzione, schema completo e impostazioni aggiuntive richiedono ancora specificazione; non sono definiti URL predefiniti del backend.
+Un solo file JSON contiene le sezioni `backend`, `audio`, `wakeWord` e `interaction`. `backend.baseUrl` è obbligatorio: è un URL assoluto HTTP o HTTPS senza credenziali, query o frammento e non ha valore predefinito. Il satellite deriva il canale WebSocket vocale aggiungendo `/api/voice` al prefisso di percorso dell'URL base, usando `ws:` per `http:` e `wss:` per `https:`; la configurazione non contiene un percorso WebSocket separato.
+
+La sezione `audio` è facoltativa e può contenere `microphone` e `speaker` come selettori stringa non vuoti. Un selettore presente viene passato a Decibri e deve identificare il dispositivo richiesto; un selettore assente usa il dispositivo predefinito del sistema. La sezione `wakeWord` è facoltativa e può indicare `model`, identificatore di un modello effettivamente distribuito nel catalogo; il valore predefinito è il modello Hey Jarvis. La sezione `interaction` è facoltativa e può indicare `replyTimeoutMs`, intero positivo con valore predefinito di 15000. Sezioni, campi e tipi non previsti sono rifiutati per evitare errori di configurazione silenziosi.
+
+L'opzione di avvio `--config` seleziona esplicitamente il file JSON. I valori non sono sovrascritti dalle variabili d'ambiente. Il file e i modelli selezionati vengono validati prima dell'avvio operativo e una configurazione invalida produce un errore comprensibile. Host e container usano lo stesso schema. Impostazioni aggiuntive richiedono una nuova specificazione.
 
 #### Metadata
   * type: specification
@@ -77,7 +81,7 @@ Decisione concordata e implementata nel backend: sono ammessi turni in parallelo
 
 ### Esecuzione host e container
 
-L’applicazione TypeScript su Node.js funziona direttamente su Linux x86_64 e arm64 con dipendenze e modelli installati. Docker è una modalità facoltativa che confeziona la stessa applicazione per linux/amd64 e linux/arm64. La configurazione ha lo stesso significato in entrambe le modalità. L'adapter audio Decibri richiede il proprio binario nativo per la piattaforma e la libreria runtime ALSA `libasound.so.2`; il pacchetto host documenta la dipendenza e l'immagine container la include con accesso esplicito alle periferiche. La baseline Linux, la versione di Decibri, le altre dipendenze native e le istruzioni di installazione devono essere definite e verificate; il solo supporto dell’architettura non dimostra compatibilità con ogni distribuzione o periferica.
+L'applicazione TypeScript compilata in JavaScript ESM usa Node.js 24 o successivo, come il backend, e funziona direttamente su Linux x86_64 e arm64 con dipendenze e modelli installati. Docker è una modalità facoltativa che confeziona la stessa applicazione per linux/amd64 e linux/arm64. La configurazione ha lo stesso significato in entrambe le modalità. L'adapter audio Decibri richiede il proprio binario nativo per la piattaforma e la libreria runtime ALSA `libasound.so.2`; il pacchetto host documenta la dipendenza e l'immagine container la include con accesso esplicito alle periferiche. La baseline Linux, la versione di Decibri, le altre dipendenze native e le istruzioni di installazione devono essere definite e verificate; il solo supporto dell'architettura non dimostra compatibilità con ogni distribuzione o periferica.
 
 #### Metadata
   * type: specification
@@ -149,7 +153,7 @@ Il satellite associa il messaggio alla risposta corrente della chiamata Micdrop.
 
 ### Regole di importazione dei test
 
-I test Domain importano codice di produzione soltanto da Domain. I test Application importano soltanto Application e Domain. I test inbound importano il proprio adapter inbound e Application, senza Domain. I test outbound importano il proprio adapter outbound, Application e Domain, senza adapter inbound. Le regole valgono anche per i soli tipi. Le prove di integrazione della composition root possono attraversare i layer; non sono test unitari di un layer. Nei test Application le porte permettono di simulare audio, riconoscimento e backend senza dispositivi reali. Il runner resta da scegliere.
+I test Domain importano codice di produzione soltanto da Domain. I test Application importano soltanto Application e Domain. I test inbound importano il proprio adapter inbound e Application, senza Domain. I test outbound importano il proprio adapter outbound, Application e Domain, senza adapter inbound. Le regole valgono anche per i soli tipi. Le prove di integrazione della composition root possono attraversare i layer; non sono test unitari di un layer. Nei test Application le porte permettono di simulare audio, riconoscimento e backend senza dispositivi reali. Il progetto usa Vitest per i test, in coerenza con il backend.
 
 #### Metadata
   * type: constraint
@@ -160,7 +164,7 @@ I test Domain importano codice di produzione soltanto da Domain. I test Applicat
 
 ### Responsabilità interne del satellite
 
-Domain contiene stati e regole dell’interazione locale. Application coordina i casi d’uso e dichiara porte nei termini delle capacità richieste. Gli adapter inbound invocano Application; gli adapter outbound realizzano le porte. Audio, wake word e trasporto restano negli adapter; Domain e Application non importano librerie tecniche, neppure soltanto per i tipi. La composition root costruisce risorse e collega le porte. Il satellite resta un solo progetto nel proprio repository, senza workspace multipackage. Non si introducono contenitori generici shared, common o utils senza una decisione esplicita. Nomi delle cartelle, versioni e librerie restano da scegliere.
+Domain contiene stati e regole dell’interazione locale. Application coordina i casi d’uso e dichiara porte nei termini delle capacità richieste. Gli adapter inbound invocano Application; gli adapter outbound realizzano le porte. Audio, wake word e trasporto restano negli adapter; Domain e Application non importano librerie tecniche, neppure soltanto per i tipi. La composition root costruisce risorse e collega le porte. Il satellite resta un solo progetto nel proprio repository, senza workspace multipackage, e usa pnpm per installazione e lockfile. Non si introducono contenitori generici shared, common o utils senza una decisione esplicita. Nomi delle cartelle, versioni e librerie restano da scegliere.
 
 #### Metadata
   * type: specification
