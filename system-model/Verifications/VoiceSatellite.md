@@ -293,3 +293,27 @@ Per ogni modello presente nel catalogo confrontare file, origine, versione, lice
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Condizioni di distribuzione dei modelli wake word](../Requirements/VoiceSatellite.md#condizioni-di-distribuzione-dei-modelli-wake-word)
 ---
+
+### Prova del ciclo di arresto del satellite
+
+#### Details
+Iniettare risorse controllate e fallimenti: durante ascolto, chiamata e riproduzione, l'arresto deve bloccare nuovi eventi e interrompere i dispositivi senza attendere una risposta. Chiamare stop ripetutamente e in parallelo: una sola chiusura nativa per risorsa, stesso esito. Far fallire una chiusura: tutte le altre devono essere tentate e l'errore originale deve restare disponibile. Fallire l'avvio dopo acquisizioni parziali e interrompere un'acquisizione pendente: tutte le risorse ottenute devono essere rilasciate. Provare rilascio ONNX parziale e inferenza in corso, cancellazione avviso locale e SIGINT/SIGTERM nel confine di processo. I test automatici usano risorse simulate; non attestano periferiche reali.
+
+#### Evidenze del 16 ottobre 2026
+Esito: PASS per la verifica automatica del ciclo di vita sul worktree derivato da d79775c13fc31c7ab7eb0071d9e0803bb7d18b11. Eseguiti Vitest (67 test, 17 file, tutti superati), typecheck TypeScript e build ESM, entrambi superati.
+
+La prova di composition root inietta guasti di avvio e chiusura, controlla il rilascio delle risorse indipendenti e l'identità dell'operazione di arresto ripetuta. La prova del processo esercita SIGINT e SIGTERM tramite un emettitore controllato anche durante l'avvio; verifica la rimozione degli handler e la propagazione del guasto al chiamante. La prova Micdrop copre un'apertura che termina dopo l'arresto e impedisce il riavvio dell'ascolto. Le prove Decibri coprono acquisizione tardiva del microfono, errore di stop senza doppio rilascio e interruzione della riproduzione dell'avviso con drain pendente. Le prove ONNX coprono caricamento parziale fallito, rilascio di tutte le sessioni nonostante un errore, scarto della coda e rifiuto di nuovi frame. La prova Silero attende l'inferenza già in corso, rilascia una sola volta e conserva un errore di release anche se Micdrop non attende il rilascio.
+
+Limiti: dispositivi, segnali e guasti sono simulati nelle nuove prove; la suite comprende anche il caricamento reale dei modelli distribuiti su questa macchina. Non sono attestate prove di terminazione con periferiche fisiche né su arm64. La durata di un'operazione nativa non cancellabile resta vincolata alla libreria; non è stata concordata una scadenza di arresto forzato.
+
+Revisione di impatto: interessati assemblaggio, ingressi eventi, recupero locale, audio e inferenza; resta invariata la normale attesa della risposta. La regressione completa è stata eseguita. Il README descrive ora SIGINT/SIGTERM; eventuali guide esterne di installazione dovranno riportare la stessa politica.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Arresto immediato del processo satellite](../Requirements/VoiceSatellite.md#arresto-immediato-del-processo-satellite)
+  * verify: [Idempotenza dell'arresto del satellite](../Requirements/VoiceSatellite.md#idempotenza-dellarresto-del-satellite)
+  * verify: [Rilascio completo delle risorse del satellite](../Requirements/VoiceSatellite.md#rilascio-completo-delle-risorse-del-satellite)
+---

@@ -28,6 +28,7 @@ function firstTensor(outputs: ort.InferenceSession.OnnxValueMapType, name: strin
 
 /** OpenWakeWord's 80 ms streaming feature pipeline, confined to the ONNX adapter. */
 export class OnnxWakeWord {
+  private closing?: Promise<void>;
   private pending: number[] = [];
   private raw: number[] = [];
   private melFrames: Float32Array[] = Array.from(
@@ -63,19 +64,23 @@ export class OnnxWakeWord {
     const sessionOptions: ort.InferenceSession.SessionOptions = {
       executionProviders: ['cpu'], intraOpNumThreads: 1, interOpNumThreads: 1,
     };
-    const mel = await ort.InferenceSession.create(files.mel, sessionOptions);
+    const opened: ort.InferenceSession[] = [];
     try {
-      const embedding = await ort.InferenceSession.create(files.embedding, sessionOptions);
-      try {
-        const classifier = await ort.InferenceSession.create(files.classifier, sessionOptions);
-        try { return new OnnxWakeWord(mel, embedding, classifier, options); }
-        catch (error) { await classifier.release(); throw error; }
-      } catch (error) { await embedding.release(); throw error; }
-    } catch (error) { await mel.release(); throw error; }
+      for (const file of [files.mel, files.embedding, files.classifier]) {
+        opened.push(await ort.InferenceSession.create(file, sessionOptions));
+      }
+      return new OnnxWakeWord(opened[0]!, opened[1]!, opened[2]!, options);
+    } catch (error) {
+      const results = await Promise.allSettled(opened.map(session => Promise.resolve().then(() => session.release())));
+      const failures = results.filter(r => r.status === 'rejected').map(r => r.reason);
+      if (failures.length) throw new AggregateError([error, ...failures], 'Wake word startup cleanup failed', { cause: error });
+      throw error;
+    }
   }
 
   /** Copies microphone samples and bounds pending inference work. */
   push(samples: Float32Array): boolean {
+    if (this.closing) return false;
     for (const sample of samples) this.pending.push(sample * 32_767);
     while (this.pending.length >= CHUNK_SAMPLES) {
       if (this.queuedChunks >= this.options.maxQueuedChunks) {
@@ -85,8 +90,8 @@ export class OnnxWakeWord {
       }
       const chunk = Float32Array.from(this.pending.splice(0, CHUNK_SAMPLES));
       this.queuedChunks++;
-      this.tail = this.tail.then(() => this.process(chunk))
-        .catch(error => this.options.failed(error instanceof Error ? error : new Error(String(error))))
+      this.tail = this.tail.then(() => this.closing ? undefined : this.process(chunk))
+        .catch(error => { if (!this.closing) this.options.failed(error instanceof Error ? error : new Error(String(error))); })
         .finally(() => { this.queuedChunks--; });
     }
     return true;
@@ -105,9 +110,15 @@ export class OnnxWakeWord {
 
   async waitUntilIdle(): Promise<void> { await this.tail; }
 
-  async close(): Promise<void> {
-    await this.tail;
-    await Promise.all([this.mel.release(), this.embedding.release(), this.classifier.release()]);
+  close(): Promise<void> {
+    return this.closing ??= (async () => {
+      this.pending = [];
+      await this.tail;
+      const results = await Promise.allSettled([this.mel, this.embedding, this.classifier]
+        .map(session => Promise.resolve().then(() => session.release())));
+      const errors = results.filter(r => r.status === 'rejected').map(r => r.reason);
+      if (errors.length) throw new AggregateError(errors, 'Wake word release failed');
+    })();
   }
 
   private async process(chunk: Float32Array): Promise<void> {
@@ -155,7 +166,7 @@ export class OnnxWakeWord {
     const now = Date.now();
     if (score >= this.options.threshold && now - this.lastDetectedAt >= this.options.cooldownMs) {
       this.lastDetectedAt = now;
-      this.options.detected(score);
+      if (!this.closing) this.options.detected(score);
     }
   }
 }

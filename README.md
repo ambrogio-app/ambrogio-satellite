@@ -4,7 +4,7 @@ Client satellite per l'interazione vocale con Ambrogio. Il repository possiede i
 
 ## Stato
 
-Modello salvato tramite MCP Reqvire: una capability, un lessico locale con 14 concetti, un’ontologia strutturale, 42 requisiti, contratti e verifiche pianificate. È disponibile il processo vocale eseguibile: configurazione JSON, wake word ONNX locale, Silero, client Micdrop, audio Decibri, repliche e recupero parlato. I modelli Hey Jarvis e Hey Mycroft sono distribuiti con licenza e checksum. La verifica audio contro backend e periferiche reali su Linux x86_64 e arm64 è ancora necessaria prima del rilascio. Il modello è il riferimento autorevole; questo README ne riepiloga le decisioni.
+Modello salvato tramite MCP Reqvire: una capability, un lessico locale con 14 concetti, un’ontologia strutturale, requisiti, contratti, verifiche pianificate ed evidenze automatiche. È disponibile il processo vocale eseguibile: configurazione JSON, wake word ONNX locale, Silero, client Micdrop, audio Decibri, repliche e recupero parlato. I modelli Hey Jarvis e Hey Mycroft sono distribuiti con licenza e checksum. La verifica audio contro backend e periferiche reali su Linux x86_64 e arm64 è ancora necessaria prima del rilascio. Il modello è il riferimento autorevole; questo README ne riepiloga le decisioni.
 
 ## Decisioni concordate il 16 ottobre 2026
 
@@ -38,6 +38,10 @@ node dist/main.js --config config.json
 ```
 
 Impostare `backend.baseUrl` all'URL HTTP(S) raggiungibile del backend. Il satellite ricava automaticamente `/api/voice`. `wakeWord.model` accetta per ora `hey_jarvis` o `hey_mycroft`; gli identificatori dei dispositivi in `audio.microphone` e `audio.speaker` sono facoltativi. `interaction.replyTimeoutMs` controlla l'attesa della replica dell'utente. La risposta del backend ha un limite di 60 secondi; il termine della riproduzione è stimato dopo 1 secondo senza audio Micdrop.
+
+## Arresto
+
+`SIGINT` (Ctrl+C) e `SIGTERM` interrompono l'interazione e la riproduzione correnti senza aspettare la risposta completa. Il processo blocca nuove attivazioni, chiude audio e connessione e rilascia i modelli ONNX. Richieste ripetute condividono lo stesso arresto. Anche dopo un avvio parziale fallito o un errore di chiusura vengono tentati tutti i rilasci; un guasto produce una diagnosi JSON e un codice di uscita non riuscito. Le operazioni native già in corso vengono attese quanto necessario al rilascio sicuro.
 
 ## Avvio con Docker
 

@@ -28,15 +28,40 @@ function openConfiguredSpeaker(selector?: string): Promise<Speaker> {
 }
 
 /** Resolves only after every PCM16 mono chunk has finished playing. */
-export async function playPcm16(chunks: AsyncIterable<Int16Array>, selector?: string): Promise<void> {
+export async function playPcm16(chunks: AsyncIterable<Int16Array>, selector?: string, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) return;
   const speaker = await openConfiguredSpeaker(selector);
+  let stopped = false;
+  let stopError: unknown;
+  let playbackError: unknown;
+  let playbackFailed = false;
+  const stop = () => {
+    if (stopped) return;
+    stopped = true;
+    try { speaker.stop(); } catch (error) { stopError = error; }
+  };
+  let cancelled!: () => void;
+  const cancellation = new Promise<void>(resolve => { cancelled = resolve; });
+  const abort = () => { stop(); cancelled(); };
+  signal?.addEventListener('abort', abort, { once: true });
   try {
+    if (signal?.aborted) return;
     for await (const chunk of chunks) {
+      if (signal?.aborted) return;
       const bytes = Buffer.from(new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength));
-      await speaker.writeAsync(bytes);
+      await Promise.race([speaker.writeAsync(bytes), cancellation]);
     }
-    await speaker.drainAsync();
+    if (!signal?.aborted) await Promise.race([speaker.drainAsync(), cancellation]);
+  } catch (error) {
+    playbackError = error;
+    playbackFailed = true;
+    throw error;
   } finally {
-    speaker.stop();
+    signal?.removeEventListener('abort', abort);
+    stop();
+    if (stopError) {
+      if (playbackFailed) throw new AggregateError([playbackError, stopError], 'Playback and release failed', { cause: playbackError });
+      throw stopError;
+    }
   }
 }

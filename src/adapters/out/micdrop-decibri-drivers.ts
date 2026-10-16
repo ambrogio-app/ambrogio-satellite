@@ -21,6 +21,10 @@ function speakerOptions(selector?: string): Parameters<typeof Speaker.open>[0] {
 
 export class DecibriMicDriver extends MicDriver {
   private microphone?: Microphone;
+  private generation = 0;
+  private opening?: Promise<void>;
+  private readonly closeErrors: unknown[] = [];
+  private closed?: Promise<void>;
 
   constructor(private readonly selector?: string) { super(); }
 
@@ -32,9 +36,18 @@ export class DecibriMicDriver extends MicDriver {
     return devices(Microphone.devices(), 'audioinput');
   }
 
-  async start(deviceId?: string): Promise<void> {
-    if (this.microphone) return;
+  start(deviceId?: string): Promise<void> {
+    if (this.closed) return Promise.resolve();
+    if (this.microphone) return Promise.resolve();
+    if (this.opening) return this.opening;
+    const generation = this.generation;
+    const work = this.open(deviceId, generation);
+    this.opening = work;
+    return work.finally(() => { if (this.opening === work) this.opening = undefined; });
+  }
+  private async open(deviceId: string | undefined, generation: number): Promise<void> {
     const mic = await openConfiguredMicrophone(this.selector ?? deviceId);
+    if (generation !== this.generation) { mic.stop(); return; }
     this.microphone = mic;
     mic.on('data', chunk => {
       if (this.microphone !== mic) return;
@@ -50,14 +63,26 @@ export class DecibriMicDriver extends MicDriver {
   }
 
   async stop(): Promise<void> {
+    this.generation++;
     const mic = this.microphone;
     this.microphone = undefined;
-    mic?.stop();
+    try { mic?.stop(); } catch (error) { this.closeErrors.push(error); throw error; }
+    finally { await this.opening; }
+  }
+
+  close(): Promise<void> {
+    return this.closed ??= (async () => {
+      try { await this.stop(); } catch (error) { if (!this.closeErrors.includes(error)) this.closeErrors.push(error); }
+      if (this.closeErrors.length) throw new AggregateError(this.closeErrors, 'Microphone release failed');
+    })();
   }
 }
 
 export class DecibriSpeakerDriver extends SpeakerDriver {
   private speaker?: Speaker;
+  private readonly openings = new Set<Promise<Speaker>>();
+  private readonly closeErrors: unknown[] = [];
+  private closed?: Promise<void>;
   private tail: Promise<void> = Promise.resolve();
   private pending = 0;
   private playing = false;
@@ -82,6 +107,7 @@ export class DecibriSpeakerDriver extends SpeakerDriver {
   }
 
   play(pcm: Int16Array, sampleRate: number): void {
+    if (this.closed) return;
     if (sampleRate !== SAMPLE_RATE) {
       this.onFailure?.(new Error(`Unsupported playback sample rate: ${sampleRate}`));
       return;
@@ -103,8 +129,8 @@ export class DecibriSpeakerDriver extends SpeakerDriver {
       if (this.pending > 0) return;
       await speaker.drainAsync();
       if (generation !== this.generation || this.pending > 0) return;
-      speaker.stop();
       if (this.speaker === speaker) this.speaker = undefined;
+      try { speaker.stop(); } catch (error) { this.closeErrors.push(error); throw error; }
       this.playing = false;
       this.emit('StopPlaying');
     }).catch(error => {
@@ -116,9 +142,13 @@ export class DecibriSpeakerDriver extends SpeakerDriver {
 
   private async ensureSpeaker(generation: number): Promise<Speaker | undefined> {
     if (this.speaker) return this.speaker;
-    const speaker = await Speaker.open(speakerOptions(this.selector));
+    const opening = Speaker.open(speakerOptions(this.selector));
+    this.openings.add(opening);
+    let speaker: Speaker;
+    try { speaker = await opening; }
+    finally { this.openings.delete(opening); }
     if (generation !== this.generation) {
-      speaker.stop();
+      try { speaker.stop(); } catch (error) { this.closeErrors.push(error); }
       return undefined;
     }
     speaker.on('error', error => {
@@ -134,8 +164,9 @@ export class DecibriSpeakerDriver extends SpeakerDriver {
     this.generation++;
     this.pending = 0;
     this.tail = Promise.resolve();
-    this.speaker?.stop();
+    const speaker = this.speaker;
     this.speaker = undefined;
+    try { speaker?.stop(); } catch (error) { this.closeErrors.push(error); throw error; }
     if (this.playing) {
       this.playing = false;
       this.emit('StopPlaying');
@@ -143,4 +174,12 @@ export class DecibriSpeakerDriver extends SpeakerDriver {
   }
 
   async stop(): Promise<void> { this.stopAudio(); }
+
+  close(): Promise<void> {
+    return this.closed ??= (async () => {
+      try { this.stopAudio(); } catch { /* Recorded by stopAudio. */ }
+      await Promise.allSettled([...this.openings]);
+      if (this.closeErrors.length) throw new AggregateError(this.closeErrors, 'Speaker release failed');
+    })();
+  }
 }

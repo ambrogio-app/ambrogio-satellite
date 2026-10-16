@@ -61,3 +61,34 @@ describe('Decibri device selection', () => {
     expect(stop).toHaveBeenCalledOnce();
   });
 });
+
+it('cancels a pending local notice drain and releases its speaker once', async () => {
+  const stop = vi.fn();
+  const drainAsync = vi.fn(() => new Promise<void>(() => {}));
+  vi.spyOn(Speaker, 'open').mockResolvedValue({ writeAsync: vi.fn(async () => {}), drainAsync, stop } as unknown as Speaker);
+  const controller = new AbortController();
+  const playing = playPcm16(oneChunk(), undefined, controller.signal);
+  await vi.waitFor(() => expect(drainAsync).toHaveBeenCalledOnce());
+  controller.abort();
+  await playing;
+  expect(stop).toHaveBeenCalledOnce();
+});
+
+it('releases a notice speaker acquired after cancellation without playing it', async () => {
+  let opened!: (speaker: Speaker) => void;
+  vi.spyOn(Speaker, 'open').mockReturnValue(new Promise(resolve => { opened = resolve; }));
+  const controller = new AbortController();
+  const playing = playPcm16(oneChunk(), undefined, controller.signal);
+  controller.abort();
+  const stop = vi.fn(); const writeAsync = vi.fn();
+  opened({ stop, writeAsync } as unknown as Speaker);
+  await playing;
+  expect(stop).toHaveBeenCalledOnce(); expect(writeAsync).not.toHaveBeenCalled();
+});
+
+it('preserves the playback error when releasing the device also fails', async () => {
+  const original = new Error('write failed'); const cleanup = new Error('stop failed');
+  vi.spyOn(Speaker, 'open').mockResolvedValue({ writeAsync: vi.fn().mockRejectedValue(original),
+    stop: vi.fn(() => { throw cleanup; }) } as unknown as Speaker);
+  await expect(playPcm16(oneChunk())).rejects.toMatchObject({ cause: original, errors: [original, cleanup] });
+});

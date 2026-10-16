@@ -10,9 +10,10 @@ export function createMicdropEventsAdapter(options: Readonly<{
 }>) {
   const { playback } = options;
   const onFrames = (frames: Float32Array) => {
-    if (options.getSession()?.state.phase === 'waiting_wake_word') options.pushWakeFrames(frames);
+    if (!options.isStopping() && options.getSession()?.state.phase === 'waiting_wake_word') options.pushWakeFrames(frames);
   };
   const onStateChange = (state: MicdropState, previous: MicdropState) => {
+    if (options.isStopping()) return;
     const session = options.getSession();
     playback.update(state.isAssistantSpeaking);
     if (!previous.isUserSpeaking && state.isUserSpeaking) {
@@ -20,7 +21,7 @@ export function createMicdropEventsAdapter(options: Readonly<{
     }
     if (previous.isUserSpeaking && !state.isUserSpeaking) {
       queueMicrotask(() => {
-        if (session?.state.phase !== 'recording') return;
+        if (options.isStopping() || session?.state.phase !== 'recording') return;
         playback.begin();
         session.dispatch({ kind: 'speech_ended' });
       });
@@ -31,12 +32,14 @@ export function createMicdropEventsAdapter(options: Readonly<{
     }
   };
   const onMessage = (message: { role: string; metadata?: Record<string, unknown> }) => {
+    if (options.isStopping()) return;
     const session = options.getSession();
     if (message.role === 'assistant') {
       session?.dispatch({ kind: 'assistant_message', expectsReply: message.metadata?.expectsReply });
     }
   };
   const onError = (error: Error) => {
+    if (options.isStopping()) return;
     const session = options.getSession();
     if (session && !['waiting_wake_word', 'closing_call'].includes(session.state.phase)) {
       void session.fail(error);
@@ -44,8 +47,8 @@ export function createMicdropEventsAdapter(options: Readonly<{
   };
 
   return {
-    wakeDetected() { options.getSession()?.dispatch({ kind: 'wake_detected' }); },
-    responsePlayed() { options.getSession()?.dispatch({ kind: 'response_played' }); },
+    wakeDetected() { if (!options.isStopping()) options.getSession()?.dispatch({ kind: 'wake_detected' }); },
+    responsePlayed() { if (!options.isStopping()) options.getSession()?.dispatch({ kind: 'response_played' }); },
     failed(error: Error) {
       if (!options.isStopping()) void options.getSession()?.fail(error);
     },

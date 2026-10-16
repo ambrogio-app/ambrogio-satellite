@@ -69,3 +69,23 @@ describe('Decibri Micdrop speaker driver', () => {
     expect(speaker.stop).toHaveBeenCalledOnce();
   });
 });
+
+it('closes a microphone that finishes opening after shutdown exactly once', async () => {
+  let opened!: (mic: Microphone) => void;
+  vi.spyOn(Microphone, 'open').mockReturnValue(new Promise(resolve => { opened = resolve; }));
+  const driver = new DecibriMicDriver();
+  const starting = driver.start(); const closing = driver.close();
+  expect(driver.close()).toBe(closing);
+  const stop = vi.fn(); opened({ stop } as unknown as Microphone);
+  await starting; await closing;
+  expect(stop).toHaveBeenCalledOnce(); expect(driver.isStarted).toBe(false);
+});
+
+it('retains a failed native microphone stop without retrying the native release', async () => {
+  const failure = new Error('native stop failed'); const stop = vi.fn(() => { throw failure; });
+  vi.spyOn(Microphone, 'open').mockResolvedValue(Object.assign(new EventEmitter(), { stop }) as unknown as Microphone);
+  const driver = new DecibriMicDriver(); await driver.start();
+  await expect(driver.stop()).rejects.toBe(failure);
+  await expect(driver.close()).rejects.toMatchObject({ errors: [failure] });
+  expect(stop).toHaveBeenCalledOnce();
+});

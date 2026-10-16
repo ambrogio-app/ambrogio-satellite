@@ -1,5 +1,20 @@
 # Elements
 
+### Arresto immediato del processo satellite
+
+Quando riceve SIGINT o SIGTERM, il satellite deve impedire nuove attivazioni e interrompere l'interazione e la riproduzione correnti senza attendere la risposta completa.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Ciclo di arresto e rilascio delle risorse](../Contracts/VoiceSatellite.md#ciclo-di-arresto-e-rilascio-delle-risorse)
+
+#### Relations
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Ascolto locale della wake word
 
 Mentre attende una nuova interazione, il satellite deve acquisire continuamente il segnale del microfono e riconoscere la wake word esclusivamente in locale.
@@ -316,6 +331,21 @@ I chiamanti delle porte e dei casi d’uso devono gestire esplicitamente tutte l
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Idempotenza dell'arresto del satellite
+
+Quando riceve richieste ripetute o concorrenti di arresto, il satellite deve condividere la stessa operazione di arresto senza duplicare il rilascio delle risorse native.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Ciclo di arresto e rilascio delle risorse](../Contracts/VoiceSatellite.md#ciclo-di-arresto-e-rilascio-delle-risorse)
+
+#### Relations
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Invio sicuro durante connessione e riconnessione
 
 Quando il canale vocale è in apertura o riconnessione, il satellite deve impedire l'invio di comandi e frame audio su una WebSocket non aperta, senza terminare il processo per un errore di stato della connessione. Il ripristino dell'interazione e l'eventuale perdita di un turno seguono le regole di recupero del satellite, senza reinvio automatico di audio già trasmesso.
@@ -429,6 +459,19 @@ Quando la configurazione è invalida, il satellite deve impedirne l’avvio oper
 
 #### Relations
   * satisfiedBy: [main.ts](../../src/main.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Rilascio completo delle risorse del satellite
+
+Quando termina o fallisce durante un avvio parziale, il satellite deve tentare il rilascio di tutte le risorse già acquisite, anche se una chiusura fallisce, conservando i guasti per la diagnosi al confine responsabile.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * definedBy: [Ciclo di arresto e rilascio delle risorse](../Contracts/VoiceSatellite.md#ciclo-di-arresto-e-rilascio-delle-risorse)
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
