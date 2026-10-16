@@ -2,12 +2,12 @@ import type { DeadlineScheduler, ScheduledDeadline } from './deadline-scheduler.
 import { advanceVoiceTurn, initialVoiceTurnState, type VoiceTurnEvent,
   type VoiceTurnState } from '../domain/voice-turn.js';
 
-export type VoiceSessionPorts = Readonly<{
-  openCall(): Promise<void>;
-  closeCall(): Promise<void>;
-  setSpeechEnabled(enabled: boolean): void;
-  reportFailure(error: Error): Promise<void>;
-}>;
+export interface VoiceSessionPorts {
+  readonly openCall: () => Promise<void>;
+  readonly closeCall: () => Promise<void>;
+  readonly setSpeechEnabled: (enabled: boolean) => void;
+  readonly reportFailure: (error: Error) => Promise<void>;
+}
 
 /** External observations accepted by Application, independent of Domain events. */
 export type VoiceSessionEvent =

@@ -101,6 +101,16 @@ Decisione concordata e implementata nel backend: sono ammessi turni in parallelo
   * define: [Compatibilità con il canale vocale backend](../Requirements/VoiceSatellite.md#compatibilità-con-il-canale-vocale-backend)
 ---
 
+### Convenzione TypeScript di porte e dati
+
+Decisione adottata dal backend nel modello autonomo del satellite: interface per contratti Application a oggetto che espongono capacità tramite operazioni nominate; type per dati, unioni di eventi/esiti e contratti callable. La classificazione dipende dalla responsabilità del contratto e comprende le capacità restituite da una porta.
+
+VoiceSessionPorts e DeadlineScheduler sono porte a oggetto; ScheduledDeadline è la capacità di cancellazione restituita dallo scheduler e usa anch'essa interface. VoiceSessionEvent e VoiceSessionStatus descrivono eventi e dati, quindi restano type. La callback dello scheduler resta una firma callable. Le proprietà callable readonly nelle interface possono conservare l'immutabilità delle precedenti dichiarazioni Readonly. Questa convenzione non impone classi agli adapter, non aggiunge operazioni e non cambia la semantica dei contratti.
+
+#### Metadata
+  * type: specification
+---
+
 ### Convenzione dei nomi di casi d'uso e adapter
 
 Decisione di progetto concordata: usare suffissi di ruolo per i casi d'uso e gli adapter, mantenendo nel nome la funzione concreta del componente. Questa convenzione appartiene a questo repository; non richiede un modello multirepository.

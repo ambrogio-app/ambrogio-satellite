@@ -279,6 +279,35 @@ Esaminare codice, import e firme: TypeScript eseguito da Node.js; stati e regole
   * verify: [Stack TypeScript e Node.js](../Requirements/VoiceSatellite.md#stack-typescript-e-nodejs)
 ---
 
+### Ispezione della forma TypeScript dei contratti
+
+#### Details
+Inventariare tutte le dichiarazioni Application, incluse capacità restituite e callable. Passa se le porte a oggetto sono interface e dati, unioni e callable usano type o firme callable inline, senza cambiare operazioni o significato. Verificare anche le dichiarazioni generate, typecheck completo e core, build e suite esistente. Non aggiungere test che controllano soltanto la parola interface.
+
+#### Esito del 16 ottobre 2026
+PASS sul worktree derivato da f27987ddf166c01aed6ed95a15fb17c0b0c4dee3. Inventario completo dei contratti nei due file Application:
+
+| File | Dichiarazione | Ruolo | Forma verificata |
+| --- | --- | --- | --- |
+| src/application/voice-session.use-case.ts | VoiceSessionPorts | Porta a oggetto: chiamata, parlato e segnalazione guasti | interface |
+| src/application/voice-session.use-case.ts | VoiceSessionEvent | Unione di eventi Application | type |
+| src/application/voice-session.use-case.ts | VoiceSessionStatus | Dati osservabili | type Readonly |
+| src/application/deadline-scheduler.ts | DeadlineScheduler | Porta di programmazione | interface |
+| src/application/deadline-scheduler.ts | ScheduledDeadline | Capacità restituita per cancellare | interface |
+| src/application/deadline-scheduler.ts | callback di schedule | Callable senza stato | Firma inline () => void |
+
+VoiceSession è l'implementazione del caso d'uso e rimane una classe: la convenzione riguarda le dichiarazioni dei contratti. Convertiti VoiceSessionPorts e ScheduledDeadline, conservando readonly sulle operazioni precedentemente racchiuse in Readonly. Nessuna modifica a parametri, risultati o comportamento. DeadlineScheduler era già conforme.
+
+Controllate le dichiarazioni rigenerate voice-session.use-case.d.ts e deadline-scheduler.d.ts. Typecheck completo e core senza tipi ambientali: PASS. Build ESM: PASS. Vitest: 83 test in 18 file, tutti superati. Nessun test artificiale aggiunto per controllare soltanto la sintassi delle dichiarazioni. Il cambiamento è interno e non modifica il contratto vocale pubblico o la documentazione operativa.
+
+#### Metadata
+  * type: inspection-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Forma TypeScript dei contratti Application](../Requirements/VoiceSatellite.md#forma-typescript-dei-contratti-application)
+---
+
 ### Ispezione delle licenze dei modelli distribuiti
 
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.

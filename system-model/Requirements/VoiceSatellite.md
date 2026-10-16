@@ -322,6 +322,20 @@ Quando Domain, Application o una porta prevedono un esito negativo nel proprio c
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Forma TypeScript dei contratti Application
+
+Quando Application del satellite dichiara una porta a oggetto con operazioni nominate, deve usare interface; quando dichiara dati, unioni o contratti callable, deve usare type.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * definedBy: [Convenzione TypeScript di porte e dati](../Contracts/VoiceSatellite.md#convenzione-typescript-di-porte-e-dati)
+  * satisfiedBy: [deadline-scheduler.ts](../../src/application/deadline-scheduler.ts)
+  * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Gestione dei guasti inattesi
 
 Quando si verifica un guasto inatteso, il satellite deve propagarlo come eccezione fino al confine tecnico responsabile della gestione e della diagnostica.
