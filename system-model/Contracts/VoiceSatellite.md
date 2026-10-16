@@ -179,9 +179,25 @@ La composition root fornisce l'adapter Node.js; nei test Application una impleme
   * type: specification
 ---
 
+### Profilo CI del satellite
+
+GitHub Actions esegue il job stabile `Satellite checks` su ogni pull request, sui push a main e su richiesta manuale, senza filtri sui percorsi. Runner Linux Ubuntu 24.04 x86_64, Node.js 24, pnpm 12.11.2 e installazione con lockfile congelato. Reqvire 1.3.2 valida il modello e produce il lint JSON: sia rilievi automatici sia rilievi manuali fanno fallire il controllo. Seguono pnpm typecheck (compreso tsconfig.core.json), pnpm test e pnpm build. Permessi di sola lettura sui contenuti, nessuna credenziale personale richiesta. Le prove audio con periferiche e la compatibilità arm64 restano verifiche separate prima del rilascio.
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Controlli CI delle modifiche del satellite](../Requirements/VoiceSatellite.md#controlli-ci-delle-modifiche-del-satellite)
+---
+
 ### Profilo diagnostico Pino
 
 Pino emette una riga JSON su stdout, con livello testuale, timestamp ed event costante. Nessuna acquisizione automatica di configurazione, audio, messaggi, hostname o dati ricevuti. I rifiuti previsti di avvio sono eventi informativi, senza err; i guasti di processo, interazione e riproduzione dell’avviso hanno eventi distinti. La normalizzazione al confine conserva l’identità di Error e incapsula gli altri valori con messaggio costante e cause originale, senza conversione a stringa. La vista JSON di err usa descrizioni costanti, nasconde name, message, stack, code e proprietà aggiuntive; conserva soltanto la struttura delle cause e degli AggregateError con limiti di profondità e numerosità, senza invocare getter o modificare gli originali. Il messaggio parlato resta l’asset locale indipendente dalla diagnosi. Domain e Application non importano logger.
+
+#### Details
+Decisione concordata il 2026-10-16: non estendere la patch locale di Micdrop per il logging. Proporre upstream un logger configurabile che copra anche le emissioni dirette console.error/console.warn. Fino a una soluzione verificata, la protezione dei log della dipendenza resta aperta; debugLog=false non è sufficiente. Questa decisione non attesta conformità completa ai requisiti di riservatezza e formato dei log.
+
+Bozza upstream, non pubblicata: «Allow a configurable logger in @micdrop/client. In version 3.4.0, several console.error/console.warn calls bypass debugLog and may include received payloads or raw errors. Please provide an optional logger covering all diagnostic output, with a way to disable it. Error events and call behavior should remain independent of logger configuration. This would let applications apply their own structured logging and privacy policies without patching the package.»
 
 #### Metadata
   * type: specification

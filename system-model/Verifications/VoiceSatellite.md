@@ -260,6 +260,21 @@ Usare una configurazione invalida e osservare che nessuna risorsa audio, wake wo
   * verify: [Validazione prima della costruzione delle risorse](../Requirements/VoiceSatellite.md#validazione-prima-della-costruzione-delle-risorse)
 ---
 
+### Ispezione del workflow CI del satellite
+
+Verificare eventi di attivazione, versioni, lockfile congelato, sequenza dei cinque controlli e fallimento del job senza continue-on-error. Eseguire localmente i comandi compatibili; una prova locale non attesta un’esecuzione GitHub Actions. Per la prova remota richiedere una run del workflow sul commit pubblicato.
+
+#### Details
+2026-10-16: actionlint 1.7.12 senza rilievi (shellcheck non disponibile); installazione pnpm 12.11.2 con frozen-lockfile PASS su Node.js 24; typecheck completo e core, 89 test in 19 file e build PASS su Node.js 24. Validazione Reqvire PASS. Workflow ispezionato: nessun filtro per percorsi, nessun continue-on-error, controllo esplicito di entrambe le liste di rilievi lint, permessi contents:read. Non ancora eseguito su GitHub Actions: richiede pubblicazione del commit. Nessuna attestazione delle prove audio hardware o arm64.
+
+#### Metadata
+  * type: inspection-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Controlli CI delle modifiche del satellite](../Requirements/VoiceSatellite.md#controlli-ci-delle-modifiche-del-satellite)
+---
+
 ### Ispezione della architettura e degli esiti
 
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
@@ -306,6 +321,21 @@ Controllate le dichiarazioni rigenerate voice-session.use-case.d.ts e deadline-s
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Forma TypeScript dei contratti Application](../Requirements/VoiceSatellite.md#forma-typescript-dei-contratti-application)
+---
+
+### Ispezione della protezione del merge
+
+Controllare via GitHub che main richieda il check `Satellite checks` e impedisca il merge con check fallito o mancante.
+
+#### Details
+2026-10-16: controllo remoto NON superato. Il repository è privato; gli endpoint rulesets e branch protection restituiscono HTTP 403 con richiesta di GitHub Pro o repository pubblico. Non sono state cambiate visibilità o sottoscrizione. Il requisito resta aperto fino alla disponibilità e attivazione della protezione.
+
+#### Metadata
+  * type: inspection-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Controlli obbligatori prima del merge](../Requirements/VoiceSatellite.md#controlli-obbligatori-prima-del-merge)
 ---
 
 ### Ispezione delle licenze dei modelli distribuiti
@@ -383,7 +413,7 @@ Ispezionata la dichiarazione generata dist/application/voice-session.use-case.d.
 Acquisire le righe reali di Pino: JSON, event stabili, nessun dato sensibile da message, name, stack, code, cause o proprietà aggiuntive. Controllare identità e immutabilità degli originali, valori lanciati non Error, cause cicliche, getter e aggregati. Iniettare un guasto di interazione e uno di riproduzione: un evento distinto per ciascun guasto e avviso parlato indipendente. Verificare avvio e rifiuti di configurazione senza log automatici di errore.
 
 #### Details
-Esecuzione del 2026-10-16: npm run typecheck, npm test (89 test, 19 file) e npm run build PASS. Prova CLI dei rifiuti per argomenti e configurazione assente: singola riga JSON info su stdout, uscita 2. Le prove automatiche coprono il logger applicativo, la propagazione del valore originale e gli eventi distinti di interazione e avviso. Non attestano i log diretti di Micdrop 3.4.0: l’ispezione della dipendenza rileva console.error/console.warn con dati grezzi; protezione ancora aperta e soggetta a decisione sulla patch locale. Le dimostrazioni su backend e periferiche reali restano da eseguire.
+Esecuzione del 2026-10-16: npm run typecheck, npm test (89 test, 19 file) e npm run build PASS. Prova CLI dei rifiuti per argomenti e configurazione assente: singola riga JSON info su stdout, uscita 2. Le prove automatiche coprono il logger applicativo, la propagazione del valore originale e gli eventi distinti di interazione e avviso. Non attestano i log diretti di Micdrop 3.4.0: l’ispezione della dipendenza rileva console.error/console.warn con dati grezzi; protezione ancora aperta. Decisione concordata il 2026-10-16: nessuna nuova patch locale per il logging; proporre upstream un logger configurabile. La verifica completa dei log della dipendenza resta da eseguire dopo una soluzione compatibile. Le dimostrazioni su backend e periferiche reali restano da eseguire.
 
 #### Metadata
   * type: test-verification

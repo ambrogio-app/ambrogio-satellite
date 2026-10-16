@@ -245,6 +245,28 @@ Quando gli adapter interagiscono con i casi d'uso del satellite, devono usare da
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Controlli CI delle modifiche del satellite
+
+Quando una modifica viene proposta tramite pull request, la CI del satellite deve eseguire validazione e lint Reqvire, controllo TypeScript completo e dei layer interni, suite Vitest e build, segnalando il fallimento se uno dei controlli fallisce.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Controlli obbligatori prima del merge
+
+Quando una pull request viene integrata nel branch principale del satellite, il repository deve impedire il merge se i controlli CI richiesti non sono superati.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Delimitazione locale dei turni vocali
 
 Durante un'interazione vocale attiva, il satellite deve riconoscere localmente l'inizio e la fine del parlato della famiglia e consegnare al backend il turno risultante, preservando anche le risposte brevi e le richieste con pause interne.
