@@ -135,6 +135,21 @@ Durante interazioni riuscite e fallite controllare scritture su disco e log usan
   * verify: [Selezione esplicita dei dati diagnostici](../Requirements/VoiceSatellite.md#selezione-esplicita-dei-dati-diagnostici)
 ---
 
+### Dimostrazione della segmentazione vocale
+
+Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
+
+#### Details
+Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare Silero ONNX per una richiesta continua dopo la wake word, una replica breve come «sì» e una frase con una pausa interna. Accertare che ogni turno ammesso produca un solo `StartSpeaking`, i frame PCM16 mono a 16 kHz e un solo `StopSpeaking`, senza perdere la replica breve né spezzare la frase alla pausa. Durante la riproduzione della risposta non devono partire nuovi turni. Registrare tempi di delimitazione e consumo di CPU; soglie quantitative di accettazione restano da definire prima della prova finale.
+
+#### Metadata
+  * type: demonstration-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Delimitazione locale dei turni vocali](../Requirements/VoiceSatellite.md#delimitazione-locale-dei-turni-vocali)
+---
+
 ### Ispezione dei confini interni
 
 Verifica pianificata; nessuna evidenza di esecuzione disponibile.

@@ -141,3 +141,16 @@ Domain contiene stati e regole dell’interazione locale. Application coordina i
   * define: [Separazione Domain Application e adapter](../Requirements/VoiceSatellite.md#separazione-domain-application-e-adapter)
 ---
 
+### Segmentazione dei turni con Silero ONNX
+
+La prima versione usa Silero VAD in formato ONNX nel processo Node.js del satellite per individuare i tratti di parlato durante un'interazione ammessa. L'adapter audio/VAD esegue il modello con ONNX Runtime e segnala all'adapter del trasporto l'inizio, i frame e la fine di ciascun turno. Il trasporto invia `StartSpeaking`, audio PCM16 mono a 16 kHz e `StopSpeaking` secondo il contratto vocale del backend. Durante la riproduzione della risposta il satellite non ammette nuovi turni né interrompe l'audio in uscita.
+
+Il modello Silero e la sua licenza devono accompagnare la distribuzione: https://github.com/snakers4/silero-vad . Lo spike mostra che Silero gestisce una risposta breve che il rilevamento basato sul volume perdeva, ma non determina ancora la versione del modello, la soglia, la durata del silenzio di chiusura, l'uso di CPU né i limiti di latenza. Tali valori richiedono prove su Linux x86_64 e arm64, comprese risposte brevi e frasi con pause interne.
+
+#### Metadata
+  * type: behavior
+
+#### Relations
+  * define: [Delimitazione locale dei turni vocali](../Requirements/VoiceSatellite.md#delimitazione-locale-dei-turni-vocali)
+---
+

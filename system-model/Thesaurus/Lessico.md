@@ -103,6 +103,21 @@ Risorsa distribuita con il satellite che permette al rilevatore locale di ricono
   * related: [Catalogo delle wake word](#catalogo-delle-wake-word)
 ---
 
+### Rilevamento dell'attività vocale
+
+Individuazione locale dei tratti di parlato e delle pause che delimitano un turno vocale. È distinta dal riconoscimento della wake word, che avvia l'interazione quando il satellite è in attesa.
+
+#### Labels
+  * altLabel: VAD
+
+#### Metadata
+  * type: concept
+
+#### Relations
+  * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
+  * related: [Turno vocale](#turno-vocale)
+---
+
 ### Riserva audio
 
 Porzione temporanea di audio conservata in memoria dal satellite durante il riconoscimento e l'avvio dell'interazione, utile quando la richiesta segue immediatamente la wake word.
