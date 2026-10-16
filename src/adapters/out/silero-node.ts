@@ -4,7 +4,7 @@ import { SILERO_SAMPLE_RATE, setSileroModelLoader, type SileroModel } from '@mic
 import * as ort from 'onnxruntime-node';
 
 const require = createRequire(import.meta.url);
-const modelPath = join(dirname(require.resolve('decibri')), 'models', 'silero_vad.onnx');
+const modelPath = join(dirname(dirname(require.resolve('decibri'))), 'models', 'silero_vad.onnx');
 const CONTEXT_SAMPLES = 64;
 
 function emptyState(): ort.Tensor {
