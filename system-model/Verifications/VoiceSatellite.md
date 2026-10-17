@@ -82,6 +82,18 @@ Chiudere la sessione lato backend mentre il satellite attende la wake word e ver
   * verify: [Sessione conversazionale persistente](../Requirements/VoiceSatellite.md#sessione-conversazionale-persistente)
 ---
 
+### Dimostrazione dell'hook dei segreti
+
+In un clone con `core.hooksPath` impostato a `.githooks`, mettere in staging un file con una credenziale fittizia nel formato di un fornitore noto e tentare il commit: il commit è bloccato e il valore non compare nell'output. Ripetere con modifiche prive di segreti: il commit riesce. Ripetere con `gitleaks` assente dal `PATH`: il commit è bloccato con il messaggio che indica installazione e attivazione. Annullare le modifiche di prova senza lasciarle nella storia.
+
+#### Metadata
+  * type: demonstration-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Controllo dei segreti prima del commit locale](../Requirements/VoiceSatellite.md#controllo-dei-segreti-prima-del-commit-locale)
+---
+
 ### Dimostrazione della attivazione locale
 
 Verifica operativa pianificata; la sola prova sul campione upstream descritta nei dettagli è stata eseguita.
@@ -396,6 +408,19 @@ Ispezionare costruzione del logger, call site, configurazione, dipendenze e avvi
   * verify: [Gestione dei log affidata al deployment](../Requirements/VoiceSatellite.md#gestione-dei-log-affidata-al-deployment)
 ---
 
+### Ispezione della scansione dei segreti in CI
+
+Verificare in `.github/workflows/secret-scan.yml` gli eventi di attivazione (push su ogni branch, pull request, richiesta manuale, chiamata da altri workflow), il checkout fissato per commit con l'intera storia e senza credenziali conservate, il download di gitleaks 8.30.1 con verifica dello SHA-256 prima dell'estrazione, il comando `gitleaks git --redact --no-banner --exit-code 1 .`, i permessi di sola lettura e l'assenza di continue-on-error. Verificare che `publish-image.yml` richiami il workflow e che il job di pubblicazione dipenda sia dai controlli CI sia dalla scansione. Eseguire localmente la stessa scansione sulla storia del repository; una prova locale non attesta un'esecuzione GitHub Actions, per la quale serve una run del workflow sul commit pubblicato.
+
+#### Metadata
+  * type: inspection-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Scansione dei segreti nella storia del repository](../Requirements/VoiceSatellite.md#scansione-dei-segreti-nella-storia-del-repository)
+  * verify: [Scansione dei segreti prima della pubblicazione](../Requirements/VoiceSatellite.md#scansione-dei-segreti-prima-della-pubblicazione)
+---
+
 ### Ispezione delle licenze dei modelli distribuiti
 
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
@@ -513,6 +538,19 @@ La prova passa se il satellite non tenta di pronunciare il testo, riproduce la r
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [response-playback.test.ts](../../test/adapters/out/response-playback.test.ts)
   * verify: [Avviso parlato di voce non disponibile](../Requirements/VoiceSatellite.md#avviso-parlato-di-voce-non-disponibile)
+---
+
+### Prova dell'evento di configurazione rifiutata
+
+Acquisire le righe reali di Pino prodotte dal rifiuto della configurazione. Per un file assente o illeggibile: una sola riga `info` con `event: "invalid_configuration"` e `reason: "configuration_unavailable"`, senza `field`. Per contenuto non JSON, sezione sconosciuta e per ciascun campo invalido (`backend.baseUrl`, `client.id`, `client.name`, `audio.microphone`, `audio.speaker`, `wakeWord.model`, `wakeWord.threshold`, `interaction.replyTimeoutMs`): `reason: "invalid_configuration"` e il `field` atteso, `config` per contenuto non JSON o struttura non prevista. Le righe non contengono valori del file, percorsi né `err`, e hanno soltanto le chiavi `level`, `time`, `event`, `reason` ed eventualmente `field`. Avviando il processo compilato con un file invalido, l'uscita è 2 e la riga è quella attesa.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [diagnostics.test.ts](../../test/adapters/out/diagnostics.test.ts)
+  * verify: [Rifiuto della configurazione invalida](../Requirements/VoiceSatellite.md#rifiuto-della-configurazione-invalida)
 ---
 
 ### Prova dell'identità del satellite nella sessione

@@ -169,6 +169,30 @@ Il tipo locale è `type Result<T, E> = Readonly<{ ok: true; value: T }> | Readon
   * define: [Esiti previsti come valori tipizzati](../Requirements/VoiceSatellite.md#esiti-previsti-come-valori-tipizzati)
 ---
 
+### Evento diagnostico della configurazione rifiutata
+
+Decisione concordata con la persona il 18 ottobre 2026, per rendere comprensibile il rifiuto della configurazione: quando il file JSON selezionato con `--config` viene rifiutato, il satellite emette una sola riga Pino di livello `info` con `event: "invalid_configuration"` e il campo `reason`, che vale il `kind` del rifiuto previsto. Con `reason: "configuration_unavailable"` il file non esiste o non è leggibile e la riga non contiene altri campi diagnostici. Con `reason: "invalid_configuration"` la riga contiene anche `field`, il nome del campo rifiutato tra `backend.baseUrl`, `client.id`, `client.name`, `audio.microphone`, `audio.speaker`, `wakeWord.model`, `wakeWord.threshold` e `interaction.replyTimeoutMs`, oppure `config` quando il contenuto non è JSON o la struttura del documento contiene sezioni o campi non previsti. Il processo termina con codice 2 senza costruire risorse audio o di rete.
+
+La riga non riporta valori letti dal file, percorsi, nome host o messaggi di librerie: `reason` e `field` sono costanti scelte dal satellite. Il rifiuto degli argomenti di avvio resta l'evento `invalid_arguments` senza campi aggiuntivi.
+
+#### Metadata
+  * type: input-output
+
+#### Relations
+  * define: [Rifiuto della configurazione invalida](../Requirements/VoiceSatellite.md#rifiuto-della-configurazione-invalida)
+---
+
+### Hook pre-commit dei segreti con gitleaks
+
+Decisione concordata con la persona il 18 ottobre 2026, insieme alla scansione in CI: il repository versiona l'hook `.githooks/pre-commit`, script POSIX `sh` eseguibile. Ogni clone lo abilita una volta con `git config core.hooksPath .githooks`; Git non attiva automaticamente gli hook versionati. Se il comando `gitleaks` non è nel `PATH`, l'hook stampa su stderr un messaggio che indica come installare gitleaks 8.30.1 e abilitare l'hook, ed esce con stato diverso da zero, bloccando il commit. Altrimenti esegue `gitleaks git --pre-commit --staged --redact --no-banner .`: analizza soltanto le modifiche in staging, blocca il commit quando trova un segreto e non stampa i valori trovati. La versione attesa è la stessa fissata per la CI. Aggirare l'hook con `--no-verify` non è una procedura prevista; la scansione in CI resta la garanzia sul repository remoto.
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Controllo dei segreti prima del commit locale](../Requirements/VoiceSatellite.md#controllo-dei-segreti-prima-del-commit-locale)
+---
+
 ### Identità del satellite nella sessione
 
 Decisione concordata il 17 ottobre 2026: il file JSON può contenere la sezione facoltativa `client` con `id` e `name`, stringhe non vuote. In assenza, `id` vale `satellite-<nome host>` e `name` vale il nome host. Il satellite invia questi valori come `clientId` e `name` di `session.hello`. L'identificativo resta stabile tra un avvio e l'altro sulla stessa macchina finché la configurazione non cambia; il nome serve alla famiglia per riconoscere il satellite, per esempio «Cucina». Un valore vuoto o di tipo diverso rende invalida la configurazione.
@@ -214,6 +238,24 @@ GitHub Actions esegue il job stabile `Satellite checks` su ogni pull request, su
 
 #### Relations
   * define: [Controlli CI delle modifiche del satellite](../Requirements/VoiceSatellite.md#controlli-ci-delle-modifiche-del-satellite)
+---
+
+### Profilo della scansione dei segreti con gitleaks
+
+Decisione concordata con la persona il 18 ottobre 2026: il repository del satellite usa gitleaks 8.30.1 per individuare segreti, sia in CI sia prima di ogni commit locale.
+
+Il workflow riutilizzabile `.github/workflows/secret-scan.yml` si attiva al push su qualunque branch, su ogni pull request, su richiesta manuale e quando un altro workflow lo richiama. Esegue il checkout con la stessa azione fissata per commit usata dalla CI, con l'intera storia (`fetch-depth: 0`) e senza conservare le credenziali. Scarica dalla release ufficiale `gitleaks_8.30.1_linux_x64.tar.gz`, ne verifica lo SHA-256 `551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb` prima di estrarlo e interrompe il job se l'impronta non corrisponde. Esegue `gitleaks git --redact --no-banner --exit-code 1 .` sull'intera storia: un ritrovamento fa fallire il job e i valori trovati non compaiono nel log. Permessi di sola lettura sui contenuti, nessuna credenziale personale. Il workflow di pubblicazione delle immagini richiama questo workflow e il job di pubblicazione dipende sia dai controlli della CI sia dalla scansione dei segreti.
+
+Un falso positivo si risolve con un'eccezione esplicita concordata con la persona e registrata in questo modello, non disattivando la scansione.
+
+#### Alternative e conseguenze
+Sono state considerate l'azione ufficiale `gitleaks/gitleaks-action`, che è gratuita per gli account personali ma richiede una licenza quando il repository appartiene a un'organizzazione, il solo controllo in CI, che lascia entrare un segreto nella storia locale fino al push, e il solo hook locale, che dipende dall'attivazione in ogni clone e non protegge il repository remoto. Il binario fissato per versione e impronta non dipende da licenze né da azioni di terze parti; l'aggiornamento di versione richiede di aggiornare insieme versione e impronta.
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Scansione dei segreti nella storia del repository](../Requirements/VoiceSatellite.md#scansione-dei-segreti-nella-storia-del-repository)
 ---
 
 ### Profilo di pubblicazione Docker del satellite

@@ -285,6 +285,17 @@ Quando una pull request viene integrata nel branch principale del satellite, il 
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Controllo dei segreti prima del commit locale
+
+Quando si crea un commit in un clone che ha abilitato l'hook versionato del repository, il repository deve bloccare il commit se le modifiche in staging contengono segreti oppure se lo strumento di scansione non è disponibile.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Delimitazione locale dei turni vocali
 
 Durante un'interazione vocale attiva, il satellite deve riconoscere localmente l'inizio e la fine del parlato della famiglia e consegnare al backend il turno risultante, preservando anche le risposte brevi e le richieste con pause interne.
@@ -738,6 +749,31 @@ Quando dopo una risposta che attende replica scade l'intervallo locale di inatti
 
 #### Relations
   * satisfiedBy: [voice-turn.ts](../../src/domain/voice-turn.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Scansione dei segreti nella storia del repository
+
+Quando una modifica viene inviata a qualunque branch del repository del satellite o proposta tramite pull request, la CI deve analizzare l'intera storia Git alla ricerca di segreti e segnalare il fallimento se ne trova.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Scansione dei segreti prima della pubblicazione
+
+Quando viene creato un tag di release valido, il progetto non deve pubblicare immagini del satellite se la scansione dei segreti della stessa revisione non è superata.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Profilo della scansione dei segreti con gitleaks](../Contracts/VoiceSatellite.md#profilo-della-scansione-dei-segreti-con-gitleaks)
+
+#### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
