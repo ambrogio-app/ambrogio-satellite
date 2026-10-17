@@ -4,9 +4,9 @@ Client satellite per l'interazione vocale con Ambrogio. Il repository possiede i
 
 ## Stato
 
-Modello salvato tramite MCP Reqvire: una capability, un lessico locale con 14 concetti, un’ontologia strutturale, requisiti, contratti, verifiche pianificate ed evidenze automatiche. È disponibile il processo vocale eseguibile: configurazione JSON, wake word ONNX locale, Silero, client Micdrop, audio Decibri, repliche e recupero parlato. I modelli Hey Jarvis e Hey Mycroft sono distribuiti con licenza e checksum. La verifica audio contro backend e periferiche reali su Linux x86_64 e arm64 è ancora necessaria prima del rilascio. Il modello è il riferimento autorevole; questo README ne riepiloga le decisioni.
+Modello salvato tramite Reqvire: una capability, un lessico locale con 14 concetti, un’ontologia strutturale, requisiti, contratti, verifiche pianificate ed evidenze automatiche. È disponibile il processo vocale eseguibile: configurazione JSON, wake word ONNX locale, Silero, client Micdrop, audio Decibri, repliche e recupero parlato. I modelli Hey Jarvis, Hey Mycroft e Alexa sono distribuiti con licenza e checksum. La verifica audio contro backend e periferiche reali su Linux x86_64 e arm64 è ancora necessaria prima del rilascio. Il modello è il riferimento autorevole; questo README ne riepiloga le decisioni.
 
-## Decisioni concordate il 16 ottobre 2026
+## Decisioni di progetto
 
 - Linux su x86_64 e arm64, senza un dispositivo hardware obbligatorio.
 - TypeScript ESM e Node.js 24 o successivo, con pnpm e Vitest; esecuzione diretta sull'host con le dipendenze installate e Docker facoltativo, con stessa applicazione e configurazione.
@@ -14,7 +14,7 @@ Modello salvato tramite MCP Reqvire: una capability, un lessico locale con 14 co
 - Rifiuti ed esiti previsti come valori tipizzati; guasti inattesi come eccezioni, gestiti e diagnosticati ai confini tecnici.
 - File JSON a sezioni `backend`, `audio`, `wakeWord` e `interaction`, validato all'avvio. `backend.baseUrl` è l'URL base HTTP(S) da cui il satellite ricava il canale WebSocket `/api/voice`; `wakeWord.model` sceglie un modello distribuito e `interaction.replyTimeoutMs` ha il valore predefinito di 15 secondi. `--config` seleziona il file; le variabili d'ambiente non sovrascrivono i valori. `audio.microphone` e `audio.speaker` sono selettori facoltativi: se assenti si usano i dispositivi di sistema, mentre un selettore esplicito non ricade silenziosamente sul dispositivo predefinito.
 - Ascolto continuo con riconoscimento della wake word esclusivamente sul satellite; la connessione per l'interazione vocale si apre dopo l'attivazione.
-- Catalogo previsto delle wake word: «Hey Jarvis» (predefinita), «Hey Mycroft» e «Hey Alexa». I primi due modelli sono inclusi e selezionabili; «Hey Alexa» richiede ancora una verifica della frase esatta prima di essere aggiunta. La prima versione non accetta modelli personalizzati esterni.
+- Catalogo delle wake word: «Hey Jarvis» (predefinita), «Hey Mycroft» e «Alexa». Si seleziona una sola voce alla volta; «Alexa» da sola è stata concordata il 17 ottobre 2026. La prima versione non accetta modelli personalizzati esterni.
 - Il riconoscimento locale della wake word usa modelli openWakeWord ONNX nel processo Node.js, tramite `onnxruntime-node` 1.30.0. Non richiede un servizio Wyoming separato. Lo spike ne mostra la fattibilità iniziale, ma la distribuzione finale va provata su x86_64 e arm64.
 - La delimitazione dei turni vocali usa il modello Silero VAD ONNX incluso in Decibri 5.8.0. Il valore iniziale di `redemptionFrames` è 20; risposte brevi, pause, latenza e CPU richiedono prove sulle due architetture.
 - Gli adapter audio usano Decibri 5.8.0, fissato nel lockfile, per microfono e speaker. Il satellite attende lo svuotamento della coda di riproduzione; l'esecuzione Linux deve includere la libreria runtime ALSA e l'accesso ai dispositivi configurati.
@@ -37,7 +37,7 @@ cp config.example.json config.json
 node dist/main.js --config config.json
 ```
 
-Impostare `backend.baseUrl` all'URL HTTP(S) raggiungibile del backend. Il satellite ricava automaticamente `/api/voice`. `wakeWord.model` accetta per ora `hey_jarvis` o `hey_mycroft`; gli identificatori dei dispositivi in `audio.microphone` e `audio.speaker` sono facoltativi. `interaction.replyTimeoutMs` controlla l'attesa della replica dell'utente. La risposta del backend ha un limite di 60 secondi; il termine della riproduzione è stimato dopo 1 secondo senza audio Micdrop.
+Impostare `backend.baseUrl` all'URL HTTP(S) raggiungibile del backend. Il satellite ricava automaticamente `/api/voice`. `wakeWord.model` accetta `hey_jarvis`, `hey_mycroft` o `alexa`; gli identificatori dei dispositivi in `audio.microphone` e `audio.speaker` sono facoltativi. `interaction.replyTimeoutMs` controlla l'attesa della replica dell'utente. La risposta del backend ha un limite di 60 secondi; il termine della riproduzione è stimato dopo 1 secondo senza audio Micdrop.
 
 ## Arresto
 
@@ -84,7 +84,7 @@ Le decisioni sono registrate in [lessico](system-model/Thesaurus/Lessico.md), [o
 
 Le verifiche pianificate coprono frase continua, riconoscimento locale, catalogo distribuito, repliche richieste dal backend, assenza di interruzioni vocali, recupero con messaggio locale, configurazione, architettura ed esecuzione su entrambe le architetture con e senza Docker. I collegamenti di verifica non indicano prove eseguite. Per le funzionalità ancora aperte occorre completare i contratti e preparare i test pertinenti secondo `AGENTS.md`.
 
-Lo spike in `/home/adriano/projects/ambrogio-spike/satellite/spike/` è una fonte di evidenze e limiti tecnici, non un vincolo sul protocollo o sul codice definitivo. Decibri 5.8.0 e ONNX Runtime 1.30.0 si caricano su Linux x86_64, anche nell'immagine Docker; acquisizione e riproduzione con periferiche reali, anche su arm64, restano da provare. La voce «Hey Alexa» richiede una prova affidabile della frase esatta prima di essere selezionabile.
+Lo spike in `/home/adriano/projects/ambrogio-spike/satellite/spike/` è una fonte di evidenze e limiti tecnici, non un vincolo sul protocollo o sul codice definitivo. Decibri 5.8.0 e ONNX Runtime 1.30.0 si caricano su Linux x86_64, anche nell'immagine Docker; acquisizione e riproduzione con periferiche reali, anche su arm64, restano da provare. Il modello «Alexa» ha superato una prova sul campione upstream; resta da valutarlo con il microfono reale.
 
 Il contratto vocale da esaminare è «Protocollo vocale del prodotto» in `ambrogio-backend/system-model/Contracts/FamilyConversation.md`, al commit candidato `512317c9e93b4e6ab7a1e32dd9c210436b7b5c06`. L'integrazione va verificata contro questa revisione con il client satellite reale.
 

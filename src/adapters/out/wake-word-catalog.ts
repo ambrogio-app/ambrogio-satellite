@@ -8,6 +8,7 @@ const shared = {
 };
 
 const models = {
+  alexa: { ...shared, classifier: fileURLToPath(new URL('alexa_v0.1.onnx', root)) },
   hey_jarvis: { ...shared, classifier: fileURLToPath(new URL('hey_jarvis_v0.1.onnx', root)) },
   hey_mycroft: { ...shared, classifier: fileURLToPath(new URL('hey_mycroft_v0.1.onnx', root)) },
 } satisfies Record<string, WakeWordModelFiles>;

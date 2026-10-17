@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseBackendBaseUrl, parseReplyTimeoutMs, parseSatelliteConfig } from '../../../src/adapters/out/configuration.js';
 
-const distributedModels = new Set(['hey_jarvis', 'hey_mycroft']);
+const distributedModels = new Set(['alexa', 'hey_jarvis', 'hey_mycroft']);
 
 describe('backend base URL', () => {
   it('derives the WebSocket endpoint while preserving a proxy prefix', () => {
@@ -42,17 +42,17 @@ describe('satellite configuration', () => {
     }
   });
 
-  it('preserves explicit audio devices, model and timeout', () => {
+  it.each(['alexa', 'hey_mycroft'])('preserves explicit audio devices, %s model and timeout', model => {
     const result = parseSatelliteConfig({
       backend: { baseUrl: 'https://example.org/ambrogio' },
       audio: { microphone: 'alsa:mic-1', speaker: 'USB Speaker' },
-      wakeWord: { model: 'hey_mycroft' },
+      wakeWord: { model },
       interaction: { replyTimeoutMs: 2_500 },
     }, distributedModels);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.audio).toEqual({ microphone: 'alsa:mic-1', speaker: 'USB Speaker' });
-      expect(result.value.wakeWord.model).toBe('hey_mycroft');
+      expect(result.value.wakeWord.model).toBe(model);
       expect(result.value.interaction.replyTimeoutMs).toBe(2_500);
       expect(result.value.backend.voiceUrl.href).toBe('wss://example.org/ambrogio/api/voice');
     }

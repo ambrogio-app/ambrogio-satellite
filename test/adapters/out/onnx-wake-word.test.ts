@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 describe('distributed ONNX wake word models', () => {
-  it('loads both selectable models and processes silence with the shared feature files', async () => {
+  it('loads every selectable model and processes silence with the shared feature files', async () => {
     process.env.ORT_DISABLE_TELEMETRY = '1';
     const [{ OnnxWakeWord }, { wakeWordFiles, distributedWakeWordIds }] = await Promise.all([
       import('../../../src/adapters/out/onnx-wake-word.js'),
       import('../../../src/adapters/out/wake-word-catalog.js'),
     ]);
-    expect([...distributedWakeWordIds].sort()).toEqual(['hey_jarvis', 'hey_mycroft']);
-    for (const id of ['hey_jarvis', 'hey_mycroft'] as const) {
+    expect([...distributedWakeWordIds].sort()).toEqual(['alexa', 'hey_jarvis', 'hey_mycroft']);
+    for (const id of ['alexa', 'hey_jarvis', 'hey_mycroft'] as const) {
       const detected: number[] = [];
       const failures: unknown[] = [];
       const detector = await OnnxWakeWord.open(wakeWordFiles(id), {

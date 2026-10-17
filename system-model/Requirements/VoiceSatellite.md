@@ -134,7 +134,7 @@ Quando non riesce ad avviare un’interazione perché il backend non è raggiung
 
 ### Catalogo distribuito delle wake word
 
-Il satellite deve mettere a disposizione modelli di wake word distribuiti e supportati per le frasi «Hey Jarvis», «Hey Mycroft» e «Hey Alexa», con «Hey Jarvis» come scelta predefinita.
+Il satellite deve mettere a disposizione modelli di wake word distribuiti e supportati per le frasi «Hey Jarvis», «Hey Mycroft» e «Alexa», con «Hey Jarvis» come scelta predefinita. La configurazione seleziona una sola wake word alla volta.
 
 #### Concept References
   * [Catalogo delle wake word](../Thesaurus/Lessico.md#catalogo-delle-wake-word)

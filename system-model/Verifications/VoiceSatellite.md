@@ -82,10 +82,12 @@ Contro la revisione backend di riferimento completare un'interazione e una repli
 
 ### Dimostrazione della attivazione locale
 
-Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
+Verifica operativa pianificata; la sola prova sul campione upstream descritta nei dettagli è stata eseguita.
 
 #### Details
-Con ogni modello distribuito dimostrare che la pipeline ONNX riconosce localmente la wake word senza servizio esterno. Prima della wake word non si apre la chiamata backend. Con soglia iniziale 0,5 e cooldown 2000 ms, misurare attivazioni corrette e spurie. Provare Hey Jarvis e Hey Mycroft su x86_64 e arm64. La voce Hey Alexa rimane fuori dal catalogo fino alla prova della frase esatta; il modello Alexa addestrato per la sola parola non basta senza evidenza. Pronunciare la wake word e la richiesta senza pausa, verificando che la riserva scorrevole di 1500 ms consegni l'inizio della richiesta dopo la connessione. Saturare la coda d'inferenza di 32 blocchi e verificare un guasto diagnostico senza crescita illimitata.
+Con ogni modello distribuito dimostrare che la pipeline ONNX riconosce localmente la wake word senza servizio esterno. Prima della wake word non si apre la chiamata backend. Con soglia iniziale 0,5 e cooldown 2000 ms, misurare attivazioni corrette e spurie. Provare Hey Jarvis, Hey Mycroft e Alexa su x86_64 e arm64. Pronunciare la wake word e la richiesta senza pausa, verificando che la riserva scorrevole di 1500 ms consegni l'inizio della richiesta dopo la connessione. Saturare la coda d'inferenza di 32 blocchi e verificare un guasto diagnostico senza crescita illimitata.
+
+Evidenza parziale del 17 ottobre 2026: `alexa_v0.1.onnx` della release openWakeWord v0.5.1 si carica con le risorse ONNX condivise. La pipeline del satellite, con soglia 0,5, ha riconosciuto `tests/data/alexa_test.wav` upstream (16 kHz mono, parola «Alexa») dopo un secondo di silenzio iniziale sia su x86_64 sia sul Raspberry arm64: 15 rilevamenti, picco 0,99999988, nessun errore su entrambe le macchine. Il campione non è incluso nel repository; la prova non attesta affidabilità su microfono reale, rumore o accenti. Le prove operative restano aperte.
 
 #### Metadata
   * type: demonstration-verification
