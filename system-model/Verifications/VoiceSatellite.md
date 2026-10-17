@@ -86,6 +86,9 @@ Chiudere la sessione lato backend mentre il satellite attende la wake word e ver
 
 In un clone con `core.hooksPath` impostato a `.githooks`, mettere in staging un file con una credenziale fittizia nel formato di un fornitore noto e tentare il commit: il commit è bloccato e il valore non compare nell'output. Ripetere con modifiche prive di segreti: il commit riesce. Ripetere con `gitleaks` assente dal `PATH`: il commit è bloccato con il messaggio che indica installazione e attivazione. Annullare le modifiche di prova senza lasciarle nella storia.
 
+#### Details
+2026-10-18, clone locale con gitleaks 8.30.1 in `~/.local/bin`: un token fittizio nel formato GitHub `ghp_…` in staging ha bloccato il commit (uscita 1, «leaks found: 1»), e l'output non conteneva il token. Con `PATH` privo di gitleaks il commit è stato bloccato con il messaggio previsto. Il commit reale del workflow e dell'hook è passato attraverso l'hook senza ritrovamenti. I file di prova sono stati rimossi dallo staging senza entrare nella storia.
+
 #### Metadata
   * type: demonstration-verification
 
@@ -412,6 +415,9 @@ Ispezionare costruzione del logger, call site, configurazione, dipendenze e avvi
 
 Verificare in `.github/workflows/secret-scan.yml` gli eventi di attivazione (push su ogni branch, pull request, richiesta manuale, chiamata da altri workflow), il checkout fissato per commit con l'intera storia e senza credenziali conservate, il download di gitleaks 8.30.1 con verifica dello SHA-256 prima dell'estrazione, il comando `gitleaks git --redact --no-banner --exit-code 1 .`, i permessi di sola lettura e l'assenza di continue-on-error. Verificare che `publish-image.yml` richiami il workflow e che il job di pubblicazione dipenda sia dai controlli CI sia dalla scansione. Eseguire localmente la stessa scansione sulla storia del repository; una prova locale non attesta un'esecuzione GitHub Actions, per la quale serve una run del workflow sul commit pubblicato.
 
+#### Details
+2026-10-18: actionlint 1.7.12 senza rilievi su tutti i workflow. Workflow ispezionato: eventi, checkout fissato a `d23441a48e516b6c34aea4fa41551a30e30af803` con `fetch-depth: 0` e `persist-credentials: false`, verifica `sha256sum --check --strict` prima di `tar`, permessi `contents: read`, nessun continue-on-error; `publish` dipende da `[checks, secret-scan]`. Lo SHA-256 dell'archivio è stato confrontato con il file `gitleaks_8.30.1_checksums.txt` della release. Scansione locale con gitleaks 8.30.1 dell'intera storia: nessun segreto trovato. Nessuna esecuzione GitHub Actions ancora osservata.
+
 #### Metadata
   * type: inspection-verification
 
@@ -543,6 +549,9 @@ La prova passa se il satellite non tenta di pronunciare il testo, riproduce la r
 ### Prova dell'evento di configurazione rifiutata
 
 Acquisire le righe reali di Pino prodotte dal rifiuto della configurazione. Per un file assente o illeggibile: una sola riga `info` con `event: "invalid_configuration"` e `reason: "configuration_unavailable"`, senza `field`. Per contenuto non JSON, sezione sconosciuta e per ciascun campo invalido (`backend.baseUrl`, `client.id`, `client.name`, `audio.microphone`, `audio.speaker`, `wakeWord.model`, `wakeWord.threshold`, `interaction.replyTimeoutMs`): `reason: "invalid_configuration"` e il `field` atteso, `config` per contenuto non JSON o struttura non prevista. Le righe non contengono valori del file, percorsi né `err`, e hanno soltanto le chiavi `level`, `time`, `event`, `reason` ed eventualmente `field`. Avviando il processo compilato con un file invalido, l'uscita è 2 e la riga è quella attesa.
+
+#### Details
+Esecuzione del 2026-10-18: `diagnostics.test.ts` carica file reali con `loadSatelliteConfig` e acquisisce l'uscita di Pino per il file assente, il contenuto non JSON, la sezione sconosciuta e gli otto campi; tutti i casi PASS, nessuna riga contiene i valori marcati `secret` né il percorso. Typecheck completo e core, suite Vitest (146 test in 19 file) e build PASS su Node.js 26. Prova del processo compilato: sezione sconosciuta `wakeword` produce `{"level":"info",…,"event":"invalid_configuration","reason":"invalid_configuration","field":"config"}` con uscita 2; file assente produce `"reason":"configuration_unavailable"` con uscita 2.
 
 #### Metadata
   * type: test-verification

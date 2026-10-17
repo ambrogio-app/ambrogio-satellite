@@ -293,6 +293,7 @@ Quando si crea un commit in un clone che ha abilitato l'hook versionato del repo
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [pre-commit](../../.githooks/pre-commit)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -673,6 +674,7 @@ Quando la configurazione è invalida, il satellite deve impedirne l’avvio oper
   * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
 
 #### Relations
+  * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -760,6 +762,7 @@ Quando una modifica viene inviata a qualunque branch del repository del satellit
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [secret-scan.yml](../../.github/workflows/secret-scan.yml)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -774,6 +777,7 @@ Quando viene creato un tag di release valido, il progetto non deve pubblicare im
   * [Profilo della scansione dei segreti con gitleaks](../Contracts/VoiceSatellite.md#profilo-della-scansione-dei-segreti-con-gitleaks)
 
 #### Relations
+  * satisfiedBy: [publish-image.yml](../../.github/workflows/publish-image.yml)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
