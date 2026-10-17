@@ -7,7 +7,7 @@ describe('backend base URL', () => {
   it('derives the WebSocket endpoint while preserving a proxy prefix', () => {
     const result = parseBackendBaseUrl('https://example.org/ambrogio/');
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.voiceUrl.href).toBe('wss://example.org/ambrogio/api/voice');
+    if (result.ok) expect(result.value.sessionUrl.href).toBe('wss://example.org/ambrogio/api/session');
   });
 
   it.each(['ws://example.org', 'https://name:secret@example.org',
@@ -32,13 +32,14 @@ describe('reply timeout', () => {
 
 describe('satellite configuration', () => {
   it('uses system audio defaults and local interaction defaults', () => {
-    const result = parseSatelliteConfig({ backend: { baseUrl: 'http://localhost:3000' } }, distributedModels);
+    const result = parseSatelliteConfig({ backend: { baseUrl: 'http://localhost:3000' } }, distributedModels, 'cucina');
     expect(result.ok).toBe(true);
     if (result.ok) {
+      expect(result.value.client).toEqual({ clientId: 'satellite-cucina', name: 'cucina' });
       expect(result.value.audio).toEqual({});
       expect(result.value.wakeWord.model).toBe('hey_jarvis');
       expect(result.value.interaction.replyTimeoutMs).toBe(15_000);
-      expect(result.value.backend.voiceUrl.href).toBe('ws://localhost:3000/api/voice');
+      expect(result.value.backend.sessionUrl.href).toBe('ws://localhost:3000/api/session');
     }
   });
 
@@ -54,8 +55,31 @@ describe('satellite configuration', () => {
       expect(result.value.audio).toEqual({ microphone: 'alsa:mic-1', speaker: 'USB Speaker' });
       expect(result.value.wakeWord.model).toBe(model);
       expect(result.value.interaction.replyTimeoutMs).toBe(2_500);
-      expect(result.value.backend.voiceUrl.href).toBe('wss://example.org/ambrogio/api/voice');
+      expect(result.value.backend.sessionUrl.href).toBe('wss://example.org/ambrogio/api/session');
     }
+  });
+
+  it('uses an explicit client identity', () => {
+    const result = parseSatelliteConfig({ backend: { baseUrl: 'http://localhost:3000' },
+      client: { id: 'satellite-cucina-01', name: 'Cucina' } }, distributedModels, 'host');
+    expect(result.ok && result.value.client).toEqual({ clientId: 'satellite-cucina-01', name: 'Cucina' });
+    const partial = parseSatelliteConfig({ backend: { baseUrl: 'http://localhost:3000' },
+      client: { name: 'Studio' } }, distributedModels, 'host');
+    expect(partial.ok && partial.value.client).toEqual({ clientId: 'satellite-host', name: 'Studio' });
+  });
+
+  it.each([
+    [{ id: '' }, 'client.id'],
+    [{ id: '   ' }, 'client.id'],
+    [{ id: 7 }, 'client.id'],
+    [{ name: '' }, 'client.name'],
+    [{ name: ' \t' }, 'client.name'],
+    [{ name: null }, 'client.name'],
+    [{ id: 'a', extra: true }, 'client.id'],
+    ['cucina', 'client.id'],
+  ] as const)('rejects an invalid client identity %j', (client, field) => {
+    expect(parseSatelliteConfig({ backend: { baseUrl: 'http://localhost:3000' }, client },
+      distributedModels, 'host')).toEqual({ ok: false, error: { kind: 'invalid_configuration', field } });
   });
 
   it('accepts an available custom wake word model', () => {

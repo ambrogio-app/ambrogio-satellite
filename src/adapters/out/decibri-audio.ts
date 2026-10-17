@@ -17,9 +17,9 @@ export function openConfiguredMicrophone(selector?: string): Promise<Microphone>
   });
 }
 
-function openConfiguredSpeaker(selector?: string): Promise<Speaker> {
+function openConfiguredSpeaker(selector?: string, sampleRate = SAMPLE_RATE): Promise<Speaker> {
   const options: SpeakerOptions = {
-    sampleRate: SAMPLE_RATE,
+    sampleRate,
     channels: 1,
     dtype: 'int16',
     ...selectedDevice(selector),
@@ -27,10 +27,11 @@ function openConfiguredSpeaker(selector?: string): Promise<Speaker> {
   return Speaker.open(options);
 }
 
-/** Resolves only after every PCM16 mono chunk has finished playing. */
-export async function playPcm16(chunks: AsyncIterable<Int16Array>, selector?: string, signal?: AbortSignal): Promise<void> {
+/** Resolves only after every PCM16 mono chunk has finished playing at `sampleRate`. */
+export async function playPcm16(chunks: AsyncIterable<Int16Array>, selector?: string, signal?: AbortSignal,
+  sampleRate = SAMPLE_RATE): Promise<void> {
   if (signal?.aborted) return;
-  const speaker = await openConfiguredSpeaker(selector);
+  const speaker = await openConfiguredSpeaker(selector, sampleRate);
   let stopped = false;
   let stopError: unknown;
   let playbackError: unknown;

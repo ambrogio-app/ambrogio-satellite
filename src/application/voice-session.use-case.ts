@@ -101,6 +101,7 @@ export class VoiceSession {
           }, error => { if (generation === this.generation) void this.fail(error); });
           break;
         }
+        case 'fail_interaction': void this.fail(new Error('Turn outcome not received in time')); break;
         case 'enable_speech': this.ports.setSpeechEnabled(true); break;
         case 'disable_speech': this.ports.setSpeechEnabled(false); break;
       }

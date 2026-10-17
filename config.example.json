@@ -1,5 +1,6 @@
 {
   "backend": { "baseUrl": "http://localhost:3000" },
+  "client": { "id": "cucina", "name": "Cucina" },
   "audio": {},
   "wakeWord": { "model": "hey_jarvis" },
   "interaction": { "replyTimeoutMs": 15000 }

@@ -98,15 +98,31 @@ describe('voice session', () => {
   });
 
   it('never waits forever when the answer produces no audio', async () => {
-    const { deadlines, session, closeCall } = fixture();
+    const { deadlines, session, closeCall, reportFailure } = fixture();
     await start(session);
     session.dispatch({ kind: 'assistant_message', expectsReply: true });
     deadlines.advanceBy(59_999);
     expect(closeCall).not.toHaveBeenCalled();
     deadlines.advanceBy(1);
-    await Promise.resolve();
+    for (let i = 0; i < 6; i++) await Promise.resolve();
     expect(closeCall).toHaveBeenCalledOnce();
+    expect(reportFailure).toHaveBeenCalledOnce();
     expect(session.status.acceptsWakeWord).toBe(true);
+  });
+
+  it('applies the local recovery when no turn outcome arrives within 60 seconds', async () => {
+    const { deadlines, session, closeCall, reportFailure } = fixture();
+    const order: string[] = [];
+    closeCall.mockImplementation(async () => { order.push('close'); });
+    reportFailure.mockImplementation(async () => { order.push('report'); });
+    await start(session);
+    deadlines.advanceBy(59_999);
+    expect(closeCall).not.toHaveBeenCalled();
+    deadlines.advanceBy(1);
+    for (let i = 0; i < 6; i++) await Promise.resolve();
+    expect(order).toEqual(['close', 'report']);
+    expect((reportFailure.mock.calls[0] as unknown[])[0]).toBeInstanceOf(Error);
+    expect(session.status).toEqual({ acceptsWakeWord: true, acceptsSpeechEnd: false, interactionActive: false });
   });
 
   it('reports a failed connection and becomes ready for a new wake word', async () => {

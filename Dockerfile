@@ -4,7 +4,6 @@ WORKDIR /app
 RUN npm install --global pnpm@12.11.2
 ENV ONNXRUNTIME_NODE_INSTALL=skip
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json tsconfig.build.json ./
-COPY scripts/patch-micdrop.mjs scripts/patch-micdrop.mjs
 RUN pnpm install --frozen-lockfile
 COPY src/ src/
 RUN pnpm build

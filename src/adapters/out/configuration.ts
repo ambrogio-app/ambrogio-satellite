@@ -1,16 +1,18 @@
-import { voiceWebSocketUrl } from './backend-url.js';
+import { hostname } from 'node:os';
+import { sessionWebSocketUrl } from './backend-url.js';
 import { isWakeWordId } from './wake-word-catalog.js';
 
 export type InvalidConfiguration = Readonly<{
   kind: 'invalid_configuration';
-  field: 'config' | 'backend.baseUrl' | 'audio.microphone' | 'audio.speaker'
+  field: 'config' | 'backend.baseUrl' | 'client.id' | 'client.name' | 'audio.microphone' | 'audio.speaker'
     | 'wakeWord.model' | 'interaction.replyTimeoutMs';
 }>;
 
 type Result<T> = Readonly<{ ok: true; value: T }> | Readonly<{ ok: false; error: InvalidConfiguration }>;
 
 export type SatelliteConfig = Readonly<{
-  backend: Readonly<{ baseUrl: URL; voiceUrl: URL }>;
+  backend: Readonly<{ baseUrl: URL; sessionUrl: URL }>;
+  client: Readonly<{ clientId: string; name: string }>;
   audio: Readonly<{ microphone?: string; speaker?: string }>;
   wakeWord: Readonly<{ model: string }>;
   interaction: Readonly<{ replyTimeoutMs: number }>;
@@ -33,7 +35,7 @@ function audioSelector(value: unknown, field: 'audio.microphone' | 'audio.speake
   return { ok: true, value };
 }
 
-export function parseBackendBaseUrl(value: unknown): Result<Readonly<{ baseUrl: URL; voiceUrl: URL }>> {
+export function parseBackendBaseUrl(value: unknown): Result<Readonly<{ baseUrl: URL; sessionUrl: URL }>> {
   if (typeof value !== 'string' || !value || value.trim() !== value) {
     return { ok: false, error: { kind: 'invalid_configuration', field: 'backend.baseUrl' } };
   }
@@ -44,7 +46,7 @@ export function parseBackendBaseUrl(value: unknown): Result<Readonly<{ baseUrl: 
     || baseUrl.username || baseUrl.password || baseUrl.search || baseUrl.hash) {
     return { ok: false, error: { kind: 'invalid_configuration', field: 'backend.baseUrl' } };
   }
-  return { ok: true, value: { baseUrl, voiceUrl: voiceWebSocketUrl(baseUrl) } };
+  return { ok: true, value: { baseUrl, sessionUrl: sessionWebSocketUrl(baseUrl) } };
 }
 
 export function parseReplyTimeoutMs(value: unknown): Result<number> {
@@ -55,10 +57,17 @@ export function parseReplyTimeoutMs(value: unknown): Result<number> {
   return { ok: true, value };
 }
 
+function identityField(value: unknown, fallback: string, field: 'client.id' | 'client.name'): Result<string> {
+  if (value === undefined) return { ok: true, value: fallback };
+  if (typeof value !== 'string' || !value.trim()) return { ok: false, error: { kind: 'invalid_configuration', field } };
+  return { ok: true, value };
+}
+
 /** Validate the whole JSON document before constructing audio or network resources. */
-export function parseSatelliteConfig(input: unknown, availableModels: ReadonlySet<string>): Result<SatelliteConfig> {
+export function parseSatelliteConfig(input: unknown, availableModels: ReadonlySet<string>,
+  host: string = hostname()): Result<SatelliteConfig> {
   const root = record(input);
-  if (!root || !onlyKeys(root, ['backend', 'audio', 'wakeWord', 'interaction'])) {
+  if (!root || !onlyKeys(root, ['backend', 'client', 'audio', 'wakeWord', 'interaction'])) {
     return { ok: false, error: { kind: 'invalid_configuration', field: 'config' } };
   }
   const backend = record(root.backend);
@@ -67,6 +76,15 @@ export function parseSatelliteConfig(input: unknown, availableModels: ReadonlySe
   }
   const base = parseBackendBaseUrl(backend.baseUrl);
   if (!base.ok) return base;
+
+  const client = root.client === undefined ? {} : record(root.client);
+  if (!client || !onlyKeys(client, ['id', 'name'])) {
+    return { ok: false, error: { kind: 'invalid_configuration', field: 'client.id' } };
+  }
+  const clientId = identityField(client.id, `satellite-${host}`, 'client.id');
+  if (!clientId.ok) return clientId;
+  const name = identityField(client.name, host, 'client.name');
+  if (!name.ok) return name;
 
   const audio = root.audio === undefined ? {} : record(root.audio);
   if (!audio || !onlyKeys(audio, ['microphone', 'speaker'])) {
@@ -95,6 +113,7 @@ export function parseSatelliteConfig(input: unknown, availableModels: ReadonlySe
 
   return { ok: true, value: {
     backend: base.value,
+    client: { clientId: clientId.value, name: name.value },
     audio: {
       ...(microphone.value === undefined ? {} : { microphone: microphone.value }),
       ...(speaker.value === undefined ? {} : { speaker: speaker.value }),

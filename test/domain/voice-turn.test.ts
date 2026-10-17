@@ -45,6 +45,16 @@ describe('voice turn policy', () => {
       .toEqual({ state: { phase: 'recording' }, actions: ['clear_timeout'] });
   });
 
+  it('turns a missing outcome after the request into the local recovery', () => {
+    const state = replay(start);
+    expect(state.phase).toBe('waiting_answer');
+    expect(advanceVoiceTurn(state, { kind: 'timeout' }))
+      .toEqual({ state: { phase: 'closing_call' }, actions: ['clear_answer_timeout', 'fail_interaction'] });
+    const withOutcome = replay([...start, { kind: 'assistant_message', expectsReply: true }]);
+    expect(advanceVoiceTurn(withOutcome, { kind: 'timeout' }).actions)
+      .toEqual(['clear_answer_timeout', 'fail_interaction']);
+  });
+
   it('never infers a reply from missing or invalid metadata', () => {
     const state = replay([...start,
       { kind: 'assistant_message', expectsReply: 'true' }, { kind: 'response_played' },

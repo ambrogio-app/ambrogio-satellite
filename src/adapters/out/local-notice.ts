@@ -2,10 +2,17 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 const NOTICE_FILE = fileURLToPath(new URL('../../../assets/backend-unavailable.wav', import.meta.url));
+const VOICE_UNAVAILABLE_FILE = fileURLToPath(new URL('../../../assets/voice-unavailable.wav', import.meta.url));
+
+/** «Non riesco a contattare Ambrogio. Riprova tra poco.» */
+export function noticeSamples(): Promise<Int16Array> { return wavSamples(NOTICE_FILE); }
+
+/** «La voce non è disponibile.», played when the backend answers only in text. */
+export function voiceUnavailableSamples(): Promise<Int16Array> { return wavSamples(VOICE_UNAVAILABLE_FILE); }
 
 /** WAV is a bundled, known-format asset, but validate its header before playback. */
-export async function noticeSamples(): Promise<Int16Array> {
-  const wav = await readFile(NOTICE_FILE);
+async function wavSamples(filename: string): Promise<Int16Array> {
+  const wav = await readFile(filename);
   if (wav.toString('ascii', 0, 4) !== 'RIFF' || wav.toString('ascii', 8, 12) !== 'WAVE') {
     throw new Error('Invalid local notice WAV');
   }

@@ -29,7 +29,7 @@ export type VoiceTurnEvent =
 
 export type VoiceTurnAction = 'open_call' | 'close_call' | 'arm_timeout' | 'clear_timeout'
   | 'arm_answer_timeout' | 'clear_answer_timeout' | 'enable_speech' | 'disable_speech'
-  | 'play_ready_cue';
+  | 'play_ready_cue' | 'fail_interaction';
 export type VoiceTurnTransition = Readonly<{ state: VoiceTurnState; actions: readonly VoiceTurnAction[] }>;
 
 export const initialVoiceTurnState: VoiceTurnState = { phase: 'waiting_wake_word' };
@@ -40,7 +40,7 @@ function decide(expectsReply: boolean): VoiceTurnTransition {
     : { state: { phase: 'closing_call' }, actions: ['close_call'] };
 }
 
-/** Turn policy independent of Micdrop events and audio device timing. */
+/** Turn policy independent of protocol messages and audio device timing. */
 export function advanceVoiceTurn(state: VoiceTurnState, event: VoiceTurnEvent): VoiceTurnTransition {
   if (event.kind === 'call_closed') {
     return { state: initialVoiceTurnState, actions: ['clear_timeout', 'clear_answer_timeout'] };
@@ -79,7 +79,8 @@ export function advanceVoiceTurn(state: VoiceTurnState, event: VoiceTurnEvent): 
         return { state: { phase: 'waiting_metadata', responsePlayed: true }, actions: ['clear_answer_timeout', 'arm_timeout'] };
       }
       if (event.kind === 'timeout' && state.phase === 'waiting_answer') {
-        return { state: { phase: 'closing_call' }, actions: ['clear_answer_timeout', 'close_call'] };
+        // No turn outcome in time: the local recovery notice applies.
+        return { state: { phase: 'closing_call' }, actions: ['clear_answer_timeout', 'fail_interaction'] };
       }
       if (event.kind === 'timeout' && state.phase === 'waiting_metadata') {
         return { state: { phase: 'closing_call' }, actions: ['clear_timeout', 'close_call'] };
