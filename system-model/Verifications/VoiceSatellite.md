@@ -466,7 +466,7 @@ Revisione di impatto: interessati assemblaggio, ingressi eventi, recupero locale
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [decibri-audio.test.ts](../../test/adapters/out/decibri-audio.test.ts)
   * satisfiedBy: [onnx-lifecycle.test.ts](../../test/adapters/out/onnx-lifecycle.test.ts)
-  * satisfiedBy: [silero-lifecycle.test.ts](../../test/adapters/out/silero-lifecycle.test.ts)
+  * satisfiedBy: [silero-vad.test.ts](../../test/adapters/out/silero-vad.test.ts)
   * satisfiedBy: [satellite-lifecycle.test.ts](../../test/composition/satellite-lifecycle.test.ts)
   * satisfiedBy: [satellite-process.test.ts](../../test/runtime/satellite-process.test.ts)
   * verify: [Arresto immediato del processo satellite](../Requirements/VoiceSatellite.md#arresto-immediato-del-processo-satellite)
