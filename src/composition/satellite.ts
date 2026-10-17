@@ -13,7 +13,6 @@ import { SileroVad } from '../adapters/out/silero-vad.js';
 import { wakeWordFiles } from '../adapters/out/wake-word-catalog.js';
 import type { SatelliteConfig } from '../adapters/out/configuration.js';
 
-const WAKE_THRESHOLD = 0.5;
 const WAKE_COOLDOWN_MS = 2_000;
 const WAKE_MAX_QUEUED_CHUNKS = 32;
 /** 1500 ms of 16 kHz audio kept before confirmed speech. */
@@ -66,7 +65,7 @@ export async function startSatellite(config: SatelliteConfig, signal?: AbortSign
   try {
     checkStopping();
     wake = await OnnxWakeWord.open(wakeWordFiles(config.wakeWord.model), {
-      threshold: WAKE_THRESHOLD,
+      threshold: config.wakeWord.threshold,
       cooldownMs: WAKE_COOLDOWN_MS,
       maxQueuedChunks: WAKE_MAX_QUEUED_CHUNKS,
       detected: events.wakeDetected,

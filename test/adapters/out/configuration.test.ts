@@ -38,6 +38,7 @@ describe('satellite configuration', () => {
       expect(result.value.client).toEqual({ clientId: 'satellite-cucina', name: 'cucina' });
       expect(result.value.audio).toEqual({});
       expect(result.value.wakeWord.model).toBe('hey_jarvis');
+      expect(result.value.wakeWord.threshold).toBe(0.5);
       expect(result.value.interaction.replyTimeoutMs).toBe(15_000);
       expect(result.value.backend.sessionUrl.href).toBe('ws://localhost:3000/api/session');
     }
@@ -47,13 +48,13 @@ describe('satellite configuration', () => {
     const result = parseSatelliteConfig({
       backend: { baseUrl: 'https://example.org/ambrogio' },
       audio: { microphone: 'alsa:mic-1', speaker: 'USB Speaker' },
-      wakeWord: { model },
+      wakeWord: { model, threshold: 0.7 },
       interaction: { replyTimeoutMs: 2_500 },
     }, distributedModels);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.audio).toEqual({ microphone: 'alsa:mic-1', speaker: 'USB Speaker' });
-      expect(result.value.wakeWord.model).toBe(model);
+      expect(result.value.wakeWord).toEqual({ model, threshold: 0.7 });
       expect(result.value.interaction.replyTimeoutMs).toBe(2_500);
       expect(result.value.backend.sessionUrl.href).toBe('wss://example.org/ambrogio/api/session');
     }
@@ -103,6 +104,9 @@ describe('satellite configuration', () => {
     [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { model: '../outside' } }, 'wakeWord.model'],
     [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { model: 'melspectrogram' } }, 'wakeWord.model'],
     [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { model: null } }, 'wakeWord.model'],
+    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { threshold: 0 } }, 'wakeWord.threshold'],
+    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { threshold: 1.2 } }, 'wakeWord.threshold'],
+    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { threshold: '0.7' } }, 'wakeWord.threshold'],
     [{ backend: { baseUrl: 'http://localhost:3000' }, interaction: { replyTimeoutMs: 0 } }, 'interaction.replyTimeoutMs'],
     [{ backend: { baseUrl: 'http://localhost:3000' }, extra: true }, 'config'],
   ] as const)('rejects invalid or unavailable settings', (input, field) => {

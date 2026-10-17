@@ -5,7 +5,7 @@ import { isWakeWordId } from './wake-word-catalog.js';
 export type InvalidConfiguration = Readonly<{
   kind: 'invalid_configuration';
   field: 'config' | 'backend.baseUrl' | 'client.id' | 'client.name' | 'audio.microphone' | 'audio.speaker'
-    | 'wakeWord.model' | 'interaction.replyTimeoutMs';
+    | 'wakeWord.model' | 'wakeWord.threshold' | 'interaction.replyTimeoutMs';
 }>;
 
 type Result<T> = Readonly<{ ok: true; value: T }> | Readonly<{ ok: false; error: InvalidConfiguration }>;
@@ -14,7 +14,7 @@ export type SatelliteConfig = Readonly<{
   backend: Readonly<{ baseUrl: URL; sessionUrl: URL }>;
   client: Readonly<{ clientId: string; name: string }>;
   audio: Readonly<{ microphone?: string; speaker?: string }>;
-  wakeWord: Readonly<{ model: string }>;
+  wakeWord: Readonly<{ model: string; threshold: number }>;
   interaction: Readonly<{ replyTimeoutMs: number }>;
 }>;
 
@@ -96,12 +96,16 @@ export function parseSatelliteConfig(input: unknown, availableModels: ReadonlySe
   if (!speaker.ok) return speaker;
 
   const wakeWord = root.wakeWord === undefined ? {} : record(root.wakeWord);
-  if (!wakeWord || !onlyKeys(wakeWord, ['model'])) {
+  if (!wakeWord || !onlyKeys(wakeWord, ['model', 'threshold'])) {
     return { ok: false, error: { kind: 'invalid_configuration', field: 'wakeWord.model' } };
   }
   const model = wakeWord.model === undefined ? 'hey_jarvis' : wakeWord.model;
   if (typeof model !== 'string' || !isWakeWordId(model) || !availableModels.has(model)) {
     return { ok: false, error: { kind: 'invalid_configuration', field: 'wakeWord.model' } };
+  }
+  const threshold = wakeWord.threshold === undefined ? 0.5 : wakeWord.threshold;
+  if (typeof threshold !== 'number' || !Number.isFinite(threshold) || threshold <= 0 || threshold > 1) {
+    return { ok: false, error: { kind: 'invalid_configuration', field: 'wakeWord.threshold' } };
   }
 
   const interaction = root.interaction === undefined ? {} : record(root.interaction);
@@ -118,7 +122,7 @@ export function parseSatelliteConfig(input: unknown, availableModels: ReadonlySe
       ...(microphone.value === undefined ? {} : { microphone: microphone.value }),
       ...(speaker.value === undefined ? {} : { speaker: speaker.value }),
     },
-    wakeWord: { model },
+    wakeWord: { model, threshold },
     interaction: { replyTimeoutMs: timeout.value },
   } };
 }

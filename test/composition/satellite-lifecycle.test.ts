@@ -32,7 +32,7 @@ vi.mock('../../src/adapters/out/conversation-call.adapter.js', () => ({ createCo
 const config = {
   backend: { sessionUrl: new URL('ws://localhost/api/session'), baseUrl: new URL('http://localhost') },
   client: { clientId: 'satellite-test', name: 'test' },
-  audio: {}, wakeWord: { model: 'hey_jarvis' }, interaction: { replyTimeoutMs: 15000 },
+  audio: {}, wakeWord: { model: 'hey_jarvis', threshold: 0.7 }, interaction: { replyTimeoutMs: 15000 },
 };
 
 beforeEach(() => {
@@ -41,6 +41,12 @@ beforeEach(() => {
   f.vadOpen.mockResolvedValue({ close: f.vadClose, push() {}, reset() {}, start() {} });
   f.ensure.mockResolvedValue(undefined);
   f.shutdown.mockResolvedValue(undefined);
+});
+
+test('passes the configured wake word threshold to the recognizer', async () => {
+  const satellite = await startSatellite(config);
+  expect(f.wakeOpen).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ threshold: 0.7 }));
+  await satellite.stop();
 });
 
 test('opens the persistent session after starting the microphone', async () => {
