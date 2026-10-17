@@ -94,6 +94,8 @@ Mentre riproduce la risposta di Ambrogio, il satellite deve impedire interruzion
   * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
 
 #### Relations
+  * satisfiedBy: [conversation-events.adapter.ts](../../src/adapters/in/conversation-events.adapter.ts)
+  * satisfiedBy: [response-playback.ts](../../src/adapters/out/response-playback.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -141,6 +143,8 @@ Quando il backend risponde a un turno vocale soltanto in testo perché la voce n
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [local-notice.ts](../../src/adapters/out/local-notice.ts)
+  * satisfiedBy: [response-playback.ts](../../src/adapters/out/response-playback.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -167,6 +171,7 @@ Il satellite deve scambiare audio ed eventi con il backend secondo una revisione
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [ambrogio-session.ts](../../src/adapters/out/ambrogio-session.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -445,6 +450,8 @@ Quando apre la sessione conversazionale con il backend, il satellite deve presen
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [ambrogio-session.ts](../../src/adapters/out/ambrogio-session.ts)
+  * satisfiedBy: [configuration.ts](../../src/adapters/out/configuration.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -472,6 +479,8 @@ Il satellite deve inviare messaggi e frame audio soltanto su una sessione conver
   * [Trasporto conversazionale ambrogio.v1](../Contracts/VoiceSatellite.md#trasporto-conversazionale-ambrogiov1)
 
 #### Relations
+  * satisfiedBy: [ambrogio-session.ts](../../src/adapters/out/ambrogio-session.ts)
+  * satisfiedBy: [conversation-channel.ts](../../src/adapters/out/conversation-channel.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -549,6 +558,8 @@ Quando la famiglia attiva il satellite con la wake word, il satellite deve inizi
   * [Trasporto conversazionale ambrogio.v1](../Contracts/VoiceSatellite.md#trasporto-conversazionale-ambrogiov1)
 
 #### Relations
+  * satisfiedBy: [conversation-call.adapter.ts](../../src/adapters/out/conversation-call.adapter.ts)
+  * satisfiedBy: [conversation-channel.ts](../../src/adapters/out/conversation-channel.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -635,6 +646,8 @@ Quando un'interazione termina per risposta conclusiva, inattività, esito mancan
   * [Trasporto conversazionale ambrogio.v1](../Contracts/VoiceSatellite.md#trasporto-conversazionale-ambrogiov1)
 
 #### Relations
+  * satisfiedBy: [conversation-events.adapter.ts](../../src/adapters/in/conversation-events.adapter.ts)
+  * satisfiedBy: [conversation-channel.ts](../../src/adapters/out/conversation-channel.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -693,6 +706,7 @@ Quando riceve una trasmissione audio della risposta dal backend, il satellite de
   * [Contratto vocale backend di riferimento](../Contracts/VoiceSatellite.md#contratto-vocale-backend-di-riferimento)
 
 #### Relations
+  * satisfiedBy: [response-playback.ts](../../src/adapters/out/response-playback.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -816,6 +830,8 @@ Mentre il processo è attivo, il satellite deve mantenere una sola sessione conv
   * [Trasporto conversazionale ambrogio.v1](../Contracts/VoiceSatellite.md#trasporto-conversazionale-ambrogiov1)
 
 #### Relations
+  * satisfiedBy: [conversation-channel.ts](../../src/adapters/out/conversation-channel.ts)
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 

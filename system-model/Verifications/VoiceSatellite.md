@@ -423,6 +423,8 @@ La prova passa se gli eventi tardivi non interrompono l'acquisizione del microfo
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [conversation-events.test.ts](../../test/adapters/in/conversation-events.test.ts)
+  * satisfiedBy: [conversation-channel.test.ts](../../test/adapters/out/conversation-channel.test.ts)
   * verify: [Riapertura sicura dopo la chiusura vocale](../Requirements/VoiceSatellite.md#riapertura-sicura-dopo-la-chiusura-vocale)
 ---
 
@@ -509,6 +511,7 @@ La prova passa se il satellite non tenta di pronunciare il testo, riproduce la r
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [response-playback.test.ts](../../test/adapters/out/response-playback.test.ts)
   * verify: [Avviso parlato di voce non disponibile](../Requirements/VoiceSatellite.md#avviso-parlato-di-voce-non-disponibile)
 ---
 
@@ -524,6 +527,8 @@ La prova passa se senza configurazione `clientId` vale `satellite-<nome host>` e
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [configuration.test.ts](../../test/adapters/out/configuration.test.ts)
+  * satisfiedBy: [conversation-channel.test.ts](../../test/adapters/out/conversation-channel.test.ts)
   * verify: [Identificazione del satellite nella sessione](../Requirements/VoiceSatellite.md#identificazione-del-satellite-nella-sessione)
 ---
 
@@ -562,6 +567,8 @@ La prova passa se all'avvio esiste una sola sessione pronta, se ogni attivazione
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [verify-pinned-backend.mjs](../../scripts/verify-pinned-backend.mjs)
+  * satisfiedBy: [conversation-channel.test.ts](../../test/adapters/out/conversation-channel.test.ts)
   * verify: [Invio soltanto su sessione pronta](../Requirements/VoiceSatellite.md#invio-soltanto-su-sessione-pronta)
   * verify: [Nuova conversazione a ogni attivazione](../Requirements/VoiceSatellite.md#nuova-conversazione-a-ogni-attivazione)
   * verify: [Sessione conversazionale persistente](../Requirements/VoiceSatellite.md#sessione-conversazionale-persistente)
