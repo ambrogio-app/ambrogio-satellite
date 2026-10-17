@@ -10,7 +10,7 @@ Organizzare le dimostrazioni operative, le ispezioni e le prove automatiche dell
 
 ### Dimostrazione degli esiti e della diagnostica
 
-Verifica parziale del 2026-10-16: mapping dei due rifiuti di configurazione esplicito nel bootstrap con default assertNever. In una copia temporanea dei sorgenti è stata aggiunta la variante audit_probe: compilazione rifiutata in main.ts con TS2345 verso never. I sorgenti di lavoro non contengono la variante. Suite di 89 test, typecheck e build PASS; le prove Pino e Application conservano le evidenze su unicità e cause. La verifica globale resta aperta per i log diretti Micdrop; nessuna nuova prova vocale reale.
+Verifica parziale del 2026-10-16: mapping dei due rifiuti di configurazione esplicito nel bootstrap con default assertNever. In una copia temporanea dei sorgenti è stata aggiunta la variante audit_probe: compilazione rifiutata in main.ts con TS2345 verso never. I sorgenti di lavoro non contengono la variante. Suite di 89 test, typecheck e build PASS; le prove Pino e Application conservano le evidenze su unicità e cause. La lacuna dei log diretti Micdrop, aperta allora, è chiusa dalla rimozione della dipendenza decisa il 17 ottobre 2026; la verifica va ripetuta sul trasporto `ambrogio.v1` e nessuna nuova prova vocale reale è stata eseguita.
 
 #### Details
 Esaminare firme Result e mapping esaustivi dei rifiuti; introdurre una nuova variante in una prova controllata e verificare che il mapping incompleto sia rilevato. Iniettare un guasto attraverso più componenti: una sola diagnosi definitiva al confine, causa originale conservata e nessun logger nei layer interni. Acquisire stdout e verificare una riga JSON per evento. Un rifiuto previsto non diventa automaticamente un log di errore e il messaggio pubblico non contiene dettagli tecnici.
@@ -62,14 +62,14 @@ Esito parziale del 17 ottobre 2026 riferito dalla persona sul Raspberry: dopo «
   * verify: [Segnale acustico di disponibilità](../Requirements/VoiceSatellite.md#segnale-acustico-di-disponibilità)
 ---
 
-### Dimostrazione del trasporto Micdrop
+### Dimostrazione del trasporto ambrogio.v1
 
-Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
+Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile per il protocollo `ambrogio.v1`. Le evidenze raccolte in precedenza con il trasporto Micdrop non valgono per questa verifica.
 
 #### Details
-Con una WebSocket controllata verificare che `MicdropClient` invii `StartSpeaking`, frame PCM16 mono a 16 kHz e `StopSpeaking` soltanto dopo l'apertura della connessione. In `CONNECTING`, dopo la chiusura e durante una nuova apertura non deve inviare né riprodurre audio residuo del turno precedente. Disabilitare la riconnessione automatica, poiché una nuova connessione crea una nuova conversazione backend. Verificare il collegamento con i driver Decibri e Silero ONNX. La patch temporanea di Micdrop 3.4.0 deve proteggere gli invii in `CONNECTING` e avere una prova di regressione; riesaminare la sua necessità a ogni aggiornamento.
+Contro la revisione backend registrata nel «Contratto vocale backend di riferimento», avviare il satellite e verificare che apra una sola sessione su `api/session` con il sottoprotocollo `ambrogio.v1`, invii `session.hello` con l'identità configurata e trasmetta soltanto dopo `session.ready`. Completare un'interazione con la wake word e una replica senza wake word: la prima richiesta non contiene `conversationId`, la replica usa il `conversationId` ricevuto in `turn.accepted`; una nuova attivazione con la wake word inizia una nuova conversazione. Verificare `input.start` audio a 16 kHz con `reply: "audio"`, frame binari con il numero `stream` big-endian e `input.end` alla fine del parlato; osservare trasmissioni audio di risposta, `turn.completed` con `expectsReply`, un turno rifiutato con il messaggio parlato e il ritorno alla wake word.
 
-Contro la revisione backend di riferimento completare un'interazione e una replica: osservare `Message.metadata.expectsReply`, audio di risposta, una risposta parlata conclusiva per un turno rifiutato e la chiusura dell'interazione dopo la riproduzione. Non devono essere richiesti `Ready`, `TurnRejected` o `Played`. Conservare versioni dei pacchetti, esiti e log della prova.
+Chiudere la sessione lato backend mentre il satellite attende la wake word e verificare che la successiva attivazione la riapra senza avvisi; chiuderla durante un'interazione e verificare il recupero locale senza riprendere la richiesta sulla nuova sessione. Inviare un messaggio del server non legato a un turno con `id` e verificare `client.result` con `reason: "unsupported"`. Conservare versioni dei pacchetti, esiti e log della prova.
 
 #### Metadata
   * type: demonstration-verification
@@ -77,7 +77,9 @@ Contro la revisione backend di riferimento completare un'interazione e una repli
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Compatibilità con il canale vocale backend](../Requirements/VoiceSatellite.md#compatibilità-con-il-canale-vocale-backend)
-  * verify: [Invio sicuro durante connessione e riconnessione](../Requirements/VoiceSatellite.md#invio-sicuro-durante-connessione-e-riconnessione)
+  * verify: [Invio soltanto su sessione pronta](../Requirements/VoiceSatellite.md#invio-soltanto-su-sessione-pronta)
+  * verify: [Nuova conversazione a ogni attivazione](../Requirements/VoiceSatellite.md#nuova-conversazione-a-ogni-attivazione)
+  * verify: [Sessione conversazionale persistente](../Requirements/VoiceSatellite.md#sessione-conversazionale-persistente)
 ---
 
 ### Dimostrazione della attivazione locale
@@ -106,7 +108,7 @@ Evidenza parziale del 17 ottobre 2026: `alexa_v0.1.onnx` della release openWakeW
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
 
 #### Details
-Avviare usando un file JSON valido selezionato con `--config` e verificare `backend.baseUrl`, modello scelto e intervallo locale di inattività. Verificare che l'URL base HTTP diventi `ws:` e HTTPS diventi `wss:`, preservando l'eventuale prefisso di percorso e aggiungendo una sola volta `/api/voice`. Omettere `audio` e verificare l'uso dei dispositivi predefiniti; poi indicare `audio.microphone` e `audio.speaker` e verificare tramite Decibri che siano usati quelli richiesti, senza ripiego silenzioso sul predefinito. Verificare il modello Hey Jarvis predefinito, un modello distribuito alternativo, il timeout predefinito di 15 secondi e un valore personalizzato. Impostare variabili d'ambiente contrastanti e verificare che non modifichino i valori. Ripetere con JSON invalido, campi sconosciuti, URL non HTTP(S), timeout non positivo, selettore audio vuoto e modello non presente nel catalogo disponibile: l’avvio operativo è impedito con errore comprensibile. Eseguire i casi sia sull’host sia nel container dopo la disponibilità delle rispettive risorse.
+Avviare usando un file JSON valido selezionato con `--config` e verificare `backend.baseUrl`, identità del client, modello scelto e intervallo locale di inattività. Verificare che l'URL base HTTP diventi `ws:` e HTTPS diventi `wss:`, preservando l'eventuale prefisso di percorso e aggiungendo una sola volta `api/session`. Omettere `client` e verificare i valori predefiniti ricavati dal nome host; poi indicare `client.id` e `client.name`. Omettere `audio` e verificare l'uso dei dispositivi predefiniti; poi indicare `audio.microphone` e `audio.speaker` e verificare tramite Decibri che siano usati quelli richiesti, senza ripiego silenzioso sul predefinito. Verificare il modello Hey Jarvis predefinito, un modello distribuito alternativo, il timeout predefinito di 15 secondi e un valore personalizzato. Impostare variabili d'ambiente contrastanti e verificare che non modifichino i valori. Ripetere con JSON invalido, campi sconosciuti, URL non HTTP(S), timeout non positivo, selettore audio vuoto, identità vuota e modello non presente nel catalogo disponibile: l’avvio operativo è impedito con errore comprensibile. Eseguire i casi sia sull’host sia nel container dopo la disponibilità delle rispettive risorse.
 
 #### Metadata
   * type: demonstration-verification
@@ -121,18 +123,16 @@ Avviare usando un file JSON valido selezionato con `--config` e verificare `back
 
 ### Dimostrazione della conversazione e delle repliche
 
-Verifica parziale: risposta parlata confermata dalla persona sul Raspberry; repliche e chiusura richiedono ancora la prova completa.
+Verifica da ripetere con il protocollo `ambrogio.v1`: le prove parziali registrate sotto, eseguite con il trasporto Micdrop, non valgono come evidenza per la versione attuale.
 
 #### Details
-Contro la revisione backend compatibile fissata nel contratto, riprodurre una risposta completa; parlare durante la riproduzione e verificare che non la interrompa né apra un turno. Provare `Message` Micdrop dell'assistente con `metadata.expectsReply` uguale a `true` e `false`, sia prima sia dopo la fine dell'audio: solo nel primo caso una replica senza wake word appartiene alla stessa interazione. Con audio controllato, inserire pause inferiori, uguali e superiori a 1000 ms fra i blocchi: la finestra di stabilità deve ripartire a ogni nuovo blocco e va registrato il rischio di chiusura prematura per le pause più lunghe. Provare messaggio prima del primo audio e audio prima del messaggio; Decibri deve svuotare la coda prima del completamento stimato. Se l'audio non inizia o non termina entro 60 secondi dalla fine della richiesta, chiudere senza aprire la replica.
+Contro la revisione backend compatibile fissata nel contratto, riprodurre una risposta completa; parlare durante la riproduzione e verificare che non la interrompa né apra un turno. Provare `turn.completed` con `expectsReply` uguale a `true` e `false`, con l'esito arrivato sia prima sia dopo la fine della riproduzione: la replica senza wake word si apre soltanto con `true`, dopo che lo speaker ha riprodotto tutte le trasmissioni chiuse da `output.end`, e appartiene alla stessa conversazione. Con una risposta in più trasmissioni e con pause lunghe nella sintesi, la conclusione non deve anticipare la fine dell'audio. Se l'esito non arriva entro 60 secondi dalla fine della richiesta, concludere con il recupero locale senza aprire la replica.
 
-Con metadati assenti, valore non booleano o messaggio assente, non inferire dal testo e chiudere dopo l'intervallo locale. Provare un rifiuto vocale parlato con `expectsReply: false`. Dopo inattività occorre una nuova wake word. Non è richiesto un nuovo segnale backend.
+Con `expectsReply` non booleano non aprire la replica. Provare un turno rifiutato e uno fallito dopo l'ammissione: l'audio del messaggio pubblico è riprodotto e il satellite torna alla wake word. Dopo inattività occorre una nuova wake word.
 
-Prova parziale del 16 ottobre 2026 su Raspberry ARM64 con ReSpeaker e backend v0.1.1: wake word riconosciuta, richiesta trasmessa e risposta parlata udita dalla persona. Rilevato mancato completamento locale della riproduzione con Micdrop muted, seguito da timeout. Regressione automatica superata in test/adapters/in/micdrop-events.test.ts: Speaker.StopPlaying senza StateChange completa l'attesa dopo 1000 ms, apre la replica soltanto con expectsReply=true e rimuove gli ascoltatori alla chiusura.
+Prova parziale del 16 ottobre 2026 su Raspberry ARM64 con ReSpeaker e backend v0.1.1, con il trasporto Micdrop: wake word riconosciuta, richiesta trasmessa e risposta parlata udita dalla persona; rilevato mancato completamento locale della riproduzione con Micdrop muted.
 
-Prova parziale del 17 ottobre 2026 sullo stesso Raspberry: una risposta iniziale e una replica senza wake word sono state riprodotte. Dalla fine del parlato all'inizio dell'audio sono trascorsi circa 1,1 e 2,2 secondi. Un terzo turno è rimasto senza risposta per 60 secondi; dopo il timeout Micdrop ha riaperto il microfono in concorrenza con la chiusura tardiva della WebSocket e il recupero è fallito. La prova complessiva resta aperta, compresa la causa del mancato arrivo della terza risposta.
-
-Dopo la distribuzione del 17 ottobre 2026, il servizio host aggiornato sul Raspberry dell'installazione di riferimento era attivo senza riavvii, con `alexa` selezionata, e la prova ARM64 di caricamento dei tre modelli wake word e di Silero è passata. Il backend sul server dell'installazione di riferimento usava l'immagine con Paola selezionata. La persona ha confermato che la prova vocale successiva ha funzionato; i casi sistematici di interruzione, timeout e riapertura della replica restano aperti.
+Prova parziale del 17 ottobre 2026 sullo stesso Raspberry, con il trasporto Micdrop: una risposta iniziale e una replica senza wake word sono state riprodotte, con circa 1,1 e 2,2 secondi fra la fine del parlato e l'inizio dell'audio; un terzo turno è rimasto senza risposta per 60 secondi e il recupero è fallito per la chiusura tardiva della WebSocket Micdrop. Dopo la distribuzione dello stesso giorno, con `alexa` selezionata sul Raspberry dell'installazione di riferimento e backend sul server dell'installazione di riferimento, la persona ha confermato che la prova vocale successiva ha funzionato.
 
 #### Metadata
   * type: demonstration-verification
@@ -166,7 +166,7 @@ Su host Linux x86_64 e arm64 dotati di microfono e speaker, installare ed esegui
 
 ### Dimostrazione della protezione dei dati locali
 
-Verifica operativa ancora aperta. Ispezione parziale del 2026-10-16: Dockerfile usa COPY espliciti per artefatti, dipendenze, modelli e avviso; .dockerignore esclude config.json e *.local.json; config.example.json contiene solo valori dimostrativi senza credenziali. Il test software dell’immagine amd64 ha già verificato assenza della configurazione personale nei percorsi di avvio. Nessuna nuova misura delle scritture durante interazioni reali; resta aperta la protezione dei log Micdrop.
+Verifica operativa ancora aperta. Ispezione parziale del 2026-10-16: Dockerfile usa COPY espliciti per artefatti, dipendenze, modelli e avviso; .dockerignore esclude config.json e *.local.json; config.example.json contiene solo valori dimostrativi senza credenziali. Il test software dell’immagine amd64 ha già verificato assenza della configurazione personale nei percorsi di avvio. Nessuna nuova misura delle scritture durante interazioni reali. La protezione dei log Micdrop, aperta allora, non è più pertinente dopo la rimozione della dipendenza.
 
 #### Details
 Durante interazioni riuscite e fallite controllare scritture su disco e log usando audio, testo e credenziali riconoscibili: non devono comparire registrazioni persistenti né contenuti o credenziali nei log. Ispezionare gli artefatti host e container e gli esempi per escludere configurazioni personali. Le registrazioni preregistrate distribuite per gli avvisi locali restano ammesse.
@@ -183,12 +183,12 @@ Durante interazioni riuscite e fallite controllare scritture su disco e log usan
 
 ### Dimostrazione della segmentazione vocale
 
-Verifica parziale: due turni vocali consecutivi sono stati delimitati sul Raspberry ARM64; frequenza effettiva dei campioni, repliche brevi e pause interne restano da misurare.
+Verifica da ripetere con l'adapter Silero del satellite: le osservazioni registrate sotto sono state raccolte con la segmentazione di Micdrop.
 
 #### Details
-Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare il modello Silero ONNX incluso in Decibri 5.8.0, verificando hash e licenza. Con redemptionFrames 20 provare una richiesta continua dopo la wake word, una replica breve come «sì» e una frase con una pausa interna. Accertare che ogni turno ammesso produca un solo StartSpeaking, i frame PCM16 mono a 16 kHz e un solo StopSpeaking, senza perdere la replica breve né spezzare la frase alla pausa. Durante la riproduzione della risposta non devono partire nuovi turni. Registrare tempi di delimitazione e consumo di CPU su entrambe le architetture.
+Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare il modello Silero ONNX incluso in Decibri 5.8.0, verificando hash e licenza. Con le soglie del contratto, 0,18 e 0,11, `minSpeechFrames` 4 e `redemptionFrames` 20, provare una richiesta continua dopo la wake word, una replica breve come «sì» e una frase con una pausa interna. Accertare che ogni turno ammesso produca un solo `input.start` alla conferma del parlato, la riserva e i frame PCM16 mono a 16 kHz e un solo `input.end`, senza perdere la replica breve né spezzare la frase alla pausa; un rumore breve non confermato non deve aprire una richiesta. Durante la riproduzione della risposta non devono partire nuovi turni. Registrare tempi di delimitazione e consumo di CPU su entrambe le architetture.
 
-Il 17 ottobre 2026 la diagnostica temporanea sul Raspberry ha osservato il primo turno da 27,516 a 29,528 secondi e la replica da 34,907 a 36,392 secondi dall'avvio. Micdrop ha segnalato circa 19.950 campioni al secondo ricevuti da un microfono dichiarato a 16 kHz. È un'osservazione singola durante la prova, da verificare con una misura indipendente prima di modificarne la configurazione o il driver.
+Il 17 ottobre 2026 la diagnostica temporanea sul Raspberry, con il trasporto Micdrop, ha osservato il primo turno da 27,516 a 29,528 secondi e la replica da 34,907 a 36,392 secondi dall'avvio; Micdrop ha segnalato circa 19.950 campioni al secondo ricevuti da un microfono dichiarato a 16 kHz. È un'osservazione singola da verificare con una misura indipendente prima di modificare configurazione o driver.
 
 #### Metadata
   * type: demonstration-verification
@@ -411,6 +411,21 @@ Per ogni modello presente nel catalogo confrontare file, origine, versione, lice
   * verify: [Condizioni di distribuzione dei modelli wake word](../Requirements/VoiceSatellite.md#condizioni-di-distribuzione-dei-modelli-wake-word)
 ---
 
+### Prova degli eventi tardivi dopo la fine dell'interazione
+
+Con una sessione controllata, concludere un'interazione per risposta conclusiva, per scadenza dell'esito e per perdita della sessione; poi consegnare trasmissioni, frame audio, esiti e un evento di chiusura appartenenti alla richiesta o alla sessione precedente mentre il satellite ha già riaperto l'ascolto o avviato una nuova interazione.
+
+#### Details
+La prova passa se gli eventi tardivi non interrompono l'acquisizione del microfono, non vengono riprodotti e non sono attribuiti alla nuova interazione, e se l'evento di chiusura della sessione corrente conserva la gestione ordinaria. Fallisce se un esito o un frame della richiesta precedente apre una replica, chiude la nuova interazione o arresta l'ascolto. La regressione registrata il 17 ottobre 2026 riguardava la patch del client Micdrop 3.4.0 e non vale per il trasporto `ambrogio.v1`.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Riapertura sicura dopo la chiusura vocale](../Requirements/VoiceSatellite.md#riapertura-sicura-dopo-la-chiusura-vocale)
+---
+
 ### Prova del catalogo wake word montato
 
 Preparare una directory di modelli con le risorse comuni openWakeWord e un classificatore compatibile chiamato `personalizzato.onnx`. Montarla in sola lettura su `/app/models/wakeword` nell'immagine satellite, scegliere `wakeWord.model: "personalizzato"` e caricare il classificatore. Provare anche identificatori inesistenti, nomi dei modelli comuni e tentativi di attraversamento della directory.
@@ -450,8 +465,6 @@ Revisione di impatto: interessati assemblaggio, ingressi eventi, recupero locale
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [decibri-audio.test.ts](../../test/adapters/out/decibri-audio.test.ts)
-  * satisfiedBy: [micdrop-call-lifecycle.test.ts](../../test/adapters/out/micdrop-call-lifecycle.test.ts)
-  * satisfiedBy: [micdrop-decibri-drivers.test.ts](../../test/adapters/out/micdrop-decibri-drivers.test.ts)
   * satisfiedBy: [onnx-lifecycle.test.ts](../../test/adapters/out/onnx-lifecycle.test.ts)
   * satisfiedBy: [silero-lifecycle.test.ts](../../test/adapters/out/silero-lifecycle.test.ts)
   * satisfiedBy: [satellite-lifecycle.test.ts](../../test/composition/satellite-lifecycle.test.ts)
@@ -480,17 +493,46 @@ Ispezionata la dichiarazione generata dist/application/voice-session.use-case.d.
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [micdrop-events.test.ts](../../test/adapters/in/micdrop-events.test.ts)
   * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
   * verify: [Contratti Application indipendenti dal Domain](../Requirements/VoiceSatellite.md#contratti-application-indipendenti-dal-domain)
 ---
 
-### Prova della diagnostica Pino
+### Prova dell'avviso di voce non disponibile
 
-Acquisire le righe reali di Pino: JSON, event stabili, nessun dato sensibile da message, name, stack, code, cause o proprietà aggiuntive. Controllare identità e immutabilità degli originali, valori lanciati non Error, cause cicliche, getter e aggregati. Iniettare un guasto di interazione e uno di riproduzione: un evento distinto per ciascun guasto e avviso parlato indipendente. Verificare avvio e rifiuti di configurazione senza log automatici di errore.
+Con una sessione controllata, rispondere a un turno vocale con una trasmissione testuale seguita da `turn.rejected` con `reason: "audio_unavailable"`; ripetere con una trasmissione testuale in un turno ammesso. Verificare anche l'asset distribuito.
 
 #### Details
-Esecuzione del 2026-10-16: npm run typecheck, npm test (89 test, 19 file) e npm run build PASS. Prova CLI dei rifiuti per argomenti e configurazione assente: singola riga JSON info su stdout, uscita 2. Le prove automatiche coprono il logger applicativo, la propagazione del valore originale e gli eventi distinti di interazione e avviso. Non attestano i log diretti di Micdrop 3.4.0: l’ispezione della dipendenza rileva console.error/console.warn con dati grezzi; protezione ancora aperta. Decisione concordata il 2026-10-16: nessuna nuova patch locale per il logging; proporre upstream un logger configurabile. La verifica completa dei log della dipendenza resta da eseguire dopo una soluzione compatibile. Le dimostrazioni su backend e periferiche reali restano da eseguire.
+La prova passa se il satellite non tenta di pronunciare il testo, riproduce la registrazione locale «La voce non è disponibile.» sullo speaker configurato, non apre una replica e torna in attesa della wake word, senza reinviare la richiesta. L'asset è un WAV PCM16 mono a 16 kHz con origine e licenza documentate. Fallisce se il satellite resta in attesa, apre una replica o riproduce l'avviso di backend irraggiungibile al suo posto.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Avviso parlato di voce non disponibile](../Requirements/VoiceSatellite.md#avviso-parlato-di-voce-non-disponibile)
+---
+
+### Prova dell'identità del satellite nella sessione
+
+Con una sessione controllata, avviare il satellite senza sezione `client`, poi con `client.id` e `client.name`, e osservare `session.hello`. Ripetere con valori vuoti o di tipo diverso.
+
+#### Details
+La prova passa se senza configurazione `clientId` vale `satellite-<nome host>` e `name` vale il nome host, se i valori configurati li sostituiscono senza effetto delle variabili d'ambiente, e se valori vuoti o di tipo diverso rendono invalida la configurazione prima dell'avvio operativo. Fallisce se il satellite apre una sessione con un identificativo vuoto o diverso da quello configurato.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Identificazione del satellite nella sessione](../Requirements/VoiceSatellite.md#identificazione-del-satellite-nella-sessione)
+---
+
+### Prova della diagnostica Pino
+
+Acquisire le righe reali di Pino: JSON, event stabili, nessun dato sensibile da message, name, stack, code, cause o proprietà aggiuntive. Controllare identità e immutabilità degli originali, valori lanciati non Error, cause cicliche, getter e aggregati. Iniettare un guasto di interazione e uno di riproduzione: un evento distinto per ciascun guasto e avviso parlato indipendente. Verificare avvio e rifiuti di configurazione senza log automatici di errore. Con il trasporto `ambrogio.v1`, verificare che nessun componente emetta su console messaggi ricevuti o errori grezzi fuori dal logger applicativo.
+
+#### Details
+Esecuzione del 2026-10-16: npm run typecheck, npm test (89 test, 19 file) e npm run build PASS. Prova CLI dei rifiuti per argomenti e configurazione assente: singola riga JSON info su stdout, uscita 2. Le prove automatiche coprono il logger applicativo, la propagazione del valore originale e gli eventi distinti di interazione e avviso. La lacuna allora aperta sui log diretti di Micdrop 3.4.0 è chiusa dalla rimozione della dipendenza decisa il 17 ottobre 2026; la prova va ripetuta sul nuovo trasporto. Le dimostrazioni su backend e periferiche reali restano da eseguire.
 
 #### Metadata
   * type: test-verification
@@ -498,7 +540,6 @@ Esecuzione del 2026-10-16: npm run typecheck, npm test (89 test, 19 file) e npm 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [diagnostics.test.ts](../../test/adapters/out/diagnostics.test.ts)
-  * satisfiedBy: [micdrop-call-lifecycle.test.ts](../../test/adapters/out/micdrop-call-lifecycle.test.ts)
   * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
   * verify: [Conservazione della causa dei guasti](../Requirements/VoiceSatellite.md#conservazione-della-causa-dei-guasti)
   * verify: [Eventi diagnostici stabili](../Requirements/VoiceSatellite.md#eventi-diagnostici-stabili)
@@ -507,6 +548,23 @@ Esecuzione del 2026-10-16: npm run typecheck, npm test (89 test, 19 file) e npm 
   * verify: [Serializzazione protetta dei guasti](../Requirements/VoiceSatellite.md#serializzazione-protetta-dei-guasti)
   * verify: [Unicità della diagnosi definitiva](../Requirements/VoiceSatellite.md#unicità-della-diagnosi-definitiva)
   * verify: [Uso di Pino per la diagnostica](../Requirements/VoiceSatellite.md#uso-di-pino-per-la-diagnostica)
+---
+
+### Prova della sessione e delle conversazioni del satellite
+
+Con un backend `ambrogio.v1` controllato, avviare il satellite e completare due attivazioni con la wake word e una replica senza wake word; chiudere la sessione lato backend mentre il satellite attende la wake word e durante un'interazione; ritardare `session.ready`.
+
+#### Details
+La prova passa se all'avvio esiste una sola sessione pronta, se ogni attivazione con la wake word apre una richiesta senza `conversationId` e la replica usa il `conversationId` di `turn.accepted`, se nessun messaggio o frame è inviato prima di `session.ready`, se la sessione chiusa durante l'attesa viene riaperta alla successiva attivazione senza avvisi e se la chiusura durante un'interazione produce il recupero locale senza riprendere la richiesta sulla nuova sessione. Fallisce se una richiesta, una trasmissione o un turno vengono ripresi su una sessione diversa da quella in cui sono iniziati.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Invio soltanto su sessione pronta](../Requirements/VoiceSatellite.md#invio-soltanto-su-sessione-pronta)
+  * verify: [Nuova conversazione a ogni attivazione](../Requirements/VoiceSatellite.md#nuova-conversazione-a-ogni-attivazione)
+  * verify: [Sessione conversazionale persistente](../Requirements/VoiceSatellite.md#sessione-conversazionale-persistente)
 ---
 
 ### Prova delle scadenze indipendenti dal runtime
@@ -553,33 +611,17 @@ Su ciascuna immagine verificare architettura, import delle dipendenze native Dec
 
 ### Regressione del segnale di ascolto
 
-Alla wake word, la prova Domain e Application accerta che il tono parta quando la chiamata è pronta, prima dell'apertura del microfono. Con una risposta che attende replica, la stessa azione apre l'ascolto: il microfono resta disattivato e il timer non parte finché il bip non termina. Verificare che una risposta conclusiva non emetta il bip e che un arresto durante il segnale non riapra il microfono. La prova dell'adapter controlla durata, livello e uscita configurata del tono, cancellazione all'arresto e continuità dell'ascolto se la riproduzione locale fallisce.
+Alla wake word, la prova Domain e Application accerta che il tono parta quando la sessione è pronta, prima che il parlato sia ammesso. Con una risposta che attende replica, la stessa azione apre l'ascolto: il VAD resta inattivo e il timer non parte finché il bip non termina. Verificare che una risposta conclusiva non emetta il bip e che un arresto durante il segnale non riapra l'ascolto. La prova dell'adapter controlla durata, livello e uscita configurata del tono, cancellazione all'arresto e continuità dell'ascolto se la riproduzione locale fallisce.
 
-Il 17 ottobre 2026 la suite locale ha superato 96 test, typecheck e build. Sul Raspberry ARM64 i file compilati coincidono con quelli locali e il servizio è attivo senza riavvii. La persona ha confermato il bip iniziale, una risposta conclusiva senza nuovo bip e una replica dopo il bip nella stessa interazione. La verifica automatica e la dimostrazione acustica sono evidenze distinte; restano aperti i casi indicati nella dimostrazione.
+Il 17 ottobre 2026 la suite locale ha superato 96 test, typecheck e build con il trasporto Micdrop; sul Raspberry ARM64 la persona ha confermato il bip iniziale, una risposta conclusiva senza nuovo bip e una replica dopo il bip nella stessa interazione. La prova dell'adapter va ripetuta sul trasporto `ambrogio.v1`; la verifica automatica e la dimostrazione acustica sono evidenze distinte.
 
 #### Metadata
   * type: test-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [micdrop-call-lifecycle.test.ts](../../test/adapters/out/micdrop-call-lifecycle.test.ts)
   * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
   * verify: [Segnale acustico di disponibilità](../Requirements/VoiceSatellite.md#segnale-acustico-di-disponibilità)
----
-
-### Regressione della chiusura tardiva Micdrop
-
-Con il client Micdrop 3.4.0 realmente patchato, chiudere volontariamente una WebSocket e consegnare il suo evento di chiusura dopo la creazione di una nuova connessione. L'evento vecchio non deve chiamare `stop()`; l'evento della connessione corrente deve conservare la gestione ordinaria della chiusura.
-
-Il 17 ottobre 2026 `test/adapters/out/micdrop-client-patch.test.ts` ha superato la regressione con Micdrop 3.4.0; 91 test complessivi, typecheck e build superati. La patch è stata applicata sul Raspberry ARM64 e la regressione isolata è passata anche lì. Resta aperta la dimostrazione audio del ritorno alla wake word dopo un timeout reale.
-
-#### Metadata
-  * type: test-verification
-
-#### Relations
-  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [micdrop-client-patch.test.ts](../../test/adapters/out/micdrop-client-patch.test.ts)
-  * verify: [Riapertura sicura dopo la chiusura vocale](../Requirements/VoiceSatellite.md#riapertura-sicura-dopo-la-chiusura-vocale)
 ---
 
 ### Verifica della pubblicazione Docker del satellite
@@ -596,3 +638,4 @@ Ispezionare trigger, formato versione, corrispondenza package.json, dipendenza d
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Pubblicazione delle immagini Docker del satellite](../Requirements/VoiceSatellite.md#pubblicazione-delle-immagini-docker-del-satellite)
 ---
+

@@ -17,13 +17,24 @@ Decibri fornisce binari nativi per Linux x64 e arm64 e richiede la libreria runt
 
 ### Attivazione e riserva audio
 
-La famiglia può pronunciare Hey Jarvis e la richiesta nella stessa frase. La prima versione conserva in memoria una riserva scorrevole di 1500 ms di audio a 16 kHz durante il riconoscimento locale e l'apertura del canale. Usa la riserva di Micdrop per consegnare l'inizio della richiesta quando la WebSocket si apre; non trasmette audio al backend prima dell'ammissione della conversazione. Se la connessione non si apre entro il limite del client Micdrop o la riserva non basta, il satellite segnala il fallimento e torna alla wake word senza reinvio automatico. Il modello della wake word può essere diverso se selezionato dal catalogo distribuito. La prova su x86_64 e arm64 deve misurare se 1500 ms bastano per la frase continua.
+La famiglia può pronunciare Hey Jarvis e la richiesta nella stessa frase. Il satellite conserva in memoria una riserva scorrevole di 1500 ms di audio a 16 kHz durante il riconoscimento locale, il segnale di ascolto e la conferma del parlato. Quando Silero conferma l'inizio del parlato, la trasmissione della richiesta comincia con la riserva che precede il parlato, seguita dai frame acquisiti fino alla fine del parlato; la riserva non viene inviata se il parlato non è confermato. Il satellite non trasmette audio al backend prima della conferma del parlato né prima che la sessione sia pronta. Se la sessione non è pronta, la richiesta non è trasmessa: il satellite segnala il fallimento e torna alla wake word senza reinvio automatico. Il modello della wake word può essere diverso se selezionato dal catalogo distribuito. La prova su x86_64 e arm64 deve misurare se 1500 ms bastano per la frase continua.
 
 #### Metadata
   * type: behavior
 
 #### Relations
   * define: [Conservazione della richiesta continua](../Requirements/VoiceSatellite.md#conservazione-della-richiesta-continua)
+---
+
+### Avviso locale di voce non disponibile
+
+Decisione concordata il 17 ottobre 2026: quando una trasmissione del server per il turno corrente dichiara contenuto testuale, come nel rifiuto `audio_unavailable` di un backend senza voce configurata, il satellite non la pronuncia e riproduce invece la registrazione locale «La voce non è disponibile.». La registrazione è audio PCM16 mono a 16 kHz in formato WAV, sintetizzata una volta con la voce Piper italiana Riccardo x_low come l'avviso di backend irraggiungibile, e distribuita come asset con origine e licenza documentate, senza includere il modello TTS. Dopo l'avviso e l'esito del turno il satellite torna ad attendere la wake word senza aprire una replica e senza reinviare la richiesta.
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Avviso parlato di voce non disponibile](../Requirements/VoiceSatellite.md#avviso-parlato-di-voce-non-disponibile)
 ---
 
 ### Catalogo e selezione dei modelli
@@ -64,9 +75,9 @@ Il progetto openWakeWord dichiara il proprio codice Apache-2.0 e i modelli pread
 
 ### Configurazione del processo satellite
 
-Un solo file JSON contiene le sezioni `backend`, `audio`, `wakeWord` e `interaction`. `backend.baseUrl` è obbligatorio: è un URL assoluto HTTP o HTTPS senza credenziali, query o frammento e non ha valore predefinito. Il satellite deriva il canale WebSocket vocale aggiungendo `/api/voice` al prefisso di percorso dell'URL base, usando `ws:` per `http:` e `wss:` per `https:`; la configurazione non contiene un percorso WebSocket separato.
+Un solo file JSON contiene le sezioni `backend`, `client`, `audio`, `wakeWord` e `interaction`. `backend.baseUrl` è obbligatorio: è un URL assoluto HTTP o HTTPS senza credenziali, query o frammento e non ha valore predefinito. Il satellite deriva il canale conversazionale WebSocket aggiungendo `api/session` al prefisso di percorso dell'URL base, usando `ws:` per `http:` e `wss:` per `https:`; la configurazione non contiene un percorso WebSocket separato.
 
-La sezione `audio` è facoltativa e può contenere `microphone` e `speaker` come selettori stringa non vuoti. Un selettore presente viene passato a Decibri e deve identificare il dispositivo richiesto; un selettore assente usa il dispositivo predefinito del sistema. La sezione `wakeWord` è facoltativa e può indicare `model`, identificatore di un modello distribuito o personalizzato disponibile nella directory dei modelli; il valore predefinito è il modello Hey Jarvis. La sezione `interaction` è facoltativa e può indicare `replyTimeoutMs`, intero positivo con valore predefinito di 15000. Sezioni, campi e tipi non previsti sono rifiutati per evitare errori di configurazione silenziosi.
+La sezione `client` è facoltativa e può contenere `id` e `name`, stringhe non vuote che identificano il satellite nella sessione secondo il contratto «Identità del satellite nella sessione»; i valori predefiniti derivano dal nome host. La sezione `audio` è facoltativa e può contenere `microphone` e `speaker` come selettori stringa non vuoti. Un selettore presente viene passato a Decibri e deve identificare il dispositivo richiesto; un selettore assente usa il dispositivo predefinito del sistema. La sezione `wakeWord` è facoltativa e può indicare `model`, identificatore di un modello distribuito o personalizzato disponibile nella directory dei modelli; il valore predefinito è il modello Hey Jarvis. La sezione `interaction` è facoltativa e può indicare `replyTimeoutMs`, intero positivo con valore predefinito di 15000. Sezioni, campi e tipi non previsti sono rifiutati per evitare errori di configurazione silenziosi.
 
 L'opzione di avvio `--config` seleziona esplicitamente il file JSON. I valori non sono sovrascritti dalle variabili d'ambiente. Il file e i modelli selezionati vengono validati prima dell'avvio operativo e una configurazione invalida produce un errore comprensibile. Host e container usano lo stesso schema. Impostazioni aggiuntive richiedono una nuova specificazione.
 
@@ -79,9 +90,9 @@ L'opzione di avvio `--config` seleziona esplicitamente il file JSON. I valori no
 
 ### Contratto osservabile della sessione vocale
 
-VoiceSession espone un evento Application per wake word riconosciuta, inizio/fine parlato, indicazione della replica attesa e risposta riprodotta. Il flag expectsReply è booleano oppure assente: l'adapter Micdrop converte qualsiasi valore non booleano in assenza di indicazione, preservando la politica di chiusura sicura. Gli eventi tecnici di apertura/chiusura della porta e scadenza dei timer restano privati del caso d'uso.
+VoiceSession espone un evento Application per wake word riconosciuta, inizio/fine parlato, esito del turno e risposta riprodotta. L'esito del turno porta l'indicazione della replica attesa, booleana oppure assente: per `turn.completed` l'adapter del canale conversazionale consegna `expectsReply`, convertendo un valore non booleano in assenza di indicazione per preservare la politica di chiusura sicura; `turn.failed`, `turn.rejected` e `turn.interrupted` sono consegnati come esiti conclusivi, equivalenti a `expectsReply: false`. La risposta riprodotta è segnalata dall'adapter soltanto quando l'esito è arrivato e la riproduzione di tutte le trasmissioni del turno è terminata, cioè dopo `output.end` e lo svuotamento della coda dello speaker. La conversazione da continuare in una replica resta un dato dell'adapter del canale e non entra nello stato Domain. Gli eventi tecnici di apertura/chiusura della porta e scadenza dei timer restano privati del caso d'uso.
 
-Lo stato osservabile è una proiezione Application immutabile per tipo, restituita come nuovo oggetto: acceptsWakeWord indica se inoltrare frame al riconoscimento, acceptsSpeechEnd se completare il parlato in corso, interactionActive se una disconnessione costituisce un guasto dell'interazione. Il primo valore corrisponde all'attesa della wake word, il secondo alla registrazione; interactionActive è falso durante attesa iniziale e chiusura. Non si espongono phase, enum o riferimenti allo stato Domain. Nessuna duplicazione della macchina a stati: Domain mantiene regole e transizioni, Application traduce gli eventi e proietta i soli dati necessari agli ingressi. Fail e stop conservano il comportamento concordato.
+Lo stato osservabile è una proiezione Application immutabile per tipo, restituita come nuovo oggetto: acceptsWakeWord indica se inoltrare frame al riconoscimento, acceptsSpeechEnd se completare il parlato in corso, interactionActive se una perdita della sessione costituisce un guasto dell'interazione. Il primo valore corrisponde all'attesa della wake word, il secondo alla registrazione; interactionActive è falso durante attesa iniziale e chiusura. Non si espongono phase, enum o riferimenti allo stato Domain. Nessuna duplicazione della macchina a stati: Domain mantiene regole e transizioni, Application traduce gli eventi e proietta i soli dati necessari agli ingressi. Fail e stop conservano il comportamento concordato.
 
 #### Metadata
   * type: specification
@@ -89,10 +100,12 @@ Lo stato osservabile è una proiezione Application immutabile per tipo, restitui
 
 ### Contratto vocale backend di riferimento
 
-La revisione backend candidata per il satellite è ambrogio-backend al commit 512317c9e93b4e6ab7a1e32dd9c210436b7b5c06: https://github.com/adrianofoschi/ambrogio-backend/blob/512317c9e93b4e6ab7a1e32dd9c210436b7b5c06/system-model/Contracts/FamilyConversation.md . I contratti pertinenti sono Protocollo vocale del prodotto, Chiusura coordinata con la riproduzione, Stati dell'interazione vocale e Indicazione di attesa della replica vocale. Questa revisione implementa la concorrenza per conversazione, ammette e crea la conversazione prima dell'upgrade WebSocket, consegna `metadata.expectsReply` nei messaggi Micdrop dell'assistente e presenta i rifiuti dei turni vocali come risposte parlate con `expectsReply: false`. Il satellite possiede la decisione di chiusura dopo la riproduzione e l'intervallo locale di inattività. Le verifiche automatiche backend coprono ammissione, generazione strutturata, messaggio vocale e chiusura della sessione. La compatibilità della prima versione del satellite non è ancora dimostrata: occorrono il client e prove di integrazione contro questa revisione prima di dichiararla compatibile. Le relazioni Reqvire restano interne a ciascun repository; il riferimento esterno non fonde i grafi.
+La revisione backend di riferimento per il satellite è ambrogio-backend al commit `f262e924f7fdaa6635c0f4486f5aec1aa484e0a3`. I contratti pertinenti sono `Sessione del protocollo Ambrogio v1`, `Trasmissione in ingresso del protocollo Ambrogio v1`, `Trasmissione in uscita del protocollo Ambrogio v1`, `Esiti del turno nel protocollo Ambrogio v1`, `Motivi di rifiuto del turno`, `Errori ed estensioni del protocollo Ambrogio v1` e `Correlazione diagnostica della sessione Ambrogio v1` in https://github.com/adrianofoschi/ambrogio-backend/blob/f262e924f7fdaa6635c0f4486f5aec1aa484e0a3/system-model/Contracts/ConversationProtocol.md ; la forma dei messaggi è definita da https://github.com/adrianofoschi/ambrogio-backend/blob/f262e924f7fdaa6635c0f4486f5aec1aa484e0a3/protocol/ambrogio-v1.schema.json alla stessa revisione. Questa revisione sostituisce la precedente `512317c9e93b4e6ab7a1e32dd9c210436b7b5c06` e il protocollo vocale Micdrop su `/api/voice`, rimossi dal backend.
+
+Il backend possiede trascrizione, sintesi, ammissione dei turni, `expectsReply` e motivi di rifiuto; ogni messaggio per la famiglia, compresi rifiuti ed errori, arriva come trasmissione nel formato chiesto con `reply`, salvo il rifiuto `audio_unavailable` trasmesso sempre in testo. Il satellite possiede la regola delle conversazioni per attivazione, la decisione di aprire una replica dopo la riproduzione e l'intervallo locale di inattività. La compatibilità non è ancora dimostrata: occorrono prove di integrazione del client reale contro questa revisione. Le relazioni Reqvire restano interne a ciascun repository; il riferimento esterno non fonde i grafi.
 
 #### Evoluzione della concorrenza
-Decisione concordata e implementata nel backend: sono ammessi turni in parallelo tra conversazioni diverse e al massimo un turno attivo per ciascuna conversazione. Il conflitto riguarda la stessa conversazione, indipendentemente dal client o dal canale; i turni rifiutati non sono accodati. Ogni satellite mantiene il proprio ciclo locale e le interazioni degli altri client non ne sostituiscono lo stato. Le verifiche automatiche backend coprono il comportamento HTTP, le connessioni vocali simultanee e la migrazione dell'occupazione SQLite. Eventuali limiti globali di capacità restano da concordare.
+Decisione concordata e implementata nel backend: sono ammessi turni in parallelo tra conversazioni diverse e al massimo un turno attivo per ciascuna conversazione. Il conflitto riguarda la stessa conversazione, indipendentemente dal client o dal canale; i turni rifiutati non sono accodati. Ogni satellite mantiene il proprio ciclo locale e le interazioni degli altri client non ne sostituiscono lo stato. Eventuali limiti globali di capacità restano da concordare.
 
 #### Metadata
   * type: source
@@ -136,7 +149,7 @@ Motivazione: Martin Fowler sostiene una politica coerente dei nomi dei ruoli e l
 
 L'applicazione TypeScript compilata in JavaScript ESM usa Node.js 24 o successivo, come il backend, e funziona direttamente su Linux x86_64 e arm64 con dipendenze e modelli installati. Docker è una modalità facoltativa che confeziona la stessa applicazione per linux/amd64 e linux/arm64. La configurazione ha lo stesso significato in entrambe le modalità. L'adapter audio usa Decibri 5.8.0, fissato nel lockfile, e richiede il proprio binario nativo per la piattaforma e la libreria runtime ALSA `libasound.so.2`; il pacchetto host documenta la dipendenza e l'immagine container la include con accesso esplicito alle periferiche. ONNX Runtime richiede il proprio pacchetto nativo per la piattaforma. Le prove su periferiche reali devono coprire entrambe le architetture.
 
-L'installazione usa pnpm 12.11.2 e il lockfile fissato. La regola di attesa di 24 ore per le nuove versioni resta attiva; poiché Vitest 5.0.5 e i pacchetti `@vitest/mocker` e `@vitest/spy` 5.0.5 sono già stati deliberatamente fissati prima del compimento dell'attesa, `pnpm-workspace.yaml` ammette solo queste tre versioni come eccezioni. La build Docker deve eseguire l'installazione congelata con la patch Micdrop e i build script nativi previsti. Il supporto dell'architettura non dimostra compatibilità con ogni distribuzione o periferica.
+L'installazione usa pnpm 12.11.2 e il lockfile fissato. La regola di attesa di 24 ore per le nuove versioni resta attiva; poiché Vitest 5.0.5 e i pacchetti `@vitest/mocker` e `@vitest/spy` 5.0.5 sono già stati deliberatamente fissati prima del compimento dell'attesa, `pnpm-workspace.yaml` ammette solo queste tre versioni come eccezioni. La build Docker deve eseguire l'installazione congelata con i build script nativi previsti; dopo la rimozione di `@micdrop/client` non è più applicata alcuna patch locale alle dipendenze. Il supporto dell'architettura non dimostra compatibilità con ogni distribuzione o periferica.
 
 #### Metadata
   * type: specification
@@ -154,6 +167,17 @@ Il tipo locale è `type Result<T, E> = Readonly<{ ok: true; value: T }> | Readon
 
 #### Relations
   * define: [Esiti previsti come valori tipizzati](../Requirements/VoiceSatellite.md#esiti-previsti-come-valori-tipizzati)
+---
+
+### Identità del satellite nella sessione
+
+Decisione concordata il 17 ottobre 2026: il file JSON può contenere la sezione facoltativa `client` con `id` e `name`, stringhe non vuote. In assenza, `id` vale `satellite-<nome host>` e `name` vale il nome host. Il satellite invia questi valori come `clientId` e `name` di `session.hello`. L'identificativo resta stabile tra un avvio e l'altro sulla stessa macchina finché la configurazione non cambia; il nome serve alla famiglia per riconoscere il satellite, per esempio «Cucina». Un valore vuoto o di tipo diverso rende invalida la configurazione.
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Identificazione del satellite nella sessione](../Requirements/VoiceSatellite.md#identificazione-del-satellite-nella-sessione)
 ---
 
 ### Motore locale della wake word con ONNX
@@ -206,9 +230,7 @@ GitHub Actions pubblica ghcr.io/adrianofoschi/ambrogio-satellite al push di un t
 Pino emette una riga JSON su stdout, con livello testuale, timestamp ed event costante. Nessuna acquisizione automatica di configurazione, audio, messaggi, hostname o dati ricevuti. I rifiuti previsti di avvio sono eventi informativi, senza err; i guasti di processo, interazione e riproduzione dell’avviso hanno eventi distinti. La normalizzazione al confine conserva l’identità di Error e incapsula gli altri valori con messaggio costante e cause originale, senza conversione a stringa. La vista JSON di err usa descrizioni costanti, nasconde name, message, stack, code e proprietà aggiuntive; conserva soltanto la struttura delle cause e degli AggregateError con limiti di profondità e numerosità, senza invocare getter o modificare gli originali. Il messaggio parlato resta l’asset locale indipendente dalla diagnosi. Domain e Application non importano logger.
 
 #### Details
-Decisione concordata il 2026-10-16: non estendere la patch locale di Micdrop per il logging. Proporre upstream un logger configurabile che copra anche le emissioni dirette console.error/console.warn. Fino a una soluzione verificata, la protezione dei log della dipendenza resta aperta; debugLog=false non è sufficiente. Questa decisione non attesta conformità completa ai requisiti di riservatezza e formato dei log.
-
-Bozza upstream, non pubblicata: «Allow a configurable logger in @micdrop/client. In version 3.4.0, several console.error/console.warn calls bypass debugLog and may include received payloads or raw errors. Please provide an optional logger covering all diagnostic output, with a way to disable it. Error events and call behavior should remain independent of logger configuration. This would let applications apply their own structured logging and privacy policies without patching the package.»
+Con la rimozione di `@micdrop/client`, decisa il 17 ottobre 2026, non restano dipendenze di trasporto che emettono direttamente su console i messaggi ricevuti o gli errori grezzi: la lacuna aperta il 16 ottobre 2026 sui log diretti di Micdrop è chiusa senza patch né proposta upstream. Il trasporto `ambrogio.v1` diagnostica i propri guasti soltanto attraverso il logger applicativo.
 
 #### Metadata
   * type: specification
@@ -219,7 +241,7 @@ Bozza upstream, non pubblicata: «Allow a configurable logger in @micdrop/client
 
 ### Profilo iniziale di osservabilità
 
-La diagnostica iniziale usa i log JSON applicativi già previsti. Non sono introdotti contatori o API applicative di metriche, exporter di tracing distribuito o registri di audit. I log non costituiscono un registro di audit garantito. Eventuali estensioni, per esempio conteggi delle attivazioni o tempi di risposta, richiedono un bisogno concreto concordato, requisiti e contratti propri, protezioni dei dati e verifiche dedicate. La raccolta esterna dei log resta responsabilità del deployment. Il profilo non introduce identificativi di correlazione o modifiche al protocollo vocale. La lacuna nota dei log diretti Micdrop resta aperta e non è risolta da questa delimitazione.
+La diagnostica iniziale usa i log JSON applicativi già previsti. Non sono introdotti contatori o API applicative di metriche, exporter di tracing distribuito o registri di audit. I log non costituiscono un registro di audit garantito. Eventuali estensioni, per esempio conteggi delle attivazioni o tempi di risposta, richiedono un bisogno concreto concordato, requisiti e contratti propri, protezioni dei dati e verifiche dedicate. La raccolta esterna dei log resta responsabilità del deployment. Il profilo non introduce identificativi di correlazione nel satellite né modifiche al protocollo conversazionale; la correlazione diagnostica delle sessioni appartiene al backend. Con la rimozione di Micdrop non restano log diretti di dipendenze di trasporto fuori dal logger applicativo.
 
 #### Metadata
   * type: specification
@@ -228,22 +250,9 @@ La diagnostica iniziale usa i log JSON applicativi già previsti. Non sono intro
   * define: [Perimetro iniziale dei segnali di osservabilità](../Requirements/VoiceSatellite.md#perimetro-iniziale-dei-segnali-di-osservabilità)
 ---
 
-### Protezione degli invii Micdrop
-
-La versione pubblicata di `@micdrop/client` 3.4.0 può chiamare `WebSocket.send` mentre il socket è ancora in `CONNECTING`. Fino a una correzione upstream verificata, la distribuzione applica una patch locale ripetibile che consente gli invii del client soltanto quando il socket è aperto. La patch controlla versione e punti modificati e fa fallire la preparazione del pacchetto se il codice atteso cambia; non modifica silenziosamente una nuova versione.
-
-Il satellite non interpreta la mancata trasmissione durante l'apertura come consegna riuscita del turno. I tentativi automatici di riconnessione sono disabilitati perché una nuova WebSocket creerebbe una nuova conversazione. Quando una versione pubblicata corregge il difetto, la prova di apertura va ripetuta prima di rimuovere la patch.
-
-#### Metadata
-  * type: specification
-
-#### Relations
-  * define: [Invio sicuro durante connessione e riconnessione](../Requirements/VoiceSatellite.md#invio-sicuro-durante-connessione-e-riconnessione)
----
-
 ### Recupero locale da backend irraggiungibile
 
-Il messaggio di fallimento è una registrazione audio PCM16 mono a 16 kHz disponibile localmente nella distribuzione, riproducibile anche quando il backend non risponde. Il testo pronunciato nella prima versione è «Non riesco a contattare Ambrogio. Riprova tra poco.». La registrazione è sintetizzata una volta con la voce Piper italiana Riccardo x_low e distribuita come file audio, senza includere il modello TTS; origine e licenza della voce sono documentate insieme all'asset. Dopo il messaggio il processo resta attivo e torna ad attendere la wake word. Una nuova attivazione tenta una nuova interazione. Non si conserva la richiesta fallita per reinviarla automaticamente. Il medesimo recupero si applica a disconnessione e guasto tecnico durante un'interazione, dopo aver fermato la chiamata corrente.
+Il messaggio di fallimento è una registrazione audio PCM16 mono a 16 kHz disponibile localmente nella distribuzione, riproducibile anche quando il backend non risponde. Il testo pronunciato nella prima versione è «Non riesco a contattare Ambrogio. Riprova tra poco.». La registrazione è sintetizzata una volta con la voce Piper italiana Riccardo x_low e distribuita come file audio, senza includere il modello TTS; origine e licenza della voce sono documentate insieme all'asset. Dopo il messaggio il processo resta attivo e torna ad attendere la wake word. Una nuova attivazione tenta una nuova interazione, riaprendo la sessione se necessario. Non si conserva la richiesta fallita per reinviarla automaticamente. Il medesimo recupero si applica alla sessione che non si apre o si chiude durante un'interazione, a un `session.error` riferito alla richiesta corrente, all'esito mancante entro 60 secondi dalla fine della richiesta e ai guasti tecnici durante un'interazione, dopo aver interrotto la trasmissione e la riproduzione correnti.
 
 #### Metadata
   * type: behavior
@@ -254,13 +263,11 @@ Il messaggio di fallimento è una registrazione audio PCM16 mono a 16 kHz dispon
 
 ### Regole della replica vocale
 
-Il backend determina e comunica se la risposta attende una replica. Durante la stessa generazione della risposta l'agente produce il booleano strutturato `expectsReply`, senza una seconda chiamata al modello dedicata alla classificazione. Il backend lo invia nel campo `metadata.expectsReply` del messaggio Micdrop `Message` con `role: "assistant"`. Se il caso d'uso condiviso rifiuta un turno vocale, il backend produce una risposta parlata sicura nella lingua configurata, con `metadata.expectsReply: false`; il satellite la tratta come una risposta conclusiva.
+Il backend determina e comunica se la risposta attende una replica: durante la stessa generazione della risposta l'agente produce il booleano strutturato `expectsReply`, che il backend invia in `turn.completed`. I turni conclusi con `turn.failed`, `turn.rejected` o `turn.interrupted` non comunicano `expectsReply` e il satellite li tratta come conclusivi, dopo aver riprodotto l'eventuale audio del messaggio pubblico.
 
-Il satellite associa il messaggio alla risposta corrente della chiamata Micdrop. Per una risposta parlata attende il primo avvio della riproduzione, poi osserva `StateChange.isAssistantSpeaking` e la coda del driver Decibri: considera completata la risposta quando la riproduzione è inattiva per 1000 ms consecutivi. Un nuovo blocco audio durante l'intervallo lo azzera. Lo stato può tornare inattivo fra due blocchi della stessa risposta: l'intervallo è una stima della fine e una pausa TTS più lunga può causare chiusura prematura. La prova di integrazione deve misurare questo rischio. Se la riproduzione non inizia o non termina entro 60 secondi dalla fine della richiesta, il satellite chiude senza aprire una replica. Non si modifica il protocollo backend per un segnale aggiuntivo di fine audio.
+Il satellite associa esiti e trasmissioni alla richiesta corrente tramite `requestId` e `turnId`. Riproduce in ordine le trasmissioni audio del turno e considera completata la risposta quando ha ricevuto l'esito del turno e lo speaker ha riprodotto tutti i campioni accodati dopo l'ultimo `output.end`. Questa regola sostituisce la stima precedente basata su 1000 ms di inattività di Micdrop. Se l'esito non arriva entro 60 secondi dalla fine della richiesta, il satellite chiude l'interazione con il recupero locale senza aprire una replica.
 
-Soltanto dopo questa attesa e un messaggio con booleano valido, `true` apre una finestra locale di inattività di 15 secondi predefiniti e ammette una replica senza wake word sulla stessa chiamata; `false` chiude la chiamata e torna alla wake word. Se manca un valore booleano, non apre una replica: attende al massimo l'intervallo locale configurato per un messaggio valido tardivo, poi chiude. Ignora messaggi arrivati dopo la chiusura. L'intervallo ricomincia dopo ogni nuova risposta riprodotta. Il backend rilascia la sessione quando la WebSocket si chiude; non serve un comando `Played`.
-
-Chiarimento dall'integrazione del 16 ottobre 2026: Micdrop 3.4.0 non emette sempre StateChange alla fine della riproduzione con microfono muted e interruzioni disabilitate. L'adapter osserva anche gli eventi locali Speaker.StartPlaying e Speaker.StopPlaying, emessi dal driver dopo lo svuotamento della coda; questi aggiornano lo stesso stato di riproduzione e la stessa finestra di 1000 ms, senza modificare il protocollo.
+Soltanto dopo la riproduzione completa e un `turn.completed` con `expectsReply: true`, il satellite apre una finestra locale di inattività di 15 secondi predefiniti e ammette una replica senza wake word nella stessa conversazione, usando il `conversationId` ricevuto in `turn.accepted`; con `false`, valore mancante o esito conclusivo torna alla wake word. Ignora esiti e trasmissioni che non appartengono alla richiesta corrente. L'intervallo ricomincia dopo ogni nuova risposta riprodotta. Il satellite non invia al backend segnali sulla fine della riproduzione.
 
 #### Metadata
   * type: behavior
@@ -282,7 +289,7 @@ I test Domain importano codice di produzione soltanto da Domain. I test Applicat
 
 ### Responsabilità della raccolta dei log
 
-Il processo satellite emette i log applicativi JSON su stdout. Nell’esecuzione container, raccolta, durata di conservazione, rotazione ed eventuale inoltro sono configurati nel runtime Docker o nell’infrastruttura dell’installazione. Nell’esecuzione diretta, l’installatore può usare un gestore di servizi, per esempio systemd con journald, oppure un collettore esterno. Nessun percorso di file log, credenziale di raccolta o endpoint di logging entra nella configurazione applicativa. Non è imposto un prodotto di raccolta né un periodo di conservazione predefinito. L’avvio diretto da terminale non garantisce conservazione. La raccolta esterna non risolve il problema aperto dei log grezzi della dipendenza Micdrop.
+Il processo satellite emette i log applicativi JSON su stdout. Nell’esecuzione container, raccolta, durata di conservazione, rotazione ed eventuale inoltro sono configurati nel runtime Docker o nell’infrastruttura dell’installazione. Nell’esecuzione diretta, l’installatore può usare un gestore di servizi, per esempio systemd con journald, oppure un collettore esterno. Nessun percorso di file log, credenziale di raccolta o endpoint di logging entra nella configurazione applicativa. Non è imposto un prodotto di raccolta né un periodo di conservazione predefinito. L’avvio diretto da terminale non garantisce conservazione.
 
 #### Metadata
   * type: specification
@@ -302,22 +309,11 @@ Domain contiene stati e regole dell’interazione locale. Application coordina i
   * define: [Separazione Domain Application e adapter](../Requirements/VoiceSatellite.md#separazione-domain-application-e-adapter)
 ---
 
-### Riapertura dell'ascolto dopo la chiusura Micdrop
-
-Con `@micdrop/client` 3.4.0, l'evento di chiusura di una WebSocket già chiusa volontariamente può arrivare dopo l'avvio dell'ascolto successivo: il client richiama allora `stop()` e interrompe la nuova apertura del microfono. La patch locale ignora gli eventi di chiusura che non appartengono alla WebSocket corrente. Controlla versione e punto modificato, fa fallire la preparazione del pacchetto se il codice atteso cambia e va riesaminata a ogni aggiornamento della dipendenza.
-
-#### Metadata
-  * type: specification
-
-#### Relations
-  * define: [Riapertura sicura dopo la chiusura vocale](../Requirements/VoiceSatellite.md#riapertura-sicura-dopo-la-chiusura-vocale)
----
-
 ### Segmentazione dei turni con Silero ONNX
 
-La prima versione usa Silero VAD in formato ONNX nel processo Node.js del satellite per individuare i tratti di parlato durante un'interazione ammessa. L'adapter audio/VAD esegue il modello con `onnxruntime-node` 1.30.0 e segnala al client Micdrop l'inizio, i frame e la fine di ciascun turno. MicdropClient trasporta `StartSpeaking`, audio PCM16 mono a 16 kHz e `StopSpeaking` secondo il contratto vocale del backend. Durante la riproduzione della risposta il satellite non ammette nuovi turni né interrompe l'audio in uscita.
+La prima versione usa Silero VAD in formato ONNX nel processo Node.js del satellite per individuare i tratti di parlato durante un'interazione ammessa. Un adapter proprio del satellite esegue il modello con `onnxruntime-node` 1.30.0 e applica lo stesso algoritmo usato in precedenza da `@micdrop/client` 3.4.0: finestre di 512 campioni a 16 kHz (32 ms), valutate in sequenza; una finestra con probabilità almeno 0,18 (`positiveSpeechThreshold`) è parlato, una sotto 0,11 (`negativeSpeechThreshold`) è silenzio; il parlato è confermato dopo 4 finestre di parlato (`minSpeechFrames`) e termina dopo 20 finestre consecutive di silenzio (`redemptionFrames`, circa 640 ms). Alla conferma l'adapter apre la trasmissione della richiesta con la riserva audio; alla fine del parlato invia `input.end`. Un tratto che termina prima della conferma viene scartato senza inviare nulla, perché il protocollo non consente di annullare una richiesta aperta. Durante la riproduzione della risposta il satellite non ammette nuovi turni né interrompe l'audio in uscita.
 
-La distribuzione usa il file `models/silero_vad.onnx` incluso nel pacchetto Decibri 5.8.0, senza una seconda copia; ne registra origine, hash e licenza nel documento dei modelli. Il valore iniziale `redemptionFrames` è 20, pari a circa 640 ms di silenzio per finestre da 32 ms. Le altre soglie rimangono quelle predefinite del client Micdrop 3.4.0; durata, CPU e riconoscimento di risposte brevi e frasi con pause interne vanno verificati su Linux x86_64 e arm64. Fonte del modello: https://github.com/snakers4/silero-vad .
+La distribuzione usa il file `models/silero_vad.onnx` incluso nel pacchetto Decibri 5.8.0, senza una seconda copia; ne registra origine, hash e licenza nel documento dei modelli. Durata, CPU e riconoscimento di risposte brevi e frasi con pause interne vanno verificati su Linux x86_64 e arm64. Fonte del modello: https://github.com/snakers4/silero-vad .
 
 #### Metadata
   * type: behavior
@@ -328,7 +324,7 @@ La distribuzione usa il file `models/silero_vad.onnx` incluso nel pacchetto Deci
 
 ### Segnale locale di ascolto
 
-L'apertura dell'ascolto segue una sola regola, sia dopo la wake word sia dopo una risposta che attende replica: quando la chiamata è pronta a ricevere il turno, il satellite riproduce una volta un breve tono PCM16 mono a 16 kHz sullo speaker configurato e riattiva il microfono solo quando il tono è terminato. Alla prima attivazione attende l'apertura della chiamata prima del tono; `Micdrop.start()` azzera il proprio stato muted, quindi l'adapter lo ripristina subito per non acquisire il bip come parlato. Il bip indica che si può davvero parlare. Per una risposta completata con `metadata.expectsReply: true`, applica la stessa regola nella chiamata già aperta e avvia la finestra di inattività della replica dopo il tono. Non emette il tono dopo una risposta conclusiva o con metadato non valido. Il tono è generato localmente, non inviato al backend e non deve sovrapporsi alla risposta parlata. Se lo speaker non riproduce il tono, il satellite registra `satellite_ready_cue_failed` e apre comunque l'ascolto. L'arresto annulla il tono in corso.
+L'apertura dell'ascolto segue una sola regola, sia dopo la wake word sia dopo una risposta che attende replica: quando la sessione conversazionale è pronta a ricevere il turno, il satellite riproduce una volta un breve tono PCM16 mono a 16 kHz sullo speaker configurato e ammette il parlato solo quando il tono è terminato. Alla prima attivazione attende che la sessione sia pronta, riaprendola se necessario, prima del tono; il VAD resta inattivo durante il tono per non acquisire il bip come parlato. Il bip indica che si può davvero parlare. Per un `turn.completed` con `expectsReply: true`, applica la stessa regola nella sessione già aperta e avvia la finestra di inattività della replica dopo il tono. Non emette il tono dopo una risposta conclusiva o con indicazione non valida. Il tono è generato localmente, non inviato al backend e non deve sovrapporsi alla risposta parlata. Se lo speaker non riproduce il tono, il satellite registra `satellite_ready_cue_failed` e apre comunque l'ascolto. L'arresto annulla il tono in corso.
 
 #### Metadata
   * type: behavior
@@ -337,11 +333,15 @@ L'apertura dell'ascolto segue una sola regola, sia dopo la wake word sia dopo un
   * define: [Segnale acustico di disponibilità](../Requirements/VoiceSatellite.md#segnale-acustico-di-disponibilità)
 ---
 
-### Trasporto vocale con Micdrop
+### Trasporto conversazionale ambrogio.v1
 
-La prima versione usa `@micdrop/client` 3.4.0 nell'adapter outbound, con i driver Decibri per ingresso e uscita e Silero ONNX per il rilevamento del parlato. `MicdropClient` delimita e trasporta i turni vocali standard; Domain e Application dipendono soltanto dalle porte del satellite. Il backend ammette la conversazione prima dell'upgrade WebSocket, così il client può iniziare a trasmettere dopo l'apertura senza attendere un comando aggiuntivo. Il satellite usa i messaggi Micdrop `Message` con `metadata.expectsReply`, l'audio in streaming e gli stati `isAssistantSpeaking` ed `Error`; non richiede `Ready`, `TurnRejected` o `Played`.
+Decisione concordata il 17 ottobre 2026: il satellite comunica con il backend con il protocollo conversazionale `ambrogio.v1`, comune a testo e voce, e non usa più `@micdrop/client` né la sua patch locale. L'adapter outbound usa il `WebSocket` integrato in Node.js, la stessa scelta del client terminale, senza dipendenze aggiuntive per il trasporto. Si connette a `api/session` sotto `backend.baseUrl`, con schema `ws:` per `http:` e `wss:` per `https:`, offrendo il sottoprotocollo `ambrogio.v1`; invia `session.hello` con l'identità configurata e considera la sessione pronta soltanto dopo `session.ready`. Domain e Application dipendono soltanto dalle porte del satellite.
 
-Una nuova WebSocket crea una nuova conversazione backend. Il client non deve quindi riprendere automaticamente una vecchia interazione su una connessione nuova; il ricongiungimento richiederebbe un contratto separato. L'adapter disabilita i tentativi automatici di riconnessione di Micdrop e torna alla gestione locale del fallimento e della wake word. La revisione backend compatibile è quella registrata nel «Contratto vocale backend di riferimento» e richiede una prova reale prima di essere dichiarata compatibile. Fonte del protocollo Micdrop: https://micdrop.dev/docs/server/protocol .
+La sessione è persistente: viene aperta all'avvio, resta aperta finché il backend la mantiene con i propri ping e, se risulta chiusa, viene riaperta alla successiva attivazione con la wake word. Il satellite invia messaggi e frame soltanto su una sessione pronta e non riprende mai su una nuova sessione una richiesta, una trasmissione o un turno della sessione precedente. Una sessione persa durante un'interazione attiva segue il recupero locale; la sua perdita mentre il satellite attende la wake word non produce avvisi.
+
+Ogni richiesta è una trasmissione audio: `input.start` con `requestId` e `stream` nuovi, `content` `{"type":"audio","sampleRate":16000}`, `reply` `"audio"` e `conversationId` soltanto per una replica senza wake word, il `conversationId` ricevuto in `turn.accepted` per il turno precedente; poi frame binari con i 4 byte big-endian del numero `stream` seguiti da PCM16 mono a 16 kHz; infine `input.end` alla fine del parlato rilevata localmente. Ogni attivazione con la wake word inizia una nuova conversazione senza `conversationId`. La durata della richiesta resta entro i 60 secondi del contratto backend.
+
+Le risposte arrivano come trasmissioni `output.start`, frame audio alla frequenza dichiarata e `output.end`; l'esito del turno è `turn.completed` con `expectsReply`, `turn.failed`, `turn.rejected` o `turn.interrupted`. Un `session.error` riferito alla richiesta corrente equivale a un guasto dell'interazione. A un messaggio del server non legato a un turno che contiene `id` il satellite risponde con `client.result`, `ok: false` e `reason: "unsupported"`. La revisione backend compatibile è quella registrata nel «Contratto vocale backend di riferimento» e richiede prove di integrazione prima di essere dichiarata compatibile. Le evidenze raccolte in precedenza con il trasporto Micdrop non valgono per questo contratto.
 
 #### Metadata
   * type: specification
@@ -349,3 +349,4 @@ Una nuova WebSocket crea una nuova conversazione backend. Il client non deve qui
 #### Relations
   * define: [Compatibilità con il canale vocale backend](../Requirements/VoiceSatellite.md#compatibilità-con-il-canale-vocale-backend)
 ---
+

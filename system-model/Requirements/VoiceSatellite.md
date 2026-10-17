@@ -28,7 +28,6 @@ Mentre attende una nuova interazione, il satellite deve acquisire continuamente 
   * type: requirement
 
 #### Relations
-  * satisfiedBy: [micdrop-events.adapter.ts](../../src/adapters/in/micdrop-events.adapter.ts)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -86,19 +85,21 @@ Il satellite non deve conservare su memoria persistente l’audio acquisito dall
 
 ### Attesa della fine della risposta
 
-Mentre riproduce la risposta di Ambrogio, il satellite deve impedire interruzioni vocali e nuovi turni. Nella prima versione usa lo stato di riproduzione di Micdrop e la conclusione della coda Decibri: dopo il primo avvio della riproduzione aspetta che `isAssistantSpeaking` resti falso per 1000 ms. Un nuovo blocco audio durante l'attesa azzera l'intervallo. La riapertura della replica o la chiusura avviene soltanto dopo l'intervallo e la riproduzione dei campioni accodati. Se l'audio non inizia o non termina entro 60 secondi dalla fine della richiesta, il satellite chiude la chiamata. Questa regola è euristica: una pausa del TTS più lunga dell'intervallo può essere scambiata per la fine della risposta; la verifica deve misurarla prima del rilascio.
+Mentre riproduce la risposta di Ambrogio, il satellite deve impedire interruzioni vocali e nuovi turni, e deve considerare conclusa la risposta soltanto quando ha ricevuto l'esito del turno e ha riprodotto tutti i campioni delle trasmissioni del turno chiuse da `output.end`. La riapertura della replica o il ritorno alla wake word avvengono soltanto dopo questa conclusione. Se l'esito non arriva entro 60 secondi dalla fine della richiesta, il satellite conclude l'interazione con il recupero locale.
 
 #### Metadata
   * type: requirement
 
+#### Contract References
+  * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
+
 #### Relations
-  * satisfiedBy: [micdrop-playback.ts](../../src/adapters/out/micdrop-playback.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
 ### Avvio dopo la wake word
 
-Quando riconosce la wake word mentre attende una nuova interazione, il satellite deve aprire il canale vocale pubblico del backend.
+Quando riconosce la wake word mentre attende una nuova interazione, il satellite deve avviare una nuova interazione sulla sessione conversazionale pubblica del backend, riaprendo la sessione se non è pronta.
 
 #### Concept References
   * [Attivazione locale](../Thesaurus/Lessico.md#attivazione-locale)
@@ -110,6 +111,7 @@ Quando riconosce la wake word mentre attende una nuova interazione, il satellite
 
 #### Contract References
   * [Contratto vocale backend di riferimento](../Contracts/VoiceSatellite.md#contratto-vocale-backend-di-riferimento)
+  * [Trasporto conversazionale ambrogio.v1](../Contracts/VoiceSatellite.md#trasporto-conversazionale-ambrogiov1)
 
 #### Relations
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
@@ -128,7 +130,17 @@ Quando non riesce ad avviare un’interazione perché il backend non è raggiung
 
 #### Relations
   * satisfiedBy: [backend-unavailable.wav](../../assets/backend-unavailable.wav)
-  * satisfiedBy: [micdrop-call.adapter.ts](../../src/adapters/out/micdrop-call.adapter.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Avviso parlato di voce non disponibile
+
+Quando il backend risponde a un turno vocale soltanto in testo perché la voce non è disponibile, il satellite deve riprodurre un messaggio parlato preregistrato locale che lo segnala e tornare in attesa della wake word.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -149,7 +161,7 @@ Il satellite deve mettere a disposizione modelli di wake word distribuiti e supp
 
 ### Compatibilità con il canale vocale backend
 
-Il satellite deve scambiare audio ed eventi con il backend secondo una versione esplicita del contratto vocale pubblico registrata nel proprio modello.
+Il satellite deve scambiare audio ed eventi con il backend secondo una revisione esplicita del protocollo conversazionale pubblico `ambrogio.v1` registrata nel proprio modello.
 
 #### Metadata
   * type: requirement
@@ -176,7 +188,7 @@ Il satellite deve distribuire nel proprio catalogo soltanto modelli wake word la
 
 ### Configurazione JSON unica
 
-Il satellite deve leggere da un file JSON la configurazione del backend, dei dispositivi audio, della wake word e dell'intervallo locale di inattività, usando gli stessi significati sull'host e nel container.
+Il satellite deve leggere da un file JSON la configurazione del backend, dell'identità del client, dei dispositivi audio, della wake word e dell'intervallo locale di inattività, usando gli stessi significati sull'host e nel container.
 
 #### Concept References
   * [Configurazione del satellite](../Thesaurus/Lessico.md#configurazione-del-satellite)
@@ -199,8 +211,6 @@ I test del satellite devono rispettare i confini di importazione del layer verif
   * type: requirement
 
 #### Relations
-  * satisfiedBy: [micdrop-events.test.ts](../../test/adapters/in/micdrop-events.test.ts)
-  * satisfiedBy: [micdrop-call-lifecycle.test.ts](../../test/adapters/out/micdrop-call-lifecycle.test.ts)
   * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
   * satisfiedBy: [voice-turn.test.ts](../../test/domain/voice-turn.test.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
@@ -220,7 +230,7 @@ Quando aggiunge contesto a un guasto inatteso, il satellite deve conservare l’
 
 ### Conservazione della richiesta continua
 
-Quando la famiglia pronuncia la wake word e la richiesta senza pausa, il satellite deve conservare temporaneamente in memoria il parlato necessario a non perdere l’inizio della richiesta durante il riconoscimento e l’apertura della connessione.
+Quando la famiglia pronuncia la wake word e la richiesta senza pausa, il satellite deve conservare temporaneamente in memoria il parlato necessario a non perdere l’inizio della richiesta durante il riconoscimento, il segnale di ascolto e la conferma del parlato, e trasmetterlo all'inizio della richiesta.
 
 #### Concept References
   * [Riserva audio](../Thesaurus/Lessico.md#riserva-audio)
@@ -230,7 +240,6 @@ Quando la famiglia pronuncia la wake word e la richiesta senza pausa, il satelli
   * type: requirement
 
 #### Relations
-  * satisfiedBy: [micdrop-call.adapter.ts](../../src/adapters/out/micdrop-call.adapter.ts)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -244,7 +253,6 @@ Quando gli adapter interagiscono con i casi d'uso del satellite, devono usare da
 
 #### Relations
   * definedBy: [Contratto osservabile della sessione vocale](../Contracts/VoiceSatellite.md#contratto-osservabile-della-sessione-vocale)
-  * satisfiedBy: [micdrop-events.adapter.ts](../../src/adapters/in/micdrop-events.adapter.ts)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -284,7 +292,6 @@ Durante un'interazione vocale attiva, il satellite deve riconoscere localmente l
   * type: requirement
 
 #### Relations
-  * satisfiedBy: [micdrop-events.adapter.ts](../../src/adapters/in/micdrop-events.adapter.ts)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -430,6 +437,17 @@ Quando riceve richieste ripetute o concorrenti di arresto, il satellite deve con
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Identificazione del satellite nella sessione
+
+Quando apre la sessione conversazionale con il backend, il satellite deve presentarsi con un identificativo di client stabile e un nome leggibile dalla famiglia, configurabili nel file JSON e con valori predefiniti ricavati dal nome host.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Indipendenza tecnica di Domain e Application
 
 Domain e Application del satellite devono usare soltanto API standard ECMAScript indipendenti dall'ambiente, senza dipendere da API Node.js o da librerie tecniche, anche tramite import di soli tipi.
@@ -443,15 +461,17 @@ Domain e Application del satellite devono usare soltanto API standard ECMAScript
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
-### Invio sicuro durante connessione e riconnessione
+### Invio soltanto su sessione pronta
 
-Quando il canale vocale è in apertura o riconnessione, il satellite deve impedire l'invio di comandi e frame audio su una WebSocket non aperta, senza terminare il processo per un errore di stato della connessione. Il ripristino dell'interazione e l'eventuale perdita di un turno seguono le regole di recupero del satellite, senza reinvio automatico di audio già trasmesso.
+Il satellite deve inviare messaggi e frame audio soltanto su una sessione conversazionale pronta, senza terminare il processo per un errore di stato della connessione, e non deve mai riprendere su una nuova sessione una richiesta o una trasmissione iniziata su quella precedente. Il ripristino dell'interazione e l'eventuale perdita di un turno seguono le regole di recupero del satellite, senza reinvio automatico di audio già acquisito.
 
 #### Metadata
   * type: requirement
 
+#### Contract References
+  * [Trasporto conversazionale ambrogio.v1](../Contracts/VoiceSatellite.md#trasporto-conversazionale-ambrogiov1)
+
 #### Relations
-  * satisfiedBy: [patch-micdrop.mjs](../../scripts/patch-micdrop.mjs)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -494,8 +514,6 @@ I file del codice di produzione devono seguire una convenzione esplicita e unifo
   * type: requirement
 
 #### Relations
-  * satisfiedBy: [micdrop-events.adapter.ts](../../src/adapters/in/micdrop-events.adapter.ts)
-  * satisfiedBy: [micdrop-call.adapter.ts](../../src/adapters/out/micdrop-call.adapter.ts)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -512,6 +530,25 @@ Quando la famiglia attiva nuovamente il satellite dopo un fallimento per backend
 
 #### Relations
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Nuova conversazione a ogni attivazione
+
+Quando la famiglia attiva il satellite con la wake word, il satellite deve iniziare una nuova conversazione; quando la famiglia risponde senza wake word a una risposta che attende replica, deve continuare la conversazione del turno precedente.
+
+#### Concept References
+  * [Interazione vocale](../Thesaurus/Lessico.md#interazione-vocale)
+  * [Indicazione di replica attesa](../Thesaurus/Lessico.md#indicazione-di-replica-attesa)
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
+  * [Trasporto conversazionale ambrogio.v1](../Contracts/VoiceSatellite.md#trasporto-conversazionale-ambrogiov1)
+
+#### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -589,14 +626,15 @@ Quando termina la riproduzione di una risposta per cui il backend segnala di att
 
 ### Riapertura sicura dopo la chiusura vocale
 
-Quando una chiamata Micdrop termina per risposta conclusiva, inattività, scadenza della risposta o guasto, il satellite deve tornare ad ascoltare la wake word senza che eventi tardivi della vecchia WebSocket interrompano la nuova acquisizione del microfono.
+Quando un'interazione termina per risposta conclusiva, inattività, esito mancante, perdita della sessione o guasto, il satellite deve tornare ad ascoltare la wake word senza che trasmissioni, esiti o eventi di chiusura tardivi dell'interazione o della sessione precedente interrompano la nuova acquisizione del microfono o vengano attribuiti a una nuova interazione.
 
 #### Metadata
   * type: requirement
 
+#### Contract References
+  * [Trasporto conversazionale ambrogio.v1](../Contracts/VoiceSatellite.md#trasporto-conversazionale-ambrogiov1)
+
 #### Relations
-  * satisfiedBy: [patch-micdrop.mjs](../../scripts/patch-micdrop.mjs)
-  * satisfiedBy: [micdrop-call.adapter.ts](../../src/adapters/out/micdrop-call.adapter.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -642,7 +680,7 @@ Quando ha segnalato il fallimento di un’interazione per backend irraggiungibil
 
 ### Riproduzione della risposta vocale
 
-Quando riceve la risposta vocale del backend, il satellite deve riprodurla sul dispositivo di uscita configurato.
+Quando riceve una trasmissione audio della risposta dal backend, il satellite deve riprodurla sul dispositivo di uscita configurato alla frequenza di campionamento dichiarata dalla trasmissione, rispettando l'ordine delle trasmissioni del turno.
 
 #### Concept References
   * [Risposta parlata](../Thesaurus/Lessico.md#risposta-parlata)
@@ -655,7 +693,6 @@ Quando riceve la risposta vocale del backend, il satellite deve riprodurla sul d
   * [Contratto vocale backend di riferimento](../Contracts/VoiceSatellite.md#contratto-vocale-backend-di-riferimento)
 
 #### Relations
-  * satisfiedBy: [micdrop-decibri-drivers.ts](../../src/adapters/out/micdrop-decibri-drivers.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -676,7 +713,7 @@ Quando termina la riproduzione di una risposta per cui il backend segnala di non
 
 ### Ritorno alla wake word per inattività
 
-Quando dopo una risposta che attende replica scade l'intervallo locale di inattività senza un nuovo turno, il satellite deve chiudere la chiamata Micdrop e tornare in attesa della wake word.
+Quando dopo una risposta che attende replica scade l'intervallo locale di inattività senza un nuovo turno, il satellite deve concludere l'interazione e tornare in attesa della wake word, mantenendo aperta la sessione conversazionale.
 
 #### Metadata
   * type: requirement
@@ -698,7 +735,6 @@ Ogni volta che sta per aprire il microfono per un turno della persona, il satell
   * type: requirement
 
 #### Relations
-  * satisfiedBy: [micdrop-call.adapter.ts](../../src/adapters/out/micdrop-call.adapter.ts)
   * satisfiedBy: [ready-cue.ts](../../src/adapters/out/ready-cue.ts)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * satisfiedBy: [voice-turn.ts](../../src/domain/voice-turn.ts)
@@ -769,6 +805,20 @@ Quando registra un guasto inatteso, il satellite deve passare al logger il campo
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Sessione conversazionale persistente
+
+Mentre il processo è attivo, il satellite deve mantenere una sola sessione conversazionale con il backend, aperta all'avvio e riaperta alla successiva attivazione con la wake word quando risulta chiusa, senza riprendere su una nuova sessione richieste o trasmissioni di quella precedente.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Trasporto conversazionale ambrogio.v1](../Contracts/VoiceSatellite.md#trasporto-conversazionale-ambrogiov1)
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Stack TypeScript e Node.js
 
 Il satellite deve essere implementato in TypeScript ed eseguito su Node.js.
@@ -830,3 +880,4 @@ Il satellite deve caricare e validare la configurazione prima di costruire le ri
   * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
+
