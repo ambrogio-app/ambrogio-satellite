@@ -1,4 +1,8 @@
 import { expect, test } from 'vitest';
+import { mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { loadSatelliteConfig } from '../../../src/adapters/out/config-file.js';
 import { createDiagnostics, normalizeDiagnosticError } from '../../../src/adapters/out/diagnostics.js';
 
 function capture() {
@@ -48,10 +52,50 @@ test('bounds cyclic causes and aggregate fanout', () => {
 
 test('expected startup outcomes are informative and have no err or input data', () => {
   const { log, records } = capture();
-  log.info('invalid_arguments'); log.info('invalid_configuration'); log.info('satellite_ready');
-  expect(records().map(row => row.event)).toEqual(['invalid_arguments', 'invalid_configuration', 'satellite_ready']);
+  log.info('invalid_arguments'); log.info('satellite_ready');
+  expect(records().map(row => row.event)).toEqual(['invalid_arguments', 'satellite_ready']);
   for (const record of records()) {
     expect(record.level).toBe('info');
     expect(Object.keys(record).sort()).toEqual(['event', 'level', 'time']);
   }
+});
+
+const validConfig = { backend: { baseUrl: 'http://ambrogio.test:3000' } };
+const models = new Set(['hey_jarvis']);
+
+async function rejectionRecord(content?: string) {
+  const directory = await mkdtemp(join(tmpdir(), 'satellite-config-'));
+  const filename = join(directory, 'secret-path.json');
+  if (content !== undefined) await writeFile(filename, content);
+  const loaded = await loadSatelliteConfig(filename, models);
+  if (loaded.ok) throw new Error('expected a rejected configuration');
+  const { log, lines, records } = capture();
+  log.configurationRejected(loaded.error);
+  expect(lines).toHaveLength(1);
+  expect(lines[0]).not.toContain('secret');
+  return records()[0];
+}
+
+test('an unavailable configuration file is reported with its reason only', async () => {
+  const record = await rejectionRecord();
+  expect(record).toMatchObject({ level: 'info', event: 'invalid_configuration', reason: 'configuration_unavailable' });
+  expect(Object.keys(record).sort()).toEqual(['event', 'level', 'reason', 'time']);
+});
+
+test.each([
+  ['not JSON', '{ secret', 'config'],
+  ['an unknown section', JSON.stringify({ ...validConfig, secret: {} }), 'config'],
+  ['backend.baseUrl', JSON.stringify({ backend: { baseUrl: 'ftp://secret.test' } }), 'backend.baseUrl'],
+  ['client.id', JSON.stringify({ ...validConfig, client: { id: ' ' } }), 'client.id'],
+  ['client.name', JSON.stringify({ ...validConfig, client: { name: '' } }), 'client.name'],
+  ['audio.microphone', JSON.stringify({ ...validConfig, audio: { microphone: ' secret' } }), 'audio.microphone'],
+  ['audio.speaker', JSON.stringify({ ...validConfig, audio: { speaker: '' } }), 'audio.speaker'],
+  ['wakeWord.model', JSON.stringify({ ...validConfig, wakeWord: { model: 'secret_word' } }), 'wakeWord.model'],
+  ['wakeWord.threshold', JSON.stringify({ ...validConfig, wakeWord: { threshold: 2 } }), 'wakeWord.threshold'],
+  ['interaction.replyTimeoutMs', JSON.stringify({ ...validConfig, interaction: { replyTimeoutMs: -1 } }),
+    'interaction.replyTimeoutMs'],
+])('an invalid configuration names the rejected field: %s', async (_case, content, field) => {
+  const record = await rejectionRecord(content);
+  expect(record).toMatchObject({ level: 'info', event: 'invalid_configuration', reason: 'invalid_configuration', field });
+  expect(Object.keys(record).sort()).toEqual(['event', 'field', 'level', 'reason', 'time']);
 });

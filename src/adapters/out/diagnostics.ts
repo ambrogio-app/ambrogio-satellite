@@ -1,8 +1,9 @@
 import pino, { type DestinationStream } from 'pino';
+import type { LoadConfigRejection } from './config-file.js';
 
 type FailureEvent = 'satellite_process_failed' | 'satellite_failure' | 'satellite_notice_failed'
   | 'satellite_ready_cue_failed';
-type InfoEvent = 'invalid_arguments' | 'invalid_configuration' | 'satellite_ready' | 'satellite_session_unavailable';
+type InfoEvent = 'invalid_arguments' | 'satellite_ready' | 'satellite_session_unavailable';
 type ErrorView = Readonly<{
   type: 'Error'; message: string; stack: '[redacted]';
   cause?: ErrorView; errors?: readonly ErrorView[]; truncated?: true;
@@ -45,6 +46,12 @@ export function createDiagnostics(destination: DestinationStream = process.stdou
       logger.error({ event, err: normalizeDiagnosticError(value) }, 'Satellite operation failed');
     },
     info(event: InfoEvent): void { logger.info({ event }); },
+    /** Only the rejection kind and the field name: never values, paths or library messages. */
+    configurationRejected(rejection: LoadConfigRejection): void {
+      logger.info(rejection.kind === 'invalid_configuration'
+        ? { event: 'invalid_configuration', reason: rejection.kind, field: rejection.field }
+        : { event: 'invalid_configuration', reason: rejection.kind });
+    },
   };
 }
 

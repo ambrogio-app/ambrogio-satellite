@@ -15,7 +15,7 @@ if (!args.ok) {
     switch (config.error.kind) {
       case 'invalid_configuration':
       case 'configuration_unavailable':
-        diagnostics.info('invalid_configuration');
+        diagnostics.configurationRejected(config.error);
         break;
       default:
         assertNever(config.error);
