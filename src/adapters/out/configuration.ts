@@ -1,4 +1,5 @@
 import { voiceWebSocketUrl } from './backend-url.js';
+import { isWakeWordId } from './wake-word-catalog.js';
 
 export type InvalidConfiguration = Readonly<{
   kind: 'invalid_configuration';
@@ -55,7 +56,7 @@ export function parseReplyTimeoutMs(value: unknown): Result<number> {
 }
 
 /** Validate the whole JSON document before constructing audio or network resources. */
-export function parseSatelliteConfig(input: unknown, distributedModels: ReadonlySet<string>): Result<SatelliteConfig> {
+export function parseSatelliteConfig(input: unknown, availableModels: ReadonlySet<string>): Result<SatelliteConfig> {
   const root = record(input);
   if (!root || !onlyKeys(root, ['backend', 'audio', 'wakeWord', 'interaction'])) {
     return { ok: false, error: { kind: 'invalid_configuration', field: 'config' } };
@@ -81,7 +82,7 @@ export function parseSatelliteConfig(input: unknown, distributedModels: Readonly
     return { ok: false, error: { kind: 'invalid_configuration', field: 'wakeWord.model' } };
   }
   const model = wakeWord.model === undefined ? 'hey_jarvis' : wakeWord.model;
-  if (typeof model !== 'string' || !distributedModels.has(model)) {
+  if (typeof model !== 'string' || !isWakeWordId(model) || !availableModels.has(model)) {
     return { ok: false, error: { kind: 'invalid_configuration', field: 'wakeWord.model' } };
   }
 

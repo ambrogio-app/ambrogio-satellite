@@ -8,7 +8,7 @@ import { DecibriMicDriver, DecibriSpeakerDriver } from '../adapters/out/micdrop-
 import { MicdropPlaybackBoundary } from '../adapters/out/micdrop-playback.js';
 import { OnnxWakeWord } from '../adapters/out/onnx-wake-word.js';
 import { installNodeSilero } from '../adapters/out/silero-node.js';
-import { wakeWordFiles, type DistributedWakeWord } from '../adapters/out/wake-word-catalog.js';
+import { wakeWordFiles } from '../adapters/out/wake-word-catalog.js';
 import type { SatelliteConfig } from '../adapters/out/configuration.js';
 
 const WAKE_THRESHOLD = 0.5;
@@ -65,7 +65,7 @@ export async function startSatellite(config: SatelliteConfig, signal?: AbortSign
     checkStopping();
     Mic.setDriver(mic);
     Speaker.setDriver(speaker);
-    wake = await OnnxWakeWord.open(wakeWordFiles(config.wakeWord.model as DistributedWakeWord), {
+    wake = await OnnxWakeWord.open(wakeWordFiles(config.wakeWord.model), {
       threshold: WAKE_THRESHOLD,
       cooldownMs: WAKE_COOLDOWN_MS,
       maxQueuedChunks: WAKE_MAX_QUEUED_CHUNKS,

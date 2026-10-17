@@ -58,14 +58,30 @@ describe('satellite configuration', () => {
     }
   });
 
+  it('accepts an available custom wake word model', () => {
+    const result = parseSatelliteConfig({
+      backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { model: 'personalizzato' },
+    }, new Set([...distributedModels, 'personalizzato']));
+    expect(result.ok && result.value.wakeWord.model).toBe('personalizzato');
+  });
+
+  it('rejects an unsafe identifier even if a catalog reports it available', () => {
+    expect(parseSatelliteConfig({
+      backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { model: '../outside' },
+    }, new Set(['../outside']))).toEqual({ ok: false,
+      error: { kind: 'invalid_configuration', field: 'wakeWord.model' } });
+  });
+
   it.each([
     [{ backend: { baseUrl: 'http://localhost:3000' }, audio: { microphone: '' } }, 'audio.microphone'],
     [{ backend: { baseUrl: 'http://localhost:3000' }, audio: { speaker: 42 } }, 'audio.speaker'],
     [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { model: 'hey_alexa' } }, 'wakeWord.model'],
+    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { model: '../outside' } }, 'wakeWord.model'],
+    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { model: 'melspectrogram' } }, 'wakeWord.model'],
     [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { model: null } }, 'wakeWord.model'],
     [{ backend: { baseUrl: 'http://localhost:3000' }, interaction: { replyTimeoutMs: 0 } }, 'interaction.replyTimeoutMs'],
     [{ backend: { baseUrl: 'http://localhost:3000' }, extra: true }, 'config'],
-  ] as const)('rejects invalid or undistributed settings', (input, field) => {
+  ] as const)('rejects invalid or unavailable settings', (input, field) => {
     expect(parseSatelliteConfig(input, distributedModels)).toEqual({ ok: false,
       error: { kind: 'invalid_configuration', field } });
   });

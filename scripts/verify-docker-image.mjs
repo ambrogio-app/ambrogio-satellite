@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { copyFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const [image, arch] = process.argv.slice(2);
 assert(image && ['amd64', 'arm64'].includes(arch), 'Usage: node scripts/verify-docker-image.mjs <image> <amd64|arm64>');
@@ -54,4 +57,31 @@ const vad = new SileroVAD();
 try { await vad.start(new EventEmitter()); assert(vad.isStarted); }
 finally { await vad.stop(); await silero.close(); }
 `));
+const mountedModels = mkdtempSync(join(tmpdir(), 'ambrogio-wake-models-'));
+try {
+  for (const name of ['melspectrogram.onnx', 'embedding_model.onnx']) {
+    copyFileSync(join('models', 'wakeword', name), join(mountedModels, name));
+  }
+  copyFileSync(join('models', 'wakeword', 'alexa_v0.1.onnx'), join(mountedModels, 'personalizzato.onnx'));
+  success(docker([...run,
+    '--mount', `type=bind,src=${mountedModels},dst=/app/models/wakeword,readonly`,
+    '--interactive', '--entrypoint', 'node', image, '--input-type=module', '-'], `
+import assert from 'node:assert/strict';
+const { availableWakeWordIds, wakeWordFiles } = await import('./dist/adapters/out/wake-word-catalog.js');
+const { parseSatelliteConfig } = await import('./dist/adapters/out/configuration.js');
+const ids = availableWakeWordIds();
+assert.deepEqual([...ids], ['personalizzato']);
+const config = parseSatelliteConfig({ backend: { baseUrl: 'http://localhost:3000' },
+  wakeWord: { model: 'personalizzato' } }, ids);
+assert.equal(config.ok, true);
+const { OnnxWakeWord } = await import('./dist/adapters/out/onnx-wake-word.js');
+const detector = await OnnxWakeWord.open(wakeWordFiles('personalizzato'), {
+  threshold: 0.5, cooldownMs: 0, maxQueuedChunks: 20,
+  detected() { throw new Error('Unexpected detection in silence'); },
+  failed(error) { throw error; },
+});
+try { assert(detector.push(new Float32Array(1280))); await detector.waitUntilIdle(); }
+finally { await detector.close(); }
+`));
+} finally { rmSync(mountedModels, { recursive: true, force: true }); }
 console.log(`Verified ${image}: ${arch}, native imports, models, notice and safe startup without configuration.`);

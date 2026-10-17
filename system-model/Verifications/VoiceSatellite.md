@@ -87,7 +87,7 @@ Verifica operativa pianificata; la sola prova sul campione upstream descritta ne
 #### Details
 Con ogni modello distribuito dimostrare che la pipeline ONNX riconosce localmente la wake word senza servizio esterno. Prima della wake word non si apre la chiamata backend. Con soglia iniziale 0,5 e cooldown 2000 ms, misurare attivazioni corrette e spurie. Provare Hey Jarvis, Hey Mycroft e Alexa su x86_64 e arm64. Pronunciare la wake word e la richiesta senza pausa, verificando che la riserva scorrevole di 1500 ms consegni l'inizio della richiesta dopo la connessione. Saturare la coda d'inferenza di 32 blocchi e verificare un guasto diagnostico senza crescita illimitata.
 
-Evidenza parziale del 17 ottobre 2026: `alexa_v0.1.onnx` della release openWakeWord v0.5.1 si carica con le risorse ONNX condivise. La pipeline del satellite, con soglia 0,5, ha riconosciuto `tests/data/alexa_test.wav` upstream (16 kHz mono, parola «Alexa») dopo un secondo di silenzio iniziale sia su x86_64 sia sul Raspberry arm64: 15 rilevamenti, picco 0,99999988, nessun errore su entrambe le macchine. Il campione non è incluso nel repository; la prova non attesta affidabilità su microfono reale, rumore o accenti. Le prove operative restano aperte.
+Evidenza parziale del 17 ottobre 2026: `alexa_v0.1.onnx` della release openWakeWord v0.5.1 si carica con le risorse ONNX condivise. La pipeline del satellite, con soglia 0,5, ha riconosciuto `tests/data/alexa_test.wav` upstream (16 kHz mono, parola «Alexa») dopo un secondo di silenzio iniziale sia su x86_64 sia sul Raspberry arm64: 15 rilevamenti, picco 0,99999988, nessun errore su entrambe le macchine. Il campione non è incluso nel repository. Dopo la selezione di `alexa` nel Raspberry, la persona ha riferito una prova riuscita con il microfono reale. Questa osservazione non misura affidabilità, rumore, accenti o attivazioni spurie; le prove operative sistematiche restano aperte.
 
 #### Metadata
   * type: demonstration-verification
@@ -106,7 +106,7 @@ Evidenza parziale del 17 ottobre 2026: `alexa_v0.1.onnx` della release openWakeW
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
 
 #### Details
-Avviare usando un file JSON valido selezionato con `--config` e verificare `backend.baseUrl`, modello scelto e intervallo locale di inattività. Verificare che l'URL base HTTP diventi `ws:` e HTTPS diventi `wss:`, preservando l'eventuale prefisso di percorso e aggiungendo una sola volta `/api/voice`. Omettere `audio` e verificare l'uso dei dispositivi predefiniti; poi indicare `audio.microphone` e `audio.speaker` e verificare tramite Decibri che siano usati quelli richiesti, senza ripiego silenzioso sul predefinito. Verificare il modello Hey Jarvis predefinito, un modello distribuito alternativo, il timeout predefinito di 15 secondi e un valore personalizzato. Impostare variabili d'ambiente contrastanti e verificare che non modifichino i valori. Ripetere con JSON invalido, campi sconosciuti, URL non HTTP(S), timeout non positivo, selettore audio vuoto e modello non distribuito: l’avvio operativo è impedito con errore comprensibile. Eseguire i casi sia sull’host sia nel container dopo la disponibilità delle rispettive risorse.
+Avviare usando un file JSON valido selezionato con `--config` e verificare `backend.baseUrl`, modello scelto e intervallo locale di inattività. Verificare che l'URL base HTTP diventi `ws:` e HTTPS diventi `wss:`, preservando l'eventuale prefisso di percorso e aggiungendo una sola volta `/api/voice`. Omettere `audio` e verificare l'uso dei dispositivi predefiniti; poi indicare `audio.microphone` e `audio.speaker` e verificare tramite Decibri che siano usati quelli richiesti, senza ripiego silenzioso sul predefinito. Verificare il modello Hey Jarvis predefinito, un modello distribuito alternativo, il timeout predefinito di 15 secondi e un valore personalizzato. Impostare variabili d'ambiente contrastanti e verificare che non modifichino i valori. Ripetere con JSON invalido, campi sconosciuti, URL non HTTP(S), timeout non positivo, selettore audio vuoto e modello non presente nel catalogo disponibile: l’avvio operativo è impedito con errore comprensibile. Eseguire i casi sia sull’host sia nel container dopo la disponibilità delle rispettive risorse.
 
 #### Metadata
   * type: demonstration-verification
@@ -131,6 +131,8 @@ Con metadati assenti, valore non booleano o messaggio assente, non inferire dal 
 Prova parziale del 16 ottobre 2026 su Raspberry ARM64 con ReSpeaker e backend v0.1.1: wake word riconosciuta, richiesta trasmessa e risposta parlata udita dalla persona. Rilevato mancato completamento locale della riproduzione con Micdrop muted, seguito da timeout. Regressione automatica superata in test/adapters/in/micdrop-events.test.ts: Speaker.StopPlaying senza StateChange completa l'attesa dopo 1000 ms, apre la replica soltanto con expectsReply=true e rimuove gli ascoltatori alla chiusura.
 
 Prova parziale del 17 ottobre 2026 sullo stesso Raspberry: una risposta iniziale e una replica senza wake word sono state riprodotte. Dalla fine del parlato all'inizio dell'audio sono trascorsi circa 1,1 e 2,2 secondi. Un terzo turno è rimasto senza risposta per 60 secondi; dopo il timeout Micdrop ha riaperto il microfono in concorrenza con la chiusura tardiva della WebSocket e il recupero è fallito. La prova complessiva resta aperta, compresa la causa del mancato arrivo della terza risposta.
+
+Dopo la distribuzione del 17 ottobre 2026, il servizio host aggiornato sul Raspberry dell'installazione di riferimento era attivo senza riavvii, con `alexa` selezionata, e la prova ARM64 di caricamento dei tre modelli wake word e di Silero è passata. Il backend sul server dell'installazione di riferimento usava l'immagine con Paola selezionata. La persona ha confermato che la prova vocale successiva ha funzionato; i casi sistematici di interruzione, timeout e riapertura della replica restano aperti.
 
 #### Metadata
   * type: demonstration-verification
@@ -407,6 +409,25 @@ Per ogni modello presente nel catalogo confrontare file, origine, versione, lice
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Condizioni di distribuzione dei modelli wake word](../Requirements/VoiceSatellite.md#condizioni-di-distribuzione-dei-modelli-wake-word)
+---
+
+### Prova del catalogo wake word montato
+
+Preparare una directory di modelli con le risorse comuni openWakeWord e un classificatore compatibile chiamato `personalizzato.onnx`. Montarla in sola lettura su `/app/models/wakeword` nell'immagine satellite, scegliere `wakeWord.model: "personalizzato"` e caricare il classificatore. Provare anche identificatori inesistenti, nomi dei modelli comuni e tentativi di attraversamento della directory.
+
+#### Details
+La prova passa se il modello personalizzato è scoperto e caricato dal mount senza ricostruire l'immagine, le wake word distribuite continuano a funzionare senza mount e i nomi assenti o non sicuri sono rifiutati. Fallisce se il mount è ignorato, la configurazione accetta un percorso fuori directory o un modello comune come classificatore. La prova non dimostra l'accuratezza acustica di un modello personalizzato.
+
+Eseguita il 17 ottobre 2026 su immagine `linux/amd64` locale: i modelli distribuiti sono stati caricati, il mount ha sostituito la directory inclusa e un classificatore ONNX copiato come `personalizzato.onnx` è stato scoperto e caricato. La suite di 103 test e il typecheck sono passati. La prova Docker `arm64` e l'accuratezza di un modello personalizzato effettivo restano da verificare.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [verify-docker-image.mjs](../../scripts/verify-docker-image.mjs)
+  * satisfiedBy: [wake-word-catalog.test.ts](../../test/adapters/out/wake-word-catalog.test.ts)
+  * verify: [Selezione della wake word configurata](../Requirements/VoiceSatellite.md#selezione-della-wake-word-configurata)
 ---
 
 ### Prova del ciclo di arresto del satellite

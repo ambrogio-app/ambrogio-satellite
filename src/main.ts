@@ -2,7 +2,7 @@
 import { runSatelliteProcess } from './runtime/satellite-process.js';
 import { parseConfigArguments } from './adapters/in/config-arguments.js';
 import { loadSatelliteConfig } from './adapters/out/config-file.js';
-import { distributedWakeWordIds } from './adapters/out/wake-word-catalog.js';
+import { availableWakeWordIds } from './adapters/out/wake-word-catalog.js';
 import { diagnostics } from './adapters/out/diagnostics.js';
 
 const args = parseConfigArguments(process.argv.slice(2));
@@ -10,7 +10,7 @@ if (!args.ok) {
   diagnostics.info('invalid_arguments');
   process.exitCode = 2;
 } else {
-  const config = await loadSatelliteConfig(args.value.filename, distributedWakeWordIds);
+  const config = await loadSatelliteConfig(args.value.filename, availableWakeWordIds());
   if (!config.ok) {
     switch (config.error.kind) {
       case 'invalid_configuration':

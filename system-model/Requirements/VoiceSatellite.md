@@ -722,7 +722,7 @@ Il satellite deve permettere di selezionare il percorso del file di configurazio
 
 ### Selezione della wake word configurata
 
-Quando carica la configurazione, il satellite deve selezionare il modello di wake word richiesto esclusivamente dal catalogo distribuito.
+Quando carica la configurazione, il satellite deve selezionare il modello di wake word richiesto dal catalogo distribuito oppure da un file ONNX compatibile presente nella directory dei modelli montata sull'installazione. Deve rifiutare identificatori sconosciuti o che possano uscire dalla directory dei modelli.
 
 #### Metadata
   * type: requirement
