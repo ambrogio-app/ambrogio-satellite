@@ -15,8 +15,11 @@ jobs:
   checks:
     uses: ./.github/workflows/ci.yml
 
+  secret-scan:
+    uses: ./.github/workflows/secret-scan.yml
+
   publish:
-    needs: checks
+    needs: [checks, secret-scan]
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:

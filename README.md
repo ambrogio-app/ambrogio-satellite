@@ -117,6 +117,12 @@ pnpm typecheck
 pnpm test:backend   # protocol test against a pinned ambrogio-backend revision
 ```
 
+Secrets never belong in this repository. CI scans the whole Git history with [gitleaks](https://github.com/gitleaks/gitleaks) 8.30.1 on every push and pull request, and image publication waits for that scan. Locally, a versioned pre-commit hook blocks commits that add secrets; install gitleaks 8.30.1 on your `PATH` and enable the hook once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 Ambrogio is developed model first with [Reqvire](https://reqvire.org/). This repository is self-contained: the repository root is its Reqvire workspace. [`system-model/`](system-model/) holds the satellite's own glossary, ontology, requirements, contracts and verifications, so you can read it without the backend's model. It also records which version of the backend's public `ambrogio.v1` contract the satellite is compatible with. [`AGENTS.md`](AGENTS.md) describes the workflow.
 
 ## Licenses
