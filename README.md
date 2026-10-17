@@ -1,95 +1,126 @@
-# ambrogio-satellite
+# Ambrogio — voice satellite
 
-Client satellite per l'interazione vocale con Ambrogio. Il repository possiede il proprio modello Reqvire in `system-model/`; `ambrogio-backend` possiede il protocollo conversazionale pubblico `ambrogio.v1`, comune a chat testuale e voce.
+**Ambrogio** is an open source home assistant that you host yourself. This repository is its **voice satellite**: a small program that listens for a wake word, sends what you say to the Ambrogio backend and plays back the spoken answer. Put one in each room on any Linux machine that has a microphone and a speaker, such as a Raspberry Pi or a mini PC.
 
-## Stato
+| Repository | Role |
+|---|---|
+| [ambrogio-backend](https://github.com/adrianofoschi/ambrogio-backend) | Conversation server, agents, speech, storage, public protocol |
+| [ambrogio-cli](https://github.com/adrianofoschi/ambrogio-cli) | Terminal chat client |
+| **ambrogio-satellite** (this one) | Voice satellite with wake word, microphone and speaker |
 
-Modello salvato tramite Reqvire: una capability, un lessico locale con 14 concetti, un’ontologia strutturale, requisiti, contratti, verifiche pianificate ed evidenze automatiche. È disponibile il processo vocale eseguibile: configurazione JSON, wake word ONNX locale, Silero, Silero VAD, sessione `ambrogio.v1`, audio Decibri, repliche e recupero parlato. I modelli Hey Jarvis, Hey Mycroft e Alexa sono distribuiti con licenza e checksum. La verifica audio contro backend e periferiche reali su Linux x86_64 e arm64 è ancora necessaria prima del rilascio. Il modello è il riferimento autorevole; questo README ne riepiloga le decisioni.
+> Ambrogio is in early development and currently speaks Italian. Testing with real audio hardware on x86_64 and arm64 is still in progress.
 
-## Decisioni di progetto
+## How it works
 
-- Linux su x86_64 e arm64, senza un dispositivo hardware obbligatorio.
-- TypeScript ESM e Node.js 24 o successivo, con pnpm e Vitest; esecuzione diretta sull'host con le dipendenze installate e Docker facoltativo, con stessa applicazione e configurazione.
-- Separazione Domain, Application e adapter in un solo progetto nel repository, senza workspace multipackage. Domain possiede stati e regole dell'interazione; Application coordina i casi d'uso e definisce le porte; gli adapter integrano audio, riconoscimento e backend. Domain e Application usano solo API ECMAScript indipendenti dall’ambiente; la programmazione delle scadenze passa dalla porta Application `DeadlineScheduler` a un adapter Node.js. Il comando `pnpm typecheck` compila anche questi layer senza tipi Node.js o DOM.
-- Rifiuti ed esiti previsti come valori tipizzati; guasti inattesi come eccezioni, gestiti e diagnosticati ai confini tecnici.
-- File JSON a sezioni `backend`, `client`, `audio`, `wakeWord` e `interaction`, validato all'avvio. `backend.baseUrl` è l'URL base HTTP(S) da cui il satellite ricava il canale WebSocket `/api/session`; `client.id` e `client.name` identificano il satellite nella sessione (predefiniti `satellite-<nome host>` e il nome host); `wakeWord.model` sceglie un modello distribuito e `interaction.replyTimeoutMs` ha il valore predefinito di 15 secondi. `--config` seleziona il file; le variabili d'ambiente non sovrascrivono i valori. `audio.microphone` e `audio.speaker` sono selettori facoltativi: se assenti si usano i dispositivi di sistema, mentre un selettore esplicito non ricade silenziosamente sul dispositivo predefinito.
-- Ascolto continuo con riconoscimento della wake word esclusivamente sul satellite; la connessione per l'interazione vocale si apre dopo l'attivazione.
-- Catalogo delle wake word: «Hey Jarvis» (predefinita), «Hey Mycroft» e «Alexa». Si seleziona una sola wake word alla volta; «Alexa» da sola è stata concordata il 17 ottobre 2026. Una directory di modelli montata può aggiungere classificatori openWakeWord compatibili.
-- Il riconoscimento locale della wake word usa modelli openWakeWord ONNX nel processo Node.js, tramite `onnxruntime-node` 1.30.0. Non richiede un servizio Wyoming separato. Lo spike ne mostra la fattibilità iniziale, ma la distribuzione finale va provata su x86_64 e arm64.
-- La delimitazione dei turni vocali usa il modello Silero VAD ONNX incluso in Decibri 5.8.0. Il valore iniziale di `redemptionFrames` è 20; risposte brevi, pause, latenza e CPU richiedono prove sulle due architetture.
-- Gli adapter audio usano Decibri 5.8.0, fissato nel lockfile, per microfono e speaker. Il satellite attende lo svuotamento della coda di riproduzione; l'esecuzione Linux deve includere la libreria runtime ALSA e l'accesso ai dispositivi configurati.
-- Il satellite usa il protocollo `ambrogio.v1` del backend con il `WebSocket` integrato in Node.js, senza Micdrop. La sessione è persistente: si apre all'avvio e, se cade, si riapre alla successiva attivazione. Ogni attivazione con la wake word inizia una nuova conversazione; una replica senza wake word continua la stessa. La richiesta parte quando Silero conferma il parlato e include la riserva di 1,5 secondi che lo precede; finisce quando Silero rileva la fine del parlato, entro il limite di 60 secondi. La risposta arriva come audio alla frequenza della voce Piper del backend.
-- I modelli wake word distribuiti sono destinati all'uso non commerciale; ogni modello incluso deve avere origine, licenza, condizioni di redistribuzione e attribuzioni verificate e consegnate con i pacchetti host e container. La licenza dei modelli è distinta da quella del codice del satellite.
-- Per parlare con il satellite, pronunciare «Hey Jarvis», attendere il breve bip locale e poi formulare la richiesta. Lo stesso bip indica quando si può parlare di nuovo senza wake word dopo una risposta che attende una replica; non suona dopo una risposta conclusiva. Il satellite conserva in memoria 1,5 secondi di audio per la frase continua «Hey Jarvis, richiesta», ma questa modalità resta da verificare con il bip attivo. I valori iniziali della wake word sono soglia 0,5, pausa fra attivazioni 2 secondi e coda massima di 32 blocchi da 80 ms. La soglia si regola con `wakeWord.threshold` (numero tra 0 escluso e 1): un valore più alto riduce le attivazioni spontanee ma può far perdere qualche parola; l'installazione di riferimento usa 0,7 con «Alexa». Silero usa finestre da 32 ms, soglie 0,18 e 0,11, 4 finestre per confermare il parlato e 20 di silenzio per chiuderlo.
-- La prima versione non permette di interrompere la risposta con la voce. La risposta è conclusa quando il backend ha comunicato l'esito del turno e lo speaker ha riprodotto tutto l'audio ricevuto fino all'ultimo `output.end`; non serve più stimarne la fine dal silenzio.
-- Quando la risposta attende una replica (`turn.completed` con `expectsReply: true`), la persona risponde senza ripetere la wake word nella stessa conversazione. Il backend stabilisce e segnala esplicitamente se attende una replica. Altrimenti, e dopo errori, rifiuti o interruzioni, il satellite torna in attesa della wake word.
-- Rifiuti ed errori del backend arrivano come risposta parlata nella lingua configurata; il satellite la riproduce e torna alla wake word. Se il backend non ha la voce abilitata e risponde solo in testo, il satellite riproduce l'avviso locale «La voce non è disponibile.».
-- Se il backend non è raggiungibile, il satellite riproduce «Non riesco a contattare Ambrogio. Riprova tra poco.» da un file locale e torna in attesa della wake word. Una nuova attivazione tenta una nuova interazione; la richiesta fallita non viene conservata per un reinvio automatico.
+1. Say the wake word (**"Hey Jarvis"** by default) and wait for the short beep.
+2. Ask your question. The satellite detects when you stop speaking.
+3. Ambrogio answers out loud.
+4. If the answer expects a reply, the beep sounds again and you can respond without repeating the wake word.
 
-## Avvio sull'host Linux
+```mermaid
+flowchart LR
+    MIC[🎤 Microphone] --> WW[Wake word<br/>openWakeWord]
+    WW -- detected --> VAD[Speech detection<br/>Silero VAD]
+    VAD -- your request --> WS[ambrogio.v1 session]
+    WS <--> B[ambrogio-backend<br/>speech-to-text · agents · text-to-speech]
+    WS -- spoken answer --> SPK[🔊 Speaker]
+```
 
-Servono Node.js 24 o successivo, pnpm 12.11.2, `libasound.so.2`, la libreria OpenMP `libgomp.so.1`, un microfono e uno speaker accessibili dal processo. La distribuzione include i modelli wake word e l'avviso locale; `pnpm install` recupera i binari nativi per l'architettura.
+- **Local wake word.** Wake word detection runs entirely on the satellite. No audio leaves the device until the wake word is heard, and the satellite never writes captured audio to disk. It also keeps a short audio buffer, so you can say *"Hey Jarvis, …"* as one sentence.
+- **Backend does the heavy lifting.** The satellite sends raw 16 kHz audio over the backend's `ambrogio.v1` WebSocket session and receives audio back. Transcription, the AI agents and speech synthesis all run on the backend.
+- **Conversations.** Each wake word starts a new conversation, and a follow-up reply continues the same one. The backend decides whether it expects a reply. Conversations are stored on the backend, so you can also read or continue them from the [terminal client](https://github.com/adrianofoschi/ambrogio-cli).
+- **Graceful failures.** If the backend cannot be reached, or voice is not enabled on it, the satellite plays a short local message and goes back to listening for the wake word.
 
-```sh
+```mermaid
+stateDiagram-v2
+    [*] --> Listening
+    Listening --> Request: wake word + beep
+    Request --> Answer: end of speech
+    Answer --> Request: expects reply (beep)
+    Answer --> Listening: done / error
+```
+
+## Dependencies
+
+**Runtime**
+
+- Linux on x86_64 or arm64
+- Node.js 24 or later, with pnpm. Docker is optional
+- ALSA runtime (`libasound.so.2`) and OpenMP (`libgomp.so.1`)
+- A microphone and a speaker that the process can access
+- A running [ambrogio-backend](https://github.com/adrianofoschi/ambrogio-backend) with voice enabled
+
+**Main libraries**
+
+| Area | Library |
+|---|---|
+| Microphone, speaker, voice activity detection | [Decibri](https://www.npmjs.com/package/decibri) (includes Silero VAD) |
+| Wake word | [openWakeWord](https://github.com/dscripka/openWakeWord) models on `onnxruntime-node` |
+| Backend connection | Node's built-in `WebSocket` |
+| Logging | Pino, as JSON lines on stdout |
+
+The wake word models included here are **"Hey Jarvis"**, **"Hey Mycroft"** and **"Alexa"**. You can add your own openWakeWord-compatible model by mounting a models directory.
+
+## Quick start
+
+Create a configuration file from the example:
+
+```json
+{
+  "backend": { "baseUrl": "http://my-ambrogio:3000" },
+  "client": { "id": "kitchen", "name": "Kitchen" },
+  "audio": {},
+  "wakeWord": { "model": "hey_jarvis" },
+  "interaction": { "replyTimeoutMs": 15000 }
+}
+```
+
+If you leave `audio` empty, the satellite uses the system's default microphone and speaker.
+
+**On the host**
+
+```bash
 pnpm install --frozen-lockfile
 pnpm build
-cp config.example.json config.json
+cp config.example.json config.json   # then edit it
 node dist/main.js --config config.json
 ```
 
-Impostare `backend.baseUrl` all'URL HTTP(S) raggiungibile del backend. Il satellite ricava automaticamente `/api/session`. Per riconoscere il satellite nei log del backend si può impostare `"client":{"id":"cucina","name":"Cucina"}`. `wakeWord.model` accetta `hey_jarvis`, `hey_mycroft` o `alexa`, e può selezionare un modello personalizzato disponibile nella directory dei modelli; gli identificatori dei dispositivi in `audio.microphone` e `audio.speaker` sono facoltativi. `interaction.replyTimeoutMs` controlla l'attesa della replica dell'utente. Se l'esito del turno non arriva entro 60 secondi dalla fine della richiesta, il satellite riproduce l'avviso locale e torna alla wake word.
+**With Docker**
 
-L'immagine Docker include già i tre modelli wake word e le risorse comuni openWakeWord. Per usare un classificatore compatibile personalizzato, montare in sola lettura una directory su `/app/models/wakeword` contenente `melspectrogram.onnx`, `embedding_model.onnx` e, ad esempio, `personalizzato.onnx`; impostare quindi `"wakeWord":{"model":"personalizzato"}` nel JSON del satellite. Il mount sostituisce l'intera directory inclusa: per mantenere anche le wake word predefinite occorre copiare nella directory montata i rispettivi file ONNX. I nomi personalizzati possono usare lettere minuscole ASCII, cifre, `-` e `_`, iniziando con lettera o cifra; la configurazione non accetta percorsi di file. La provenienza e la licenza dei modelli aggiunti restano a carico dell'installazione.
-
-## Arresto
-
-`SIGINT` (Ctrl+C) e `SIGTERM` interrompono l'interazione e la riproduzione correnti senza aspettare la risposta completa. Il processo blocca nuove attivazioni, chiude audio e connessione e rilascia i modelli ONNX. Richieste ripetute condividono lo stesso arresto. Anche dopo un avvio parziale fallito o un errore di chiusura vengono tentati tutti i rilasci; un guasto produce una diagnosi JSON e un codice di uscita non riuscito. Le operazioni native già in corso vengono attese quanto necessario al rilascio sicuro.
-
-## Avvio con Docker
-
-```sh
-docker build -t ambrogio-satellite:local .
+```bash
+docker build -t ambrogio-satellite .
 docker run --rm --network host --device /dev/snd \
   -v "$PWD/config.json:/config/satellite.json:ro" \
-  ambrogio-satellite:local
+  ambrogio-satellite
 ```
 
-L'immagine contiene l'applicazione, i modelli, l'avviso parlato e `libasound2`; la configurazione rimane sul sistema host. Su un host che usa PipeWire o PulseAudio può essere necessaria una configurazione audio specifica del sistema. Docker resta facoltativo. Un'installazione x86_64 e una arm64 richiedono immagini costruite o pubblicate per la rispettiva architettura; questa macchina ha verificato soltanto la build amd64.
+Versioned multi-architecture images (amd64 and arm64) are published to `ghcr.io/adrianofoschi/ambrogio-satellite` for every `vX.Y.Z` tag. Hosts that run PipeWire or PulseAudio may need extra audio configuration.
 
-Sono state recepite anche le regole del backend su composition root, confini degli import nei test, Result ed esiti esaustivi, conservazione delle cause, diagnosi unica al confine tecnico, log JSON su stdout, esclusione dei contenuti sensibili dai log e delle registrazioni audio persistenti, configurazione validata prima della costruzione delle risorse e distribuita ai soli componenti interessati. Vitest è il runner dei test; Pino 10.4.0 emette i log applicativi JSON su stdout con eventi stabili. Il campo `err` conserva una vista limitata delle cause senza messaggi, stack o proprietà grezze; gli originali restano intatti in memoria. I rifiuti previsti di avvio sono eventi informativi, mentre i guasti di processo, interazione e riproduzione dell’avviso sono eventi di errore distinti.
+## Repository layout
 
-## Modello e lavoro ancora aperto
+```
+src/domain/        interaction states and rules
+src/application/   use cases and ports
+src/adapters/      audio, wake word, backend connection
+src/composition/   wiring and configuration
+models/            wake word and VAD models, with licenses
+assets/            local spoken fallback messages
+system-model/      engineering model (requirements, contracts, verifications)
+```
 
-### Raccolta dei log
+## Development
 
-Nella prima versione l'osservabilità applicativa usa i log strutturati. Metriche, tracing distribuito e registri di audit richiedono un'esigenza concordata e requisiti e verifiche dedicati prima di essere introdotti. I log non costituiscono un registro di audit garantito.
+```bash
+pnpm test           # Vitest suite
+pnpm typecheck
+pnpm test:backend   # protocol test against a pinned ambrogio-backend revision
+```
 
-Il satellite scrive i log applicativi JSON su stdout. Conservazione, rotazione ed eventuale inoltro centralizzato sono responsabilità dell'installazione: configurarle nel runtime Docker oppure nel gestore del servizio host, per esempio systemd/journald. L'applicazione non richiede un servizio di logging e non configura file, credenziali o endpoint di raccolta. L'avvio diretto da terminale non garantisce la conservazione dei log.
+Ambrogio is developed model first with [Reqvire](https://reqvire.org/). This repository is self-contained: the repository root is its Reqvire workspace. [`system-model/`](system-model/) holds the satellite's own glossary, ontology, requirements, contracts and verifications, so you can read it without the backend's model. It also records which version of the backend's public `ambrogio.v1` contract the satellite is compatible with. [`AGENTS.md`](AGENTS.md) describes the workflow.
 
-### Pubblicazione Docker
+## Licenses
 
-Il workflow `publish-image.yml` pubblica su `ghcr.io/adrianofoschi/ambrogio-satellite` al push di un tag `vMAJOR.MINOR.PATCH` corrispondente alla versione in `package.json`. Esegue prima la CI del commit, poi costruisce e verifica le immagini amd64 e arm64. Dopo il successo di entrambe pubblica i tag tecnici `<versione>-amd64` e `<versione>-arm64` e il tag unico `<versione>` con entrambe le piattaforme. Non pubblica `latest`; i push ordinari a `main` non creano release. Il workflow non modifica la visibilità del pacchetto GHCR.
+The satellite source code is released under the [MIT License](LICENSE).
 
-La verifica delle immagini carica dipendenze native, modelli wake word e Silero e avviso parlato, e controlla il rifiuto sicuro dell'avvio senza configurazione. Si può ripetere con `node scripts/verify-docker-image.mjs <immagine> <amd64|arm64>`. La prova arm64 può usare emulazione; le prove audio su hardware reale restano necessarie prima del rilascio. La modalità host rimane supportata.
-
-### Controlli CI
-
-Il workflow `.github/workflows/ci.yml` definisce il check `Satellite checks` per ogni pull request, push a `main` e avvio manuale. Su Ubuntu 24.04 con Node.js 24 e pnpm 12.11.2 installa dal lockfile congelato ed esegue validazione e lint Reqvire 1.3.2, typecheck completo e dei layer interni, Vitest e build. Anche i rilievi del lint che richiedono revisione manuale fanno fallire il job. Le prove con periferiche audio e su arm64 restano separate.
-
-Il blocco del merge richiede inoltre una protezione di `main` che renda obbligatorio `Satellite checks`. Al controllo del 16 ottobre 2026 GitHub restituisce HTTP 403: per questo repository privato il piano attuale richiede GitHub Pro. La protezione non è attiva; la presenza del workflow da sola non impedisce il merge. Il workflow è stato eseguito con successo su GitHub sul commit `4583a41`: [run CI](https://github.com/adrianofoschi/ambrogio-satellite/actions/runs/38908867632), con tutti i controlli superati.
-
-### Stato del modello
-
-Le decisioni sono registrate in [lessico](system-model/Thesaurus/Lessico.md), [ontologia](system-model/Ontologies/VoiceSatellite.md), [requisiti](system-model/Requirements/VoiceSatellite.md), [contratti](system-model/Contracts/VoiceSatellite.md) e [verifiche](system-model/Verifications/VoiceSatellite.md). Lessico e ontologia appartengono al satellite e definiscono i suoi termini e le sue relazioni senza dipendere dal modello backend. Il backend produce durante la generazione il booleano strutturato `expectsReply`, senza una seconda chiamata al modello dedicata alla classificazione, e lo invia in `turn.completed`. La compatibilità con il satellite è provata a livello di protocollo da `pnpm test:backend`; resta da verificare con audio e periferiche reali.
-
-È implementata e verificata nel backend l’elaborazione parallela di conversazioni diverse, con al massimo un turno attivo per ciascuna conversazione. Eventuali limiti globali di capacità restano da concordare.
-
-Le verifiche pianificate coprono frase continua, riconoscimento locale, catalogo distribuito, repliche richieste dal backend, assenza di interruzioni vocali, recupero con messaggio locale, configurazione, architettura ed esecuzione su entrambe le architetture con e senza Docker. I collegamenti di verifica non indicano prove eseguite. Per le funzionalità ancora aperte occorre completare i contratti e preparare i test pertinenti secondo `AGENTS.md`.
-
-Lo spike in `/home/adriano/projects/ambrogio-spike/satellite/spike/` è una fonte di evidenze e limiti tecnici, non un vincolo sul protocollo o sul codice definitivo. Decibri 5.8.0 e ONNX Runtime 1.30.0 si caricano su Linux x86_64, anche nell'immagine Docker; acquisizione e riproduzione con periferiche reali, anche su arm64, restano da provare. Il modello «Alexa» ha superato una prova sul campione upstream; resta da valutarlo con il microfono reale.
-
-Il protocollo di riferimento è `ambrogio.v1`, definito in `ambrogio-backend/system-model/Contracts/ConversationProtocol.md` e nello schema `protocol/ambrogio-v1.schema.json` al commit `f262e924f7fdaa6635c0f4486f5aec1aa484e0a3`. `pnpm test:backend` avvia il server di quella revisione, con componenti vocali e produttore controllati, e verifica la sessione del satellite; l'integrazione con audio reale va ancora provata.
-
-## Modello
-
-Eseguire Reqvire dalla radice di questo repository. L'MCP del satellite deve usare una porta diversa dagli MCP degli altri repository, così ogni sessione resta legata al proprio modello.
+The wake word and VAD models in [`models/`](models/) are third-party works with their own licenses. In particular, the bundled openWakeWord models are licensed **CC BY-NC-SA 4.0, for non-commercial use only**. See [`models/wakeword/README.md`](models/wakeword/README.md) and [`models/README.md`](models/README.md) for provenance and attribution.
