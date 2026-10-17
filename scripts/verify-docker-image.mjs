@@ -27,7 +27,6 @@ assert.equal(startup.stderr, '');
 success(docker([...run, '--interactive', '--entrypoint', 'node', image, '--input-type=module', '-'], `
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
-import { EventEmitter } from 'node:events';
 assert.equal(process.arch, ${JSON.stringify(arch === 'amd64' ? 'x64' : 'arm64')});
 assert.equal(existsSync('/app/config.json'), false);
 assert.equal(existsSync('/config/satellite.json'), false);
@@ -50,12 +49,16 @@ for (const id of distributedWakeWordIds) {
     assert.deepEqual(failures, []);
   } finally { await detector.close(); }
 }
-const { installNodeSilero } = await import('./dist/adapters/out/silero-node.js');
-const { SileroVAD } = await import('@micdrop/client');
-const silero = installNodeSilero();
-const vad = new SileroVAD();
-try { await vad.start(new EventEmitter()); assert(vad.isStarted); }
-finally { await vad.stop(); await silero.close(); }
+const { SileroVad, SILERO_WINDOW_SAMPLES } = await import('./dist/adapters/out/silero-vad.js');
+const vad = await SileroVad.open();
+try {
+  const vadFailures = [];
+  vad.start({ confirmed() { throw new Error('Speech confirmed in silence'); }, ended() {},
+    failed(error) { vadFailures.push(error); } });
+  vad.push(new Float32Array(SILERO_WINDOW_SAMPLES * 8));
+  await new Promise(resolve => setTimeout(resolve, 500));
+  assert.deepEqual(vadFailures, []);
+} finally { await vad.close(); }
 `));
 const mountedModels = mkdtempSync(join(tmpdir(), 'ambrogio-wake-models-'));
 try {
