@@ -2,6 +2,7 @@ import { Micdrop, SileroVAD } from '@micdrop/client';
 import type { VoiceSessionPorts } from '../../application/voice-session.use-case.js';
 import { playPcm16 } from './decibri-audio.js';
 import { diagnostics } from './diagnostics.js';
+import { readyCueSamples } from './ready-cue.js';
 
 /** Implements the session's outbound call, speech and failure-notice ports. */
 export function createMicdropCallAdapter(options: Readonly<{
@@ -16,6 +17,8 @@ export function createMicdropCallAdapter(options: Readonly<{
   const { playback, wake, notice } = options;
 
   const noticeAbort = new AbortController();
+  let cueAbort: AbortController | undefined;
+  let cueWork: Promise<void> | undefined;
   let shutdownPromise: Promise<void> | undefined;
   let listening: Promise<void> | undefined;
   let openingCall: Promise<void> | undefined;
@@ -24,6 +27,7 @@ export function createMicdropCallAdapter(options: Readonly<{
   function shutdown(): Promise<void> {
     if (shutdownPromise) return shutdownPromise;
     noticeAbort.abort();
+    cueAbort?.abort();
     shutdownPromise = (async () => {
       const pending = [listening, openingCall].filter((value): value is Promise<void> => value !== undefined);
       const errors: unknown[] = [];
@@ -34,6 +38,7 @@ export function createMicdropCallAdapter(options: Readonly<{
         try { await Micdrop.stop(); } catch (error) { errors.push(error); }
       }
       if (noticeWork) await noticeWork;
+      if (cueWork) await cueWork;
       errors.push(...noticeErrors);
       if (errors.length) throw new AggregateError(errors, 'Micdrop shutdown failed');
     })();
@@ -63,11 +68,15 @@ export function createMicdropCallAdapter(options: Readonly<{
         disableInterruption: true,
         reconnect: { maxAttempts: 0, connectionTimeout: 5_000 },
       });
+      // Micdrop.start resets its muted flag; keep VAD paused until the ready cue ends.
+      Micdrop.mute();
       openingCall = work;
       try { await work; } finally { if (openingCall === work) openingCall = undefined; }
     },
     async closeCall() {
       playback.cancel();
+      cueAbort?.abort();
+      if (cueWork) await cueWork;
       if (options.isStopping()) return shutdown();
       await Micdrop.stop();
       if (options.isStopping()) return;
@@ -79,6 +88,21 @@ export function createMicdropCallAdapter(options: Readonly<{
     setSpeechEnabled(enabled) {
       if (enabled) Micdrop.unmute();
       else Micdrop.mute();
+    },
+    async playReadyCue() {
+      if (options.isStopping()) return;
+      const controller = new AbortController();
+      cueAbort = controller;
+      const work = playPcm16((async function* () { yield readyCueSamples(); })(), options.speaker, controller.signal)
+        .catch(error => {
+          if (!controller.signal.aborted) diagnostics.failure('satellite_ready_cue_failed', error);
+        });
+      cueWork = work;
+      try { await work; }
+      finally {
+        if (cueWork === work) cueWork = undefined;
+        if (cueAbort === controller) cueAbort = undefined;
+      }
     },
     async reportFailure(error) {
       if (options.isStopping()) return;

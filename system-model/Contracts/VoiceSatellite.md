@@ -260,6 +260,8 @@ Il satellite associa il messaggio alla risposta corrente della chiamata Micdrop.
 
 Soltanto dopo questa attesa e un messaggio con booleano valido, `true` apre una finestra locale di inattività di 15 secondi predefiniti e ammette una replica senza wake word sulla stessa chiamata; `false` chiude la chiamata e torna alla wake word. Se manca un valore booleano, non apre una replica: attende al massimo l'intervallo locale configurato per un messaggio valido tardivo, poi chiude. Ignora messaggi arrivati dopo la chiusura. L'intervallo ricomincia dopo ogni nuova risposta riprodotta. Il backend rilascia la sessione quando la WebSocket si chiude; non serve un comando `Played`.
 
+Chiarimento dall'integrazione del 16 ottobre 2026: Micdrop 3.4.0 non emette sempre StateChange alla fine della riproduzione con microfono muted e interruzioni disabilitate. L'adapter osserva anche gli eventi locali Speaker.StartPlaying e Speaker.StopPlaying, emessi dal driver dopo lo svuotamento della coda; questi aggiornano lo stesso stato di riproduzione e la stessa finestra di 1000 ms, senza modificare il protocollo.
+
 #### Metadata
   * type: behavior
 
@@ -300,6 +302,17 @@ Domain contiene stati e regole dell’interazione locale. Application coordina i
   * define: [Separazione Domain Application e adapter](../Requirements/VoiceSatellite.md#separazione-domain-application-e-adapter)
 ---
 
+### Riapertura dell'ascolto dopo la chiusura Micdrop
+
+Con `@micdrop/client` 3.4.0, l'evento di chiusura di una WebSocket già chiusa volontariamente può arrivare dopo l'avvio dell'ascolto successivo: il client richiama allora `stop()` e interrompe la nuova apertura del microfono. La patch locale ignora gli eventi di chiusura che non appartengono alla WebSocket corrente. Controlla versione e punto modificato, fa fallire la preparazione del pacchetto se il codice atteso cambia e va riesaminata a ogni aggiornamento della dipendenza.
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Riapertura sicura dopo la chiusura vocale](../Requirements/VoiceSatellite.md#riapertura-sicura-dopo-la-chiusura-vocale)
+---
+
 ### Segmentazione dei turni con Silero ONNX
 
 La prima versione usa Silero VAD in formato ONNX nel processo Node.js del satellite per individuare i tratti di parlato durante un'interazione ammessa. L'adapter audio/VAD esegue il modello con `onnxruntime-node` 1.30.0 e segnala al client Micdrop l'inizio, i frame e la fine di ciascun turno. MicdropClient trasporta `StartSpeaking`, audio PCM16 mono a 16 kHz e `StopSpeaking` secondo il contratto vocale del backend. Durante la riproduzione della risposta il satellite non ammette nuovi turni né interrompe l'audio in uscita.
@@ -311,6 +324,17 @@ La distribuzione usa il file `models/silero_vad.onnx` incluso nel pacchetto Deci
 
 #### Relations
   * define: [Delimitazione locale dei turni vocali](../Requirements/VoiceSatellite.md#delimitazione-locale-dei-turni-vocali)
+---
+
+### Segnale locale di ascolto
+
+L'apertura dell'ascolto segue una sola regola, sia dopo la wake word sia dopo una risposta che attende replica: quando la chiamata è pronta a ricevere il turno, il satellite riproduce una volta un breve tono PCM16 mono a 16 kHz sullo speaker configurato e riattiva il microfono solo quando il tono è terminato. Alla prima attivazione attende l'apertura della chiamata prima del tono; `Micdrop.start()` azzera il proprio stato muted, quindi l'adapter lo ripristina subito per non acquisire il bip come parlato. Il bip indica che si può davvero parlare. Per una risposta completata con `metadata.expectsReply: true`, applica la stessa regola nella chiamata già aperta e avvia la finestra di inattività della replica dopo il tono. Non emette il tono dopo una risposta conclusiva o con metadato non valido. Il tono è generato localmente, non inviato al backend e non deve sovrapporsi alla risposta parlata. Se lo speaker non riproduce il tono, il satellite registra `satellite_ready_cue_failed` e apre comunque l'ascolto. L'arresto annulla il tono in corso.
+
+#### Metadata
+  * type: behavior
+
+#### Relations
+  * define: [Segnale acustico di disponibilità](../Requirements/VoiceSatellite.md#segnale-acustico-di-disponibilità)
 ---
 
 ### Trasporto vocale con Micdrop

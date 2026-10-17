@@ -1,4 +1,4 @@
-import { Mic, Micdrop, type MicdropState } from '@micdrop/client';
+import { Mic, Micdrop, Speaker, type MicdropState } from '@micdrop/client';
 import type { VoiceSession } from '../../application/voice-session.use-case.js';
 
 /** Translates microphone, wake-word and Micdrop events into the session use case. */
@@ -9,6 +9,9 @@ export function createMicdropEventsAdapter(options: Readonly<{
   playback: Readonly<{ update(playing: boolean): void; begin(): void }>;
 }>) {
   const { playback } = options;
+  // Micdrop 3.4.0 omits the stop StateChange while muted with interruption disabled.
+  const onSpeakerStart = () => { if (!options.isStopping()) playback.update(true); };
+  const onSpeakerStop = () => { if (!options.isStopping()) playback.update(false); };
   const onFrames = (frames: Float32Array) => {
     if (!options.isStopping() && options.getSession()?.status.acceptsWakeWord) options.pushWakeFrames(frames);
   };
@@ -54,12 +57,16 @@ export function createMicdropEventsAdapter(options: Readonly<{
       if (!options.isStopping()) void options.getSession()?.fail(error);
     },
     attach() {
+      Speaker.on('StartPlaying', onSpeakerStart);
+      Speaker.on('StopPlaying', onSpeakerStop);
       Mic.on('Frames', onFrames);
       Micdrop.on('StateChange', onStateChange);
       Micdrop.on('Message', onMessage);
       Micdrop.on('Error', onError);
     },
     detach() {
+      Speaker.off('StartPlaying', onSpeakerStart);
+      Speaker.off('StopPlaying', onSpeakerStop);
       Mic.off('Frames', onFrames);
       Micdrop.off('StateChange', onStateChange);
       Micdrop.off('Message', onMessage);

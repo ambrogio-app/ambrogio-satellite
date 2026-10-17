@@ -16,7 +16,7 @@ const files = await Promise.all(['index.js', 'index.mjs'].map(async name => {
   if (occurrences !== 5) throw new Error(`Unexpected Micdrop send sites in ${name}: ${occurrences}`);
 
   let patched = 0;
-  const output = source.split('\n').map(line => {
+  let output = source.split('\n').map(line => {
     if (!line.includes('this.ws?.send(')) return line;
     if (line.includes('this.isWSStarted && this.ws?.send(')) {
       patched++;
@@ -27,6 +27,14 @@ const files = await Promise.all(['index.js', 'index.mjs'].map(async name => {
     return next;
   }).join('\n');
   if (patched !== 5) throw new Error(`Unexpected Micdrop guards in ${name}: ${patched}`);
+  const closeHandler = '    this.onWSClose = (event) => {\n      this.log("WebSocket closed", event?.code, event?.reason);';
+  const guardedCloseHandler = '    this.onWSClose = (event) => {\n      if (event?.target !== this.ws) return;\n      this.log("WebSocket closed", event?.code, event?.reason);';
+  if (output.includes(guardedCloseHandler)) {
+    if (output.split(guardedCloseHandler).length !== 2) throw new Error(`Unexpected Micdrop close guards in ${name}`);
+  } else {
+    if (output.split(closeHandler).length !== 2) throw new Error(`Unexpected Micdrop close handler in ${name}`);
+    output = output.replace(closeHandler, guardedCloseHandler);
+  }
   return { filename, source, output };
 }));
 

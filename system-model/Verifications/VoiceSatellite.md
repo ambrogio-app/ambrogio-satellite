@@ -2,7 +2,7 @@
 
 ### Verifica del satellite vocale
 
-Organizzare le dimostrazioni operative e le ispezioni della prima versione. Le attività qui descritte sono pianificate, non eseguite; non esistono ancora evidenze di implementazione o test automatici.
+Organizzare le dimostrazioni operative, le ispezioni e le prove automatiche della prima versione. Ogni verifica concreta registra il proprio metodo, l'esito osservato e ciò che resta da provare.
 
 #### Metadata
   * type: verification-objective
@@ -41,7 +41,25 @@ Rendere irraggiungibile il backend e attivare il satellite: si ascolta il file l
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Avviso parlato di backend irraggiungibile](../Requirements/VoiceSatellite.md#avviso-parlato-di-backend-irraggiungibile)
   * verify: [Nuova attivazione dopo il fallimento](../Requirements/VoiceSatellite.md#nuova-attivazione-dopo-il-fallimento)
+  * verify: [Riapertura sicura dopo la chiusura vocale](../Requirements/VoiceSatellite.md#riapertura-sicura-dopo-la-chiusura-vocale)
   * verify: [Ripristino dopo backend irraggiungibile](../Requirements/VoiceSatellite.md#ripristino-dopo-backend-irraggiungibile)
+---
+
+### Dimostrazione del segnale di ascolto
+
+Verifica parziale: sul Raspberry sono confermati il bip iniziale, una risposta conclusiva senza nuovo bip e la prova di una replica senza nuova wake word dopo il bip. Restano da provare più repliche consecutive, il timeout e il guasto dello speaker.
+
+#### Details
+Su Raspberry con speaker e microfono reali, pronunciare «Hey Jarvis», attendere il bip che indica l'apertura effettiva dell'ascolto e formulare la richiesta. Verificare che la richiesta venga ricevuta. Con una risposta che attende replica, verificare che, finita la risposta, si senta lo stesso bip e che una nuova frase pronunciata dopo il bip venga ricevuta senza wake word. Ripetere dopo un altro turno e verificare l'assenza del bip dopo la risposta conclusiva. Controllare che il bip non venga acquisito come parlato, che la finestra di inattività parta dopo il bip e che un errore dello speaker non impedisca di parlare.
+
+Esito parziale del 17 ottobre 2026 riferito dalla persona sul Raspberry: dopo «Hey Jarvis» si è sentito il bip, la domanda «Quanto fa due più due?» ha ricevuto la risposta «4» e non è seguito un altro bip. L'assenza del secondo bip è coerente con una risposta conclusiva. Nella prova successiva, con la richiesta di fare una domanda e aspettare la risposta della persona, la persona ha confermato che il bip e la replica senza nuova wake word hanno funzionato. I valori effettivi del metadato `expectsReply` non sono stati letti direttamente; le prove di durata della finestra di inattività, errore dello speaker e più repliche consecutive restano aperte.
+
+#### Metadata
+  * type: demonstration-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Segnale acustico di disponibilità](../Requirements/VoiceSatellite.md#segnale-acustico-di-disponibilità)
 ---
 
 ### Dimostrazione del trasporto Micdrop
@@ -101,12 +119,16 @@ Avviare usando un file JSON valido selezionato con `--config` e verificare `back
 
 ### Dimostrazione della conversazione e delle repliche
 
-Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
+Verifica parziale: risposta parlata confermata dalla persona sul Raspberry; repliche e chiusura richiedono ancora la prova completa.
 
 #### Details
 Contro la revisione backend compatibile fissata nel contratto, riprodurre una risposta completa; parlare durante la riproduzione e verificare che non la interrompa né apra un turno. Provare `Message` Micdrop dell'assistente con `metadata.expectsReply` uguale a `true` e `false`, sia prima sia dopo la fine dell'audio: solo nel primo caso una replica senza wake word appartiene alla stessa interazione. Con audio controllato, inserire pause inferiori, uguali e superiori a 1000 ms fra i blocchi: la finestra di stabilità deve ripartire a ogni nuovo blocco e va registrato il rischio di chiusura prematura per le pause più lunghe. Provare messaggio prima del primo audio e audio prima del messaggio; Decibri deve svuotare la coda prima del completamento stimato. Se l'audio non inizia o non termina entro 60 secondi dalla fine della richiesta, chiudere senza aprire la replica.
 
 Con metadati assenti, valore non booleano o messaggio assente, non inferire dal testo e chiudere dopo l'intervallo locale. Provare un rifiuto vocale parlato con `expectsReply: false`. Dopo inattività occorre una nuova wake word. Non è richiesto un nuovo segnale backend.
+
+Prova parziale del 16 ottobre 2026 su Raspberry ARM64 con ReSpeaker e backend v0.1.1: wake word riconosciuta, richiesta trasmessa e risposta parlata udita dalla persona. Rilevato mancato completamento locale della riproduzione con Micdrop muted, seguito da timeout. Regressione automatica superata in test/adapters/in/micdrop-events.test.ts: Speaker.StopPlaying senza StateChange completa l'attesa dopo 1000 ms, apre la replica soltanto con expectsReply=true e rimuove gli ascoltatori alla chiusura.
+
+Prova parziale del 17 ottobre 2026 sullo stesso Raspberry: una risposta iniziale e una replica senza wake word sono state riprodotte. Dalla fine del parlato all'inizio dell'audio sono trascorsi circa 1,1 e 2,2 secondi. Un terzo turno è rimasto senza risposta per 60 secondi; dopo il timeout Micdrop ha riaperto il microfono in concorrenza con la chiusura tardiva della WebSocket e il recupero è fallito. La prova complessiva resta aperta, compresa la causa del mancato arrivo della terza risposta.
 
 #### Metadata
   * type: demonstration-verification
@@ -157,10 +179,12 @@ Durante interazioni riuscite e fallite controllare scritture su disco e log usan
 
 ### Dimostrazione della segmentazione vocale
 
-Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
+Verifica parziale: due turni vocali consecutivi sono stati delimitati sul Raspberry ARM64; frequenza effettiva dei campioni, repliche brevi e pause interne restano da misurare.
 
 #### Details
 Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare il modello Silero ONNX incluso in Decibri 5.8.0, verificando hash e licenza. Con redemptionFrames 20 provare una richiesta continua dopo la wake word, una replica breve come «sì» e una frase con una pausa interna. Accertare che ogni turno ammesso produca un solo StartSpeaking, i frame PCM16 mono a 16 kHz e un solo StopSpeaking, senza perdere la replica breve né spezzare la frase alla pausa. Durante la riproduzione della risposta non devono partire nuovi turni. Registrare tempi di delimitazione e consumo di CPU su entrambe le architetture.
+
+Il 17 ottobre 2026 la diagnostica temporanea sul Raspberry ha osservato il primo turno da 27,516 a 29,528 secondi e la replica da 34,907 a 36,392 secondi dall'avvio. Micdrop ha segnalato circa 19.950 campioni al secondo ricevuti da un microfono dichiarato a 16 kHz. È un'osservazione singola durante la prova, da verificare con una misura indipendente prima di modificarne la configurazione o il driver.
 
 #### Metadata
   * type: demonstration-verification
@@ -502,6 +526,37 @@ Su ciascuna immagine verificare architettura, import delle dipendenze native Dec
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [verify-docker-image.mjs](../../scripts/verify-docker-image.mjs)
   * verify: [Pubblicazione delle immagini Docker del satellite](../Requirements/VoiceSatellite.md#pubblicazione-delle-immagini-docker-del-satellite)
+---
+
+### Regressione del segnale di ascolto
+
+Alla wake word, la prova Domain e Application accerta che il tono parta quando la chiamata è pronta, prima dell'apertura del microfono. Con una risposta che attende replica, la stessa azione apre l'ascolto: il microfono resta disattivato e il timer non parte finché il bip non termina. Verificare che una risposta conclusiva non emetta il bip e che un arresto durante il segnale non riapra il microfono. La prova dell'adapter controlla durata, livello e uscita configurata del tono, cancellazione all'arresto e continuità dell'ascolto se la riproduzione locale fallisce.
+
+Il 17 ottobre 2026 la suite locale ha superato 96 test, typecheck e build. Sul Raspberry ARM64 i file compilati coincidono con quelli locali e il servizio è attivo senza riavvii. La persona ha confermato il bip iniziale, una risposta conclusiva senza nuovo bip e una replica dopo il bip nella stessa interazione. La verifica automatica e la dimostrazione acustica sono evidenze distinte; restano aperti i casi indicati nella dimostrazione.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [micdrop-call-lifecycle.test.ts](../../test/adapters/out/micdrop-call-lifecycle.test.ts)
+  * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
+  * verify: [Segnale acustico di disponibilità](../Requirements/VoiceSatellite.md#segnale-acustico-di-disponibilità)
+---
+
+### Regressione della chiusura tardiva Micdrop
+
+Con il client Micdrop 3.4.0 realmente patchato, chiudere volontariamente una WebSocket e consegnare il suo evento di chiusura dopo la creazione di una nuova connessione. L'evento vecchio non deve chiamare `stop()`; l'evento della connessione corrente deve conservare la gestione ordinaria della chiusura.
+
+Il 17 ottobre 2026 `test/adapters/out/micdrop-client-patch.test.ts` ha superato la regressione con Micdrop 3.4.0; 91 test complessivi, typecheck e build superati. La patch è stata applicata sul Raspberry ARM64 e la regressione isolata è passata anche lì. Resta aperta la dimostrazione audio del ritorno alla wake word dopo un timeout reale.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [micdrop-client-patch.test.ts](../../test/adapters/out/micdrop-client-patch.test.ts)
+  * verify: [Riapertura sicura dopo la chiusura vocale](../Requirements/VoiceSatellite.md#riapertura-sicura-dopo-la-chiusura-vocale)
 ---
 
 ### Verifica della pubblicazione Docker del satellite

@@ -1,6 +1,7 @@
 import pino, { type DestinationStream } from 'pino';
 
-type FailureEvent = 'satellite_process_failed' | 'satellite_failure' | 'satellite_notice_failed';
+type FailureEvent = 'satellite_process_failed' | 'satellite_failure' | 'satellite_notice_failed'
+  | 'satellite_ready_cue_failed';
 type InfoEvent = 'invalid_arguments' | 'invalid_configuration' | 'satellite_ready';
 type ErrorView = Readonly<{
   type: 'Error'; message: string; stack: '[redacted]';

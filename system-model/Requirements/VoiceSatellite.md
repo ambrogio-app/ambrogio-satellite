@@ -587,6 +587,19 @@ Quando termina la riproduzione di una risposta per cui il backend segnala di att
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Riapertura sicura dopo la chiusura vocale
+
+Quando una chiamata Micdrop termina per risposta conclusiva, inattività, scadenza della risposta o guasto, il satellite deve tornare ad ascoltare la wake word senza che eventi tardivi della vecchia WebSocket interrompano la nuova acquisizione del microfono.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * satisfiedBy: [patch-micdrop.mjs](../../scripts/patch-micdrop.mjs)
+  * satisfiedBy: [micdrop-call.adapter.ts](../../src/adapters/out/micdrop-call.adapter.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Rifiuto della configurazione invalida
 
 Quando la configurazione è invalida, il satellite deve impedirne l’avvio operativo e comunicare un errore comprensibile.
@@ -673,6 +686,21 @@ Quando dopo una risposta che attende replica scade l'intervallo locale di inatti
   * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
 
 #### Relations
+  * satisfiedBy: [voice-turn.ts](../../src/domain/voice-turn.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Segnale acustico di disponibilità
+
+Ogni volta che sta per aprire il microfono per un turno della persona, il satellite deve emettere un breve segnale acustico locale e ammettere il parlato soltanto dopo il segnale, così la persona sa quando può parlare.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * satisfiedBy: [micdrop-call.adapter.ts](../../src/adapters/out/micdrop-call.adapter.ts)
+  * satisfiedBy: [ready-cue.ts](../../src/adapters/out/ready-cue.ts)
+  * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * satisfiedBy: [voice-turn.ts](../../src/domain/voice-turn.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---

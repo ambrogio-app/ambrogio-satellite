@@ -8,31 +8,93 @@ describe('voice session', () => {
     const openCall = vi.fn(async () => {});
     const closeCall = vi.fn(async () => {});
     const setSpeechEnabled = vi.fn();
+    const playReadyCue = vi.fn(async () => {});
     const reportFailure = vi.fn(async () => {});
     const deadlines = new ManualDeadlines();
-    const session = new VoiceSession({ openCall, closeCall, setSpeechEnabled, reportFailure }, 15_000, 60_000, deadlines);
-    return { deadlines, session, openCall, closeCall, setSpeechEnabled, reportFailure };
+    const session = new VoiceSession({ openCall, closeCall, setSpeechEnabled, playReadyCue, reportFailure }, 15_000, 60_000, deadlines);
+    return { deadlines, session, openCall, closeCall, setSpeechEnabled, playReadyCue, reportFailure };
   }
 
   async function start(session: VoiceSession) {
     session.dispatch({ kind: 'wake_detected' });
     await Promise.resolve();
+    await Promise.resolve();
     session.dispatch({ kind: 'speech_started' });
     session.dispatch({ kind: 'speech_ended' });
   }
 
+  it('signals readiness for the first turn only when the call is open, before enabling speech', async () => {
+    const { session, openCall, playReadyCue, setSpeechEnabled } = fixture();
+    let open!: () => void;
+    let finishCue!: () => void;
+    openCall.mockImplementationOnce(() => new Promise<void>(resolve => { open = resolve; }));
+    playReadyCue.mockImplementationOnce(() => new Promise<void>(resolve => { finishCue = resolve; }));
+    session.dispatch({ kind: 'wake_detected' });
+    expect(playReadyCue).not.toHaveBeenCalled();
+    expect(setSpeechEnabled).not.toHaveBeenCalled();
+    open(); await Promise.resolve();
+    expect(playReadyCue).toHaveBeenCalledOnce();
+    expect(setSpeechEnabled).not.toHaveBeenCalled();
+    session.dispatch({ kind: 'speech_started' });
+    expect(session.status.acceptsSpeechEnd).toBe(false);
+    finishCue(); await Promise.resolve();
+    expect(setSpeechEnabled).toHaveBeenCalledExactlyOnceWith(true);
+    session.dispatch({ kind: 'speech_started' });
+    expect(session.status.acceptsSpeechEnd).toBe(true);
+  });
+
   it('keeps the call for a requested reply and closes when the reply window expires', async () => {
-    const { deadlines, session, closeCall, setSpeechEnabled } = fixture();
+    const { deadlines, session, closeCall, setSpeechEnabled, playReadyCue } = fixture();
     await start(session);
     expect(setSpeechEnabled).toHaveBeenLastCalledWith(false);
     session.dispatch({ kind: 'assistant_message', expectsReply: true });
     session.dispatch({ kind: 'response_played' });
+    expect(playReadyCue).toHaveBeenCalledTimes(2);
+    expect(setSpeechEnabled).toHaveBeenLastCalledWith(false);
+    expect(deadlines.pending).toBe(0);
+    await Promise.resolve();
     expect(session.status).toEqual({ acceptsWakeWord: false, acceptsSpeechEnd: false, interactionActive: true });
     expect(setSpeechEnabled).toHaveBeenLastCalledWith(true);
     deadlines.advanceBy(15_000);
     await Promise.resolve();
     expect(closeCall).toHaveBeenCalledOnce();
     expect(session.status.acceptsWakeWord).toBe(true);
+  });
+
+  it('opens the microphone and starts the reply deadline only after the local cue finishes', async () => {
+    const { session, deadlines, setSpeechEnabled, playReadyCue, closeCall } = fixture();
+    let finishCue!: () => void;
+    await start(session);
+    playReadyCue.mockImplementationOnce(() => new Promise<void>(resolve => { finishCue = resolve; }));
+    session.dispatch({ kind: 'assistant_message', expectsReply: true });
+    session.dispatch({ kind: 'response_played' });
+    expect(playReadyCue).toHaveBeenCalledTimes(2);
+    expect(setSpeechEnabled).toHaveBeenLastCalledWith(false);
+    expect(deadlines.pending).toBe(0);
+    session.dispatch({ kind: 'speech_started' });
+    expect(session.status.acceptsSpeechEnd).toBe(false);
+    finishCue(); await Promise.resolve();
+    expect(setSpeechEnabled).toHaveBeenLastCalledWith(true);
+    expect(deadlines.pending).toBe(1);
+    deadlines.advanceBy(15_000); await Promise.resolve();
+    expect(closeCall).toHaveBeenCalledOnce();
+  });
+
+  it('does not play a cue for a final answer or reopen speech after stopping during a cue', async () => {
+    const { session, playReadyCue, setSpeechEnabled } = fixture();
+    await start(session);
+    session.dispatch({ kind: 'assistant_message', expectsReply: false });
+    session.dispatch({ kind: 'response_played' });
+    expect(playReadyCue).toHaveBeenCalledOnce();
+    await Promise.resolve();
+    let finishCue!: () => void;
+    await start(session);
+    playReadyCue.mockImplementationOnce(() => new Promise<void>(resolve => { finishCue = resolve; }));
+    session.dispatch({ kind: 'assistant_message', expectsReply: true });
+    session.dispatch({ kind: 'response_played' });
+    await session.stop();
+    finishCue(); await Promise.resolve();
+    expect(setSpeechEnabled).toHaveBeenLastCalledWith(false);
   });
 
   it('never waits forever when the answer produces no audio', async () => {
@@ -67,6 +129,7 @@ describe('voice session', () => {
     await start(session);
     session.dispatch({ kind: 'assistant_message', expectsReply: true });
     session.dispatch({ kind: 'response_played' });
+    await Promise.resolve();
     deadlines.advanceBy(14_999);
     expect(closeCall).not.toHaveBeenCalled();
     session.dispatch({ kind: 'speech_started' });
@@ -91,6 +154,7 @@ describe('voice session', () => {
         if (phase === 'reply') {
           session.dispatch({ kind: 'assistant_message', expectsReply: true });
           session.dispatch({ kind: 'response_played' });
+          await Promise.resolve();
         }
         expect(deadlines.pending).toBe(1);
         if (end === 'stop') await session.stop();
@@ -110,6 +174,7 @@ describe('voice session', () => {
     expect(session.status.interactionActive).toBe(true);
     await Promise.resolve();
     expect(session.status.acceptsSpeechEnd).toBe(false);
+    await Promise.resolve();
     session.dispatch({ kind: 'speech_started' });
     expect(session.status.acceptsSpeechEnd).toBe(true);
     session.dispatch({ kind: 'speech_ended' });

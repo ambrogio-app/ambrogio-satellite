@@ -6,6 +6,7 @@ export interface VoiceSessionPorts {
   readonly openCall: () => Promise<void>;
   readonly closeCall: () => Promise<void>;
   readonly setSpeechEnabled: (enabled: boolean) => void;
+  readonly playReadyCue: () => Promise<void>;
   readonly reportFailure: (error: unknown) => Promise<void>;
 }
 
@@ -93,6 +94,13 @@ export class VoiceSession {
           this.answerTimer = this.deadlines.schedule(this.answerTimeoutMs, () => this.applyEvent({ kind: 'timeout' }));
           break;
         case 'clear_answer_timeout': this.clearAnswerTimer(); break;
+        case 'play_ready_cue': {
+          const generation = this.generation;
+          void this.ports.playReadyCue().then(() => {
+            if (generation === this.generation) this.applyEvent({ kind: 'ready_cue_played' });
+          }, error => { if (generation === this.generation) void this.fail(error); });
+          break;
+        }
         case 'enable_speech': this.ports.setSpeechEnabled(true); break;
         case 'disable_speech': this.ports.setSpeechEnabled(false); break;
       }
