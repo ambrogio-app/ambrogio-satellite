@@ -4,10 +4,10 @@ import { fileURLToPath } from 'node:url';
 const NOTICE_FILE = fileURLToPath(new URL('../../../assets/backend-unavailable.wav', import.meta.url));
 const VOICE_UNAVAILABLE_FILE = fileURLToPath(new URL('../../../assets/voice-unavailable.wav', import.meta.url));
 
-/** «Non riesco a contattare Ambrogio. Riprova tra poco.» */
+/** Recording that says "I can't reach Ambrogio, try again shortly" («Non riesco a contattare Ambrogio. Riprova tra poco.»). */
 export function noticeSamples(): Promise<Int16Array> { return wavSamples(NOTICE_FILE); }
 
-/** «La voce non è disponibile.», played when the backend answers only in text. */
+/** Recording that says "Voice is not available" («La voce non è disponibile.»), played when the backend answers only in text. */
 export function voiceUnavailableSamples(): Promise<Int16Array> { return wavSamples(VOICE_UNAVAILABLE_FILE); }
 
 /** WAV is a bundled, known-format asset, but validate its header before playback. */
