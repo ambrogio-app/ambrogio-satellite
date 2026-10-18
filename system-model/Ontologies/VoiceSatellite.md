@@ -8,14 +8,14 @@ Domande a cui il grafo deve poter rispondere: quale configurazione e quali dispo
 
 #### Ontology
 ```turtle
-@prefix sat: <https://github.com/adrianofoschi/ambrogio-satellite/ontology/voice-satellite#> .
-@prefix concept: <https://github.com/adrianofoschi/ambrogio-satellite/concepts#> .
+@prefix sat: <https://github.com/ambrogio-app/ambrogio-satellite/ontology/voice-satellite#> .
+@prefix concept: <https://github.com/ambrogio-app/ambrogio-satellite/concepts#> .
 @prefix reqvire: <https://www.reqvire.org/ontology#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://github.com/adrianofoschi/ambrogio-satellite/ontology/voice-satellite> a owl:Ontology ;
+<https://github.com/ambrogio-app/ambrogio-satellite/ontology/voice-satellite> a owl:Ontology ;
   rdfs:comment "Vocabolario strutturale autonomo del satellite vocale Ambrogio." .
 
 sat:VoiceSatellite a owl:Class ;
@@ -126,6 +126,6 @@ sat:theSatellite a owl:NamedIndividual, sat:VoiceSatellite ;
 
 #### Metadata
   * type: ontology
-  * ontology_base: https://github.com/adrianofoschi/ambrogio-satellite/ontology/voice-satellite
+  * ontology_base: https://github.com/ambrogio-app/ambrogio-satellite/ontology/voice-satellite
   * ontology_prefix: sat
 ---

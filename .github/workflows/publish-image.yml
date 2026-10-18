@@ -47,7 +47,7 @@ jobs:
           fi
           version=$(node -p "require('./package.json').version")
           test "$version" = "${GITHUB_REF_NAME#v}"
-          echo "IMAGE=ghcr.io/adrianofoschi/ambrogio-satellite:$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+          echo "IMAGE=ghcr.io/ambrogio-app/ambrogio-satellite:$GITHUB_REF_NAME" >> "$GITHUB_ENV"
 
       - name: Set up ARM emulation
         uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3

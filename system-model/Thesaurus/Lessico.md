@@ -6,7 +6,7 @@ Vocabolario autonomo dei termini che descrivono il dispositivo satellite, il suo
 
 #### Metadata
   * type: concept-scheme
-  * concept_base: https://github.com/adrianofoschi/ambrogio-satellite/concepts
+  * concept_base: https://github.com/ambrogio-app/ambrogio-satellite/concepts
   * concept_prefix: satellite
 ---
 

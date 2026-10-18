@@ -4,8 +4,8 @@
 
 | Repository | Role |
 |---|---|
-| [ambrogio-backend](https://github.com/adrianofoschi/ambrogio-backend) | Conversation server, agents, speech, storage, public protocol |
-| [ambrogio-cli](https://github.com/adrianofoschi/ambrogio-cli) | Terminal chat client |
+| [ambrogio-backend](https://github.com/ambrogio-app/ambrogio-backend) | Conversation server, agents, speech, storage, public protocol |
+| [ambrogio-cli](https://github.com/ambrogio-app/ambrogio-cli) | Terminal chat client |
 | **ambrogio-satellite** (this one) | Voice satellite with wake word, microphone and speaker |
 
 > Ambrogio is in early development and currently speaks Italian. Testing with real audio hardware on x86_64 and arm64 is still in progress.
@@ -28,7 +28,7 @@ flowchart LR
 
 - **Local wake word.** Wake word detection runs entirely on the satellite. No audio leaves the device until the wake word is heard, and the satellite never writes captured audio to disk. It also keeps a short audio buffer, so you can say *"Hey Jarvis, …"* as one sentence.
 - **Backend does the heavy lifting.** The satellite sends raw 16 kHz audio over the backend's `ambrogio.v1` WebSocket session and receives audio back. Transcription, the AI agents and speech synthesis all run on the backend.
-- **Conversations.** Each wake word starts a new conversation, and a follow-up reply continues the same one. The backend decides whether it expects a reply. Conversations are stored on the backend, so you can also read or continue them from the [terminal client](https://github.com/adrianofoschi/ambrogio-cli).
+- **Conversations.** Each wake word starts a new conversation, and a follow-up reply continues the same one. The backend decides whether it expects a reply. Conversations are stored on the backend, so you can also read or continue them from the [terminal client](https://github.com/ambrogio-app/ambrogio-cli).
 - **Graceful failures.** If the backend cannot be reached, or voice is not enabled on it, the satellite plays a short local message and goes back to listening for the wake word.
 
 ```mermaid
@@ -48,7 +48,7 @@ stateDiagram-v2
 - Node.js 24 or later, with pnpm. Docker is optional
 - ALSA runtime (`libasound.so.2`) and OpenMP (`libgomp.so.1`)
 - A microphone and a speaker that the process can access
-- A running [ambrogio-backend](https://github.com/adrianofoschi/ambrogio-backend) with voice enabled
+- A running [ambrogio-backend](https://github.com/ambrogio-app/ambrogio-backend) with voice enabled
 
 **Main libraries**
 
@@ -95,7 +95,7 @@ docker run --rm --network host --device /dev/snd \
   ambrogio-satellite
 ```
 
-Versioned multi-architecture images (amd64 and arm64) are published to `ghcr.io/adrianofoschi/ambrogio-satellite` for every `vX.Y.Z` tag. Hosts that run PipeWire or PulseAudio may need extra audio configuration.
+Versioned multi-architecture images (amd64 and arm64) are published to `ghcr.io/ambrogio-app/ambrogio-satellite` for every `vX.Y.Z` tag. Hosts that run PipeWire or PulseAudio may need extra audio configuration.
 
 ## Repository layout
 
