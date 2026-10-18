@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/logo-dark.svg">
+    <img src=".github/logo-light.svg" alt="Ambrogio" width="320">
+  </picture>
+</p>
+
 # Ambrogio — voice satellite
 
 **Ambrogio** is an open source home assistant that you host yourself. This repository is its **voice satellite**: a small program that listens for a wake word, sends what you say to the Ambrogio backend and plays back the spoken answer. Put one in each room on any Linux machine that has a microphone and a speaker, such as a Raspberry Pi or a mini PC.
