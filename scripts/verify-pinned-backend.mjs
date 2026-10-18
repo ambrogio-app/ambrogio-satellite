@@ -10,7 +10,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 // synthesis are replaced by deterministic components, and playback is captured instead of Decibri.
 const satellite = fileURLToPath(new URL('..', import.meta.url));
 const root = resolve(process.env.AMBROGIO_BACKEND_REPO ?? resolve(satellite, '../ambrogio-backend'));
-const expectedCommit = 'f262e924f7fdaa6635c0f4486f5aec1aa484e0a3';
+const expectedCommit = 'f214a2d302efde916603a00bc8b680fa981e2d3f';
 const actualCommit = execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(actualCommit, expectedCommit, 'Il backend locale deve essere al commit dichiarato nel contratto del satellite.');
 
