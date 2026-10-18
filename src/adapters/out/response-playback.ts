@@ -1,4 +1,6 @@
 import { playPcm16 } from './decibri-audio.js';
+import { diagnostics } from './diagnostics.js';
+import { errorToneSamples } from './ready-cue.js';
 
 /** Ordered PCM16 chunks of one transmission; iteration ends once the transmission ends. */
 class ChunkQueue implements AsyncIterable<Int16Array> {
@@ -31,7 +33,7 @@ export type PlaybackContent = Readonly<{ type: 'audio'; sampleRate: number }> | 
 
 /**
  * Plays the transmissions of a turn one after the other. A text-only transmission, which the
- * satellite cannot speak, is replaced by the local voice-unavailable notice.
+ * satellite cannot speak, is replaced by the local error tone.
  */
 export class ResponsePlayback {
   private tail: Promise<void> = Promise.resolve();
@@ -40,7 +42,6 @@ export class ResponsePlayback {
 
   constructor(private readonly options: Readonly<{
     speaker?: string;
-    voiceUnavailable: Int16Array;
     failed(error: unknown): void;
   }>) {}
 
@@ -52,7 +53,8 @@ export class ResponsePlayback {
       this.queues.set(stream, queue);
       sampleRate = content.sampleRate;
     } else {
-      queue.push(this.options.voiceUnavailable);
+      diagnostics.info('satellite_voice_unavailable');
+      queue.push(errorToneSamples());
       queue.end();
     }
     this.tail = this.tail.then(() => signal.aborted ? undefined

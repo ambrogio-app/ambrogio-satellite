@@ -120,34 +120,6 @@ Quando riconosce la wake word mentre attende una nuova interazione, il satellite
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
-### Avviso parlato di backend irraggiungibile
-
-Quando non riesce ad avviare un’interazione perché il backend non è raggiungibile, il satellite deve segnalare il fallimento con un messaggio parlato preregistrato locale incluso nella distribuzione.
-
-#### Metadata
-  * type: requirement
-
-#### Contract References
-  * [Recupero locale da backend irraggiungibile](../Contracts/VoiceSatellite.md#recupero-locale-da-backend-irraggiungibile)
-
-#### Relations
-  * satisfiedBy: [backend-unavailable.wav](../../assets/backend-unavailable.wav)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
----
-
-### Avviso parlato di voce non disponibile
-
-Quando il backend risponde a un turno vocale soltanto in testo perché la voce non è disponibile, il satellite deve riprodurre un messaggio parlato preregistrato locale che lo segnala e tornare in attesa della wake word.
-
-#### Metadata
-  * type: requirement
-
-#### Relations
-  * satisfiedBy: [local-notice.ts](../../src/adapters/out/local-notice.ts)
-  * satisfiedBy: [response-playback.ts](../../src/adapters/out/response-playback.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
----
-
 ### Catalogo distribuito delle wake word
 
 Il satellite deve mettere a disposizione modelli di wake word distribuiti e supportati per le frasi «Hey Jarvis», «Hey Mycroft» e «Alexa», con «Hey Jarvis» come scelta predefinita. La configurazione seleziona una sola wake word alla volta.
@@ -898,6 +870,38 @@ Il satellite deve poter essere eseguito su Linux x86_64 e arm64 senza richiedere
   * [Esecuzione host e container](../Contracts/VoiceSatellite.md#esecuzione-host-e-container)
 
 #### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Tono di errore per backend irraggiungibile
+
+Quando non riesce ad avviare un’interazione perché il backend non è raggiungibile, il satellite deve segnalare il fallimento riproducendo il tono di errore locale generato dal programma, senza messaggi parlati.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Recupero locale da backend irraggiungibile](../Contracts/VoiceSatellite.md#recupero-locale-da-backend-irraggiungibile)
+
+#### Relations
+  * satisfiedBy: [conversation-call.adapter.ts](../../src/adapters/out/conversation-call.adapter.ts)
+  * satisfiedBy: [ready-cue.ts](../../src/adapters/out/ready-cue.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Tono di errore per voce non disponibile
+
+Quando il backend risponde a un turno vocale soltanto in testo perché la voce non è disponibile, il satellite non deve pronunciare il testo, deve riprodurre il tono di errore locale generato dal programma e deve tornare in attesa della wake word.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Tono locale di errore](../Contracts/VoiceSatellite.md#tono-locale-di-errore)
+
+#### Relations
+  * satisfiedBy: [ready-cue.ts](../../src/adapters/out/ready-cue.ts)
+  * satisfiedBy: [response-playback.ts](../../src/adapters/out/response-playback.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 

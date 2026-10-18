@@ -2,7 +2,7 @@ import type { VoiceSessionPorts } from '../../application/voice-session.use-case
 import type { ConversationChannel } from './conversation-channel.js';
 import { playPcm16 } from './decibri-audio.js';
 import { diagnostics } from './diagnostics.js';
-import { readyCueSamples } from './ready-cue.js';
+import { errorToneSamples, readyCueSamples } from './ready-cue.js';
 import type { ResponsePlayback } from './response-playback.js';
 import type { SileroVad, SpeechEvents } from './silero-vad.js';
 
@@ -16,16 +16,15 @@ export function createConversationCallAdapter(options: Readonly<{
   speech: SpeechEvents;
   playback: ResponsePlayback;
   speaker?: string;
-  notice: Int16Array;
   wake: Readonly<{ waitUntilIdle(): Promise<void>; reset(): void }>;
   isStopping(): boolean;
 }>): VoiceSessionPorts & Readonly<{ shutdown(): Promise<void> }> {
-  const { channel, vad, playback, wake, notice } = options;
-  const noticeAbort = new AbortController();
+  const { channel, vad, playback, wake } = options;
+  const errorToneAbort = new AbortController();
   let cueAbort: AbortController | undefined;
   let cueWork: Promise<void> | undefined;
-  let noticeWork: Promise<void> | undefined;
-  const noticeErrors: unknown[] = [];
+  let errorToneWork: Promise<void> | undefined;
+  const errorToneErrors: unknown[] = [];
   let shutdownPromise: Promise<void> | undefined;
 
   function endInteraction(): void {
@@ -70,24 +69,24 @@ export function createConversationCallAdapter(options: Readonly<{
     async reportFailure(error) {
       if (options.isStopping()) return;
       diagnostics.failure('satellite_failure', error);
-      const work = playPcm16((async function* () { yield notice; })(), options.speaker, noticeAbort.signal)
+      const work = playPcm16((async function* () { yield errorToneSamples(); })(), options.speaker, errorToneAbort.signal)
         .catch(playbackError => {
-          if (noticeAbort.signal.aborted) { noticeErrors.push(playbackError); return; }
-          diagnostics.failure('satellite_notice_failed', playbackError);
+          if (errorToneAbort.signal.aborted) { errorToneErrors.push(playbackError); return; }
+          diagnostics.failure('satellite_error_tone_failed', playbackError);
         });
-      noticeWork = work;
-      try { await work; } finally { if (noticeWork === work) noticeWork = undefined; }
+      errorToneWork = work;
+      try { await work; } finally { if (errorToneWork === work) errorToneWork = undefined; }
     },
     shutdown() {
       return shutdownPromise ??= (async () => {
-        noticeAbort.abort();
+        errorToneAbort.abort();
         cueAbort?.abort();
         endInteraction();
         const errors: unknown[] = [];
         try { await channel.close(); } catch (error) { errors.push(error); }
-        if (noticeWork) await noticeWork;
+        if (errorToneWork) await errorToneWork;
         if (cueWork) await cueWork;
-        errors.push(...noticeErrors);
+        errors.push(...errorToneErrors);
         if (errors.length) throw new AggregateError(errors, 'Conversation channel shutdown failed');
       })();
     },

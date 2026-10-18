@@ -32,8 +32,8 @@ assert.equal(existsSync('/app/config.json'), false);
 assert.equal(existsSync('/config/satellite.json'), false);
 await import('decibri');
 await import('onnxruntime-node');
-const { noticeSamples } = await import('./dist/adapters/out/local-notice.js');
-assert((await noticeSamples()).length > 0);
+const { errorToneSamples } = await import('./dist/adapters/out/ready-cue.js');
+assert.equal(errorToneSamples().length, 5600);
 const { OnnxWakeWord } = await import('./dist/adapters/out/onnx-wake-word.js');
 const { wakeWordFiles, distributedWakeWordIds } = await import('./dist/adapters/out/wake-word-catalog.js');
 assert(distributedWakeWordIds.size > 0);
@@ -87,4 +87,4 @@ try { assert(detector.push(new Float32Array(1280))); await detector.waitUntilIdl
 finally { await detector.close(); }
 `));
 } finally { rmSync(mountedModels, { recursive: true, force: true }); }
-console.log(`Verified ${image}: ${arch}, native imports, models, notice and safe startup without configuration.`);
+console.log(`Verified ${image}: ${arch}, native imports, models, error tone and safe startup without configuration.`);

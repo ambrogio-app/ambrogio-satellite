@@ -6,9 +6,6 @@ const f = vi.hoisted(() => ({
   wakeClose: vi.fn(), wakeOpen: vi.fn(), vadOpen: vi.fn(), vadClose: vi.fn(),
   micStart: vi.fn(), micClose: vi.fn(), playbackCancel: vi.fn(), info: vi.fn(),
 }));
-vi.mock('../../src/adapters/out/local-notice.js', () => ({
-  noticeSamples: async () => new Int16Array(2), voiceUnavailableSamples: async () => new Int16Array(2),
-}));
 vi.mock('../../src/adapters/out/diagnostics.js', () => ({ diagnostics: { info: f.info, failure: vi.fn() } }));
 vi.mock('../../src/adapters/out/onnx-wake-word.js', () => ({ OnnxWakeWord: { open: f.wakeOpen } }));
 vi.mock('../../src/adapters/out/silero-vad.js', () => ({ SileroVad: { open: f.vadOpen } }));

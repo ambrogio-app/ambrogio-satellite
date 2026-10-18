@@ -5,7 +5,6 @@ import { createConversationCallAdapter } from '../adapters/out/conversation-call
 import { AudioReserve } from '../adapters/out/audio-reserve.js';
 import { ConversationChannel } from '../adapters/out/conversation-channel.js';
 import { diagnostics } from '../adapters/out/diagnostics.js';
-import { noticeSamples, voiceUnavailableSamples } from '../adapters/out/local-notice.js';
 import { MicrophoneInput } from '../adapters/out/microphone-input.js';
 import { OnnxWakeWord } from '../adapters/out/onnx-wake-word.js';
 import { ResponsePlayback } from '../adapters/out/response-playback.js';
@@ -21,7 +20,6 @@ const ANSWER_TIMEOUT_MS = 60_000;
 
 /** Assemble a single Linux satellite process after configuration validation. */
 export async function startSatellite(config: SatelliteConfig, signal?: AbortSignal): Promise<Readonly<{ stop(): Promise<void> }>> {
-  const [notice, voiceUnavailable] = await Promise.all([noticeSamples(), voiceUnavailableSamples()]);
   let session: VoiceSession | undefined;
   let stopping = signal?.aborted ?? false;
   let wake: OnnxWakeWord | undefined;
@@ -31,7 +29,7 @@ export async function startSatellite(config: SatelliteConfig, signal?: AbortSign
   const abort = () => { stopping = true; };
   signal?.addEventListener('abort', abort, { once: true });
   const checkStopping = () => { if (stopping) throw new DOMException('Satellite stopped', 'AbortError'); };
-  const playback = new ResponsePlayback({ speaker: config.audio.speaker, voiceUnavailable,
+  const playback = new ResponsePlayback({ speaker: config.audio.speaker,
     failed: error => events.failed(error) });
   const channel = new ConversationChannel({ url: config.backend.sessionUrl, identity: config.client,
     lost: () => events.sessionLost() });
@@ -76,7 +74,7 @@ export async function startSatellite(config: SatelliteConfig, signal?: AbortSign
     checkStopping();
     call = createConversationCallAdapter({
       channel, vad, speech: events.speech, playback,
-      speaker: config.audio.speaker, notice, wake,
+      speaker: config.audio.speaker, wake,
       isStopping: () => stopping,
     });
     session = new VoiceSession(call, config.interaction.replyTimeoutMs, ANSWER_TIMEOUT_MS, new NodeDeadlineScheduler());

@@ -32,17 +32,17 @@ Esaminare firme Result e mapping esaustivi dei rifiuti; introdurre una nuova var
 Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
 
 #### Details
-Rendere irraggiungibile il backend e attivare il satellite: si ascolta il file locale «Non riesco a contattare Ambrogio. Riprova tra poco.» e il processo torna in attesa. Verificare formato PCM16 mono 16 kHz, integrità SHA-256 e attribuzione dell'asset. Ripristinare il backend: senza una nuova attivazione non viene reinviata la richiesta fallita; con una nuova wake word viene tentata una nuova interazione. Ripetere con una disconnessione durante la chiamata.
+Rendere irraggiungibile il backend e attivare il satellite: si sente il tono di errore locale, due toni discendenti distinguibili dal bip di ascolto, nessun messaggio parlato, e il processo torna in attesa. Ripristinare il backend: senza una nuova attivazione non viene reinviata la richiesta fallita; con una nuova wake word viene tentata una nuova interazione. Ripetere con una disconnessione durante la chiamata. La prova passa se in ogni caso si sente soltanto il tono di errore e il satellite torna disponibile senza riavvio; fallisce se resta muto senza log `satellite_failure`, se pronuncia un messaggio, se reinvia la richiesta o se richiede un riavvio.
 
 #### Metadata
   * type: demonstration-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Avviso parlato di backend irraggiungibile](../Requirements/VoiceSatellite.md#avviso-parlato-di-backend-irraggiungibile)
   * verify: [Nuova attivazione dopo il fallimento](../Requirements/VoiceSatellite.md#nuova-attivazione-dopo-il-fallimento)
   * verify: [Riapertura sicura dopo la chiusura vocale](../Requirements/VoiceSatellite.md#riapertura-sicura-dopo-la-chiusura-vocale)
   * verify: [Ripristino dopo backend irraggiungibile](../Requirements/VoiceSatellite.md#ripristino-dopo-backend-irraggiungibile)
+  * verify: [Tono di errore per backend irraggiungibile](../Requirements/VoiceSatellite.md#tono-di-errore-per-backend-irraggiungibile)
 ---
 
 ### Dimostrazione del segnale di ascolto
@@ -184,7 +184,7 @@ Su host Linux x86_64 e arm64 dotati di microfono e speaker, installare ed esegui
 Verifica operativa ancora aperta. Ispezione parziale del 2026-10-16: Dockerfile usa COPY espliciti per artefatti, dipendenze, modelli e avviso; .dockerignore esclude config.json e *.local.json; config.example.json contiene solo valori dimostrativi senza credenziali. Il test software dell’immagine amd64 ha già verificato assenza della configurazione personale nei percorsi di avvio. Nessuna nuova misura delle scritture durante interazioni reali. La protezione dei log Micdrop, aperta allora, non è più pertinente dopo la rimozione della dipendenza.
 
 #### Details
-Durante interazioni riuscite e fallite controllare scritture su disco e log usando audio, testo e credenziali riconoscibili: non devono comparire registrazioni persistenti né contenuti o credenziali nei log. Ispezionare gli artefatti host e container e gli esempi per escludere configurazioni personali. Le registrazioni preregistrate distribuite per gli avvisi locali restano ammesse.
+Durante interazioni riuscite e fallite controllare scritture su disco e log usando audio, testo e credenziali riconoscibili: non devono comparire registrazioni persistenti né contenuti o credenziali nei log. Ispezionare gli artefatti host e container e gli esempi per escludere configurazioni personali. Dal 18 ottobre 2026 la distribuzione non contiene registrazioni audio: i segnali locali sono generati dal programma.
 
 #### Metadata
   * type: demonstration-verification
@@ -481,7 +481,7 @@ Eseguita il 17 ottobre 2026 su immagine `linux/amd64` locale: i modelli distribu
 ### Prova del ciclo di arresto del satellite
 
 #### Details
-Iniettare risorse controllate e fallimenti: durante ascolto, chiamata e riproduzione, l'arresto deve bloccare nuovi eventi e interrompere i dispositivi senza attendere una risposta. Chiamare stop ripetutamente e in parallelo: una sola chiusura nativa per risorsa, stesso esito. Far fallire una chiusura: tutte le altre devono essere tentate e l'errore originale deve restare disponibile. Fallire l'avvio dopo acquisizioni parziali e interrompere un'acquisizione pendente: tutte le risorse ottenute devono essere rilasciate. Provare rilascio ONNX parziale e inferenza in corso, cancellazione avviso locale e SIGINT/SIGTERM nel confine di processo. I test automatici usano risorse simulate; non attestano periferiche reali.
+Iniettare risorse controllate e fallimenti: durante ascolto, chiamata e riproduzione, l'arresto deve bloccare nuovi eventi e interrompere i dispositivi senza attendere una risposta. Chiamare stop ripetutamente e in parallelo: una sola chiusura nativa per risorsa, stesso esito. Far fallire una chiusura: tutte le altre devono essere tentate e l'errore originale deve restare disponibile. Fallire l'avvio dopo acquisizioni parziali e interrompere un'acquisizione pendente: tutte le risorse ottenute devono essere rilasciate. Provare rilascio ONNX parziale e inferenza in corso, cancellazione del tono di errore e SIGINT/SIGTERM nel confine di processo. I test automatici usano risorse simulate; non attestano periferiche reali.
 
 #### Evidenze del 16 ottobre 2026
 Esito: PASS per la verifica automatica del ciclo di vita sul worktree derivato da d79775c13fc31c7ab7eb0071d9e0803bb7d18b11. Eseguiti Vitest (67 test, 17 file, tutti superati), typecheck TypeScript e build ESM, entrambi superati.
@@ -530,12 +530,12 @@ Ispezionata la dichiarazione generata dist/application/voice-session.use-case.d.
   * verify: [Contratti Application indipendenti dal Domain](../Requirements/VoiceSatellite.md#contratti-application-indipendenti-dal-domain)
 ---
 
-### Prova dell'avviso di voce non disponibile
+### Prova del tono di errore per voce non disponibile
 
-Con una sessione controllata, rispondere a un turno vocale con una trasmissione testuale seguita da `turn.rejected` con `reason: "audio_unavailable"`; ripetere con una trasmissione testuale in un turno ammesso. Verificare anche l'asset distribuito.
+Con una sessione controllata, rispondere a un turno vocale con una trasmissione testuale seguita da `turn.rejected` con `reason: "audio_unavailable"`; ripetere con una trasmissione testuale in un turno ammesso.
 
 #### Details
-La prova passa se il satellite non tenta di pronunciare il testo, riproduce la registrazione locale «La voce non è disponibile.» sullo speaker configurato, non apre una replica e torna in attesa della wake word, senza reinviare la richiesta. L'asset è un WAV PCM16 mono a 16 kHz con origine e licenza documentate. Fallisce se il satellite resta in attesa, apre una replica o riproduce l'avviso di backend irraggiungibile al suo posto.
+La prova passa se il satellite non tenta di pronunciare il testo, registra `satellite_voice_unavailable`, riproduce sullo speaker configurato i campioni del tono di errore locale al posto della trasmissione, non apre una replica e torna in attesa della wake word, senza reinviare la richiesta. Fallisce se il satellite resta in attesa, apre una replica, riproduce campioni diversi dal tono di errore o non registra l'evento.
 
 #### Metadata
   * type: test-verification
@@ -543,7 +543,23 @@ La prova passa se il satellite non tenta di pronunciare il testo, riproduce la r
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [response-playback.test.ts](../../test/adapters/out/response-playback.test.ts)
-  * verify: [Avviso parlato di voce non disponibile](../Requirements/VoiceSatellite.md#avviso-parlato-di-voce-non-disponibile)
+  * verify: [Tono di errore per voce non disponibile](../Requirements/VoiceSatellite.md#tono-di-errore-per-voce-non-disponibile)
+---
+
+### Prova del tono locale di errore
+
+Generare i campioni del tono di errore e del segnale di ascolto e confrontarli. Con l'adapter della chiamata e uno speaker controllato, provocare il fallimento di un'interazione; ripetere con una riproduzione che fallisce e con un arresto durante il tono.
+
+#### Details
+La prova passa se il tono di errore è PCM16 mono a 16 kHz di 5600 campioni (350 ms): 2400 campioni a 660 Hz, 800 campioni di silenzio, 2400 campioni a 440 Hz, con picco non superiore a 0,18 del fondo scala e bordi di ciascun tono a zero; se differisce dal segnale di ascolto per durata e campioni; se al fallimento dell'interazione viene registrato `satellite_failure` e lo speaker configurato riceve esattamente quei campioni; se una riproduzione fallita registra `satellite_error_tone_failed` senza interrompere il recupero; e se l'arresto annulla il tono senza un nuovo evento di guasto. Fallisce se manca il tono, se i campioni o la durata differiscono, se il tono coincide con il segnale di ascolto o se il guasto di riproduzione blocca il ritorno in attesa.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [local-tones.test.ts](../../test/adapters/out/local-tones.test.ts)
+  * verify: [Tono di errore per backend irraggiungibile](../Requirements/VoiceSatellite.md#tono-di-errore-per-backend-irraggiungibile)
 ---
 
 ### Prova dell'evento di configurazione rifiutata
@@ -581,10 +597,10 @@ La prova passa se senza configurazione `clientId` vale `satellite-<nome host>` e
 
 ### Prova della diagnostica Pino
 
-Acquisire le righe reali di Pino: JSON, event stabili, nessun dato sensibile da message, name, stack, code, cause o proprietà aggiuntive. Controllare identità e immutabilità degli originali, valori lanciati non Error, cause cicliche, getter e aggregati. Iniettare un guasto di interazione e uno di riproduzione: un evento distinto per ciascun guasto e avviso parlato indipendente. Verificare avvio e rifiuti di configurazione senza log automatici di errore. Con il trasporto `ambrogio.v1`, verificare che nessun componente emetta su console messaggi ricevuti o errori grezzi fuori dal logger applicativo.
+Acquisire le righe reali di Pino: JSON, event stabili, nessun dato sensibile da message, name, stack, code, cause o proprietà aggiuntive. Controllare identità e immutabilità degli originali, valori lanciati non Error, cause cicliche, getter e aggregati. Iniettare un guasto di interazione e uno di riproduzione del tono di errore: un evento distinto per ciascun guasto e tono di errore indipendente dalla diagnosi. Verificare avvio e rifiuti di configurazione senza log automatici di errore. Con il trasporto `ambrogio.v1`, verificare che nessun componente emetta su console messaggi ricevuti o errori grezzi fuori dal logger applicativo.
 
 #### Details
-Esecuzione del 2026-10-16: npm run typecheck, npm test (89 test, 19 file) e npm run build PASS. Prova CLI dei rifiuti per argomenti e configurazione assente: singola riga JSON info su stdout, uscita 2. Le prove automatiche coprono il logger applicativo, la propagazione del valore originale e gli eventi distinti di interazione e avviso. La lacuna allora aperta sui log diretti di Micdrop 3.4.0 è chiusa dalla rimozione della dipendenza decisa il 17 ottobre 2026; la prova va ripetuta sul nuovo trasporto. Le dimostrazioni su backend e periferiche reali restano da eseguire.
+Esecuzione del 2026-10-16: npm run typecheck, npm test (89 test, 19 file) e npm run build PASS. Prova CLI dei rifiuti per argomenti e configurazione assente: singola riga JSON info su stdout, uscita 2. Le prove automatiche coprono il logger applicativo, la propagazione del valore originale e gli eventi distinti di interazione e avviso. La lacuna allora aperta sui log diretti di Micdrop 3.4.0 è chiusa dalla rimozione della dipendenza decisa il 17 ottobre 2026; la prova va ripetuta sul nuovo trasporto. Dal 18 ottobre 2026 l'evento di riproduzione è `satellite_error_tone_failed` e la prova va ripetuta per il tono di errore. Le dimostrazioni su backend e periferiche reali restano da eseguire.
 
 #### Metadata
   * type: test-verification
@@ -649,10 +665,10 @@ La revisione non cambia durate o protocollo pubblico; README aggiornato per il n
 
 ### Prova software delle immagini del satellite
 
-Su ciascuna immagine verificare architettura, import delle dipendenze native Decibri e ONNX, caricamento e inferenza silenziosa dei modelli wake word distribuiti, caricamento Silero e asset dell’avviso. Eseguire il processo senza configurazione: uscita 2 e JSON informativo, nessun avvio audio. Verificare assenza della configurazione personale. Le prove devono funzionare senza rete né periferiche e fallire se manca un artefatto necessario; non sostituiscono le prove audio reali.
+Su ciascuna immagine verificare architettura, import delle dipendenze native Decibri e ONNX, caricamento e inferenza silenziosa dei modelli wake word distribuiti, caricamento Silero e generazione del tono di errore. Eseguire il processo senza configurazione: uscita 2 e JSON informativo, nessun avvio audio. Verificare assenza della configurazione personale. Le prove devono funzionare senza rete né periferiche e fallire se manca un artefatto necessario; non sostituiscono le prove audio reali.
 
 #### Details
-2026-10-16: build Docker linux/amd64 e scripts/verify-docker-image.mjs sull’immagine ambrogio-satellite:release-check (ID c7081aca3a0b) PASS. Verificati import nativi, inferenza silenziosa di entrambi i modelli wake word, caricamento Silero, avviso locale, assenza della configurazione e rifiuto di avvio con uscita 2 e JSON informativo. La prova usa --network none e nessuna periferica. Arm64 NON eseguito localmente: Buildx ed emulazione assenti; il workflow li prepara e blocca la pubblicazione finché entrambe le prove non riescono. Non attestate periferiche audio reali.
+2026-10-16: build Docker linux/amd64 e scripts/verify-docker-image.mjs sull’immagine ambrogio-satellite:release-check (ID c7081aca3a0b) PASS. Verificati import nativi, inferenza silenziosa di entrambi i modelli wake word, caricamento Silero, avviso locale, assenza della configurazione e rifiuto di avvio con uscita 2 e JSON informativo. La prova usa --network none e nessuna periferica. Arm64 NON eseguito localmente: Buildx ed emulazione assenti; il workflow li prepara e blocca la pubblicazione finché entrambe le prove non riescono. Non attestate periferiche audio reali. Dal 18 ottobre 2026 l'immagine non contiene più gli avvisi registrati e la prova controlla il tono di errore generato: l'esecuzione va ripetuta.
 
 #### Metadata
   * type: test-verification

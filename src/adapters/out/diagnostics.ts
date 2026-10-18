@@ -1,9 +1,10 @@
 import pino, { type DestinationStream } from 'pino';
 import type { LoadConfigRejection } from './config-file.js';
 
-type FailureEvent = 'satellite_process_failed' | 'satellite_failure' | 'satellite_notice_failed'
+type FailureEvent = 'satellite_process_failed' | 'satellite_failure' | 'satellite_error_tone_failed'
   | 'satellite_ready_cue_failed';
-type InfoEvent = 'invalid_arguments' | 'satellite_ready' | 'satellite_session_unavailable';
+type InfoEvent = 'invalid_arguments' | 'satellite_ready' | 'satellite_session_unavailable'
+  | 'satellite_voice_unavailable';
 type ErrorView = Readonly<{
   type: 'Error'; message: string; stack: '[redacted]';
   cause?: ErrorView; errors?: readonly ErrorView[]; truncated?: true;

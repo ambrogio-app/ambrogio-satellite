@@ -1,4 +1,5 @@
 import { beforeEach, expect, test, vi } from 'vitest';
+import { errorToneSamples } from '../../../src/adapters/out/ready-cue.js';
 import { ResponsePlayback } from '../../../src/adapters/out/response-playback.js';
 
 const f = vi.hoisted(() => ({ plays: [] as Array<{ samples: number[][]; sampleRate: number; signal?: AbortSignal;
@@ -17,10 +18,13 @@ vi.mock('../../../src/adapters/out/decibri-audio.js', () => ({
   },
 }));
 
-beforeEach(() => { f.plays.length = 0; f.gate = undefined; });
+const info = vi.hoisted(() => vi.fn());
+vi.mock('../../../src/adapters/out/diagnostics.js', () => ({ diagnostics: { info, failure: vi.fn() } }));
+
+beforeEach(() => { f.plays.length = 0; f.gate = undefined; info.mockClear(); });
 
 function playback(failed = vi.fn()) {
-  return new ResponsePlayback({ voiceUnavailable: Int16Array.from([7, 7]), failed });
+  return new ResponsePlayback({ failed });
 }
 
 test('plays transmissions one after the other at their declared sample rate', async () => {
@@ -42,12 +46,13 @@ test('plays transmissions one after the other at their declared sample rate', as
   ]);
 });
 
-test('replaces a text transmission with the voice-unavailable notice', async () => {
+test('replaces a text transmission with the error tone and logs the unavailable voice', async () => {
   const player = playback();
   player.start(3, { type: 'text' });
   player.end(3);
   await player.idle();
-  expect(f.plays.map(play => [play.sampleRate, play.samples])).toEqual([[16_000, [[7, 7]]]]);
+  expect(f.plays.map(play => [play.sampleRate, play.samples])).toEqual([[16_000, [[...errorToneSamples()]]]]);
+  expect(info).toHaveBeenCalledExactlyOnceWith('satellite_voice_unavailable');
 });
 
 test('idle waits until the last transmission has finished playing', async () => {

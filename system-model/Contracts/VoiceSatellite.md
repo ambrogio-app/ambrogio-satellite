@@ -26,17 +26,6 @@ La famiglia può pronunciare Hey Jarvis e la richiesta nella stessa frase. Il sa
   * define: [Conservazione della richiesta continua](../Requirements/VoiceSatellite.md#conservazione-della-richiesta-continua)
 ---
 
-### Avviso locale di voce non disponibile
-
-Decisione concordata il 17 ottobre 2026: quando una trasmissione del server per il turno corrente dichiara contenuto testuale, come nel rifiuto `audio_unavailable` di un backend senza voce configurata, il satellite non la pronuncia e riproduce invece la registrazione locale «La voce non è disponibile.». La registrazione è audio PCM16 mono a 16 kHz in formato WAV, sintetizzata una volta con la voce Piper italiana Riccardo x_low come l'avviso di backend irraggiungibile, e distribuita come asset con origine e licenza documentate, senza includere il modello TTS. Dopo l'avviso e l'esito del turno il satellite torna ad attendere la wake word senza aprire una replica e senza reinviare la richiesta.
-
-#### Metadata
-  * type: specification
-
-#### Relations
-  * define: [Avviso parlato di voce non disponibile](../Requirements/VoiceSatellite.md#avviso-parlato-di-voce-non-disponibile)
----
-
 ### Catalogo e selezione dei modelli
 
 Il file JSON seleziona con `wakeWord.model` un solo identificatore disponibile. L'identificatore predefinito per Hey Jarvis è `hey_jarvis`. La distribuzione contiene `hey_jarvis`, `hey_mycroft` e `alexa`, associati rispettivamente a `hey_jarvis_v0.1.onnx`, `hey_mycroft_v0.1.onnx` e `alexa_v0.1.onnx` della release openWakeWord v0.5.1, con `melspectrogram.onnx` e `embedding_model.onnx` della stessa release. Origine, hash SHA-256, attribuzione e licenza dei file distribuiti sono registrati in `models/wakeword/README.md`; la licenza CC BY-NC-SA 4.0 accompagna i file. L'immagine container include questa directory; un mount in sola lettura su `/app/models/wakeword` la sostituisce. Un file personalizzato `<identificatore>.onnx` nella directory montata aggiunge quell'identificatore al catalogo disponibile, purché il nome sia composto solo da lettere minuscole ASCII, cifre, trattino o sottolineatura, inizi con una lettera o cifra e non sia riservato ai modelli comuni. Il file deve essere un classificatore openWakeWord compatibile; la directory montata deve contenere anche `melspectrogram.onnx` e `embedding_model.onnx`. Un identificatore non disponibile è una configurazione invalida; non si accettano percorsi arbitrari o separatori di directory nella configurazione. La provenienza e la licenza dei modelli personalizzati sono responsabilità di chi li installa.
@@ -52,7 +41,7 @@ La frase selezionata per `alexa` è «Alexa», senza «Hey». Il modello openWak
 
 ### Ciclo di arresto e rilascio delle risorse
 
-Politica concordata: SIGINT e SIGTERM bloccano nuovi eventi, annullano timer e riproduzione (compreso l'avviso locale), chiudono il canale e l'acquisizione e rilasciano le sessioni ONNX. Non si attende la risposta completa del backend. La normale attesa della risposta resta valida fuori dall'arresto.
+Politica concordata: SIGINT e SIGTERM bloccano nuovi eventi, annullano timer e riproduzione (compresi il segnale di ascolto e il tono di errore), chiudono il canale e l'acquisizione e rilasciano le sessioni ONNX. Non si attende la risposta completa del backend. La normale attesa della risposta resta valida fuori dall'arresto.
 
 La composition root possiede il ciclo di vita delle risorse. Tutte le chiusure indipendenti sono tentate anche in presenza di errori. Le operazioni native in corso vengono terminate o attese quanto necessario per un rilascio sicuro; il lavoro accodato viene scartato e nessuna chiamata viene riaperta. Risorse acquisite dopo una richiesta di arresto durante l'avvio vengono subito rilasciate. Un avvio parziale fallito conserva il guasto originale e gli eventuali guasti di pulizia. Richieste concorrenti condividono lo stesso arresto, anche se fallisce; nessun doppio rilascio nativo. I guasti raggiungono il confine di processo per una diagnosi sicura e un codice di uscita non riuscito.
 
@@ -273,7 +262,7 @@ Decisione concordata con la persona il 18 ottobre 2026, che sostituisce lo spazi
 
 ### Profilo diagnostico Pino
 
-Pino emette una riga JSON su stdout, con livello testuale, timestamp ed event costante. Nessuna acquisizione automatica di configurazione, audio, messaggi, hostname o dati ricevuti. I rifiuti previsti di avvio sono eventi informativi, senza err; i guasti di processo, interazione e riproduzione dell’avviso hanno eventi distinti. La normalizzazione al confine conserva l’identità di Error e incapsula gli altri valori con messaggio costante e cause originale, senza conversione a stringa. La vista JSON di err usa descrizioni costanti, nasconde name, message, stack, code e proprietà aggiuntive; conserva soltanto la struttura delle cause e degli AggregateError con limiti di profondità e numerosità, senza invocare getter o modificare gli originali. Il messaggio parlato resta l’asset locale indipendente dalla diagnosi. Domain e Application non importano logger.
+Pino emette una riga JSON su stdout, con livello testuale, timestamp ed event costante. Nessuna acquisizione automatica di configurazione, audio, messaggi, hostname o dati ricevuti. I rifiuti previsti di avvio sono eventi informativi, senza err; i guasti di processo, interazione e riproduzione del tono di errore hanno eventi distinti. La normalizzazione al confine conserva l’identità di Error e incapsula gli altri valori con messaggio costante e cause originale, senza conversione a stringa. La vista JSON di err usa descrizioni costanti, nasconde name, message, stack, code e proprietà aggiuntive; conserva soltanto la struttura delle cause e degli AggregateError con limiti di profondità e numerosità, senza invocare getter o modificare gli originali. Il tono di errore resta indipendente dalla diagnosi. Domain e Application non importano logger.
 
 #### Details
 Con la rimozione di `@micdrop/client`, decisa il 17 ottobre 2026, non restano dipendenze di trasporto che emettono direttamente su console i messaggi ricevuti o gli errori grezzi: la lacuna aperta il 16 ottobre 2026 sui log diretti di Micdrop è chiusa senza patch né proposta upstream. Il trasporto `ambrogio.v1` diagnostica i propri guasti soltanto attraverso il logger applicativo.
@@ -298,7 +287,7 @@ La diagnostica iniziale usa i log JSON applicativi già previsti. Non sono intro
 
 ### Recupero locale da backend irraggiungibile
 
-Il messaggio di fallimento è una registrazione audio PCM16 mono a 16 kHz disponibile localmente nella distribuzione, riproducibile anche quando il backend non risponde. Il testo pronunciato nella prima versione è «Non riesco a contattare Ambrogio. Riprova tra poco.». La registrazione è sintetizzata una volta con la voce Piper italiana Riccardo x_low e distribuita come file audio, senza includere il modello TTS; origine e licenza della voce sono documentate insieme all'asset. Dopo il messaggio il processo resta attivo e torna ad attendere la wake word. Una nuova attivazione tenta una nuova interazione, riaprendo la sessione se necessario. Non si conserva la richiesta fallita per reinviarla automaticamente. Il medesimo recupero si applica alla sessione che non si apre o si chiude durante un'interazione, a un `session.error` riferito alla richiesta corrente, all'esito mancante entro 60 secondi dalla fine della richiesta e ai guasti tecnici durante un'interazione, dopo aver interrotto la trasmissione e la riproduzione correnti.
+Il fallimento è segnalato con il tono definito in «Tono locale di errore», generato localmente e quindi riproducibile anche quando il backend non risponde; dal 18 ottobre 2026 sostituisce la registrazione «Non riesco a contattare Ambrogio. Riprova tra poco.». Dopo il tono il processo resta attivo e torna ad attendere la wake word. Una nuova attivazione tenta una nuova interazione, riaprendo la sessione se necessario. Non si conserva la richiesta fallita per reinviarla automaticamente. Il medesimo recupero si applica alla sessione che non si apre o si chiude durante un'interazione, a un `session.error` riferito alla richiesta corrente, all'esito mancante entro 60 secondi dalla fine della richiesta e ai guasti tecnici durante un'interazione, dopo aver interrotto la trasmissione e la riproduzione correnti.
 
 #### Metadata
   * type: behavior
@@ -368,15 +357,39 @@ La distribuzione usa il file `models/silero_vad.onnx` incluso nel pacchetto Deci
   * define: [Delimitazione locale dei turni vocali](../Requirements/VoiceSatellite.md#delimitazione-locale-dei-turni-vocali)
 ---
 
+### Segnalazione locale di voce non disponibile
+
+Quando una trasmissione del server per il turno corrente dichiara contenuto testuale, come nel rifiuto `audio_unavailable` di un backend senza voce configurata, il satellite non la pronuncia: registra l'evento informativo `satellite_voice_unavailable` e riproduce al suo posto il tono definito in «Tono locale di errore», che dal 18 ottobre 2026 sostituisce la registrazione locale «La voce non è disponibile.» decisa il 17 ottobre 2026. Dopo il tono e l'esito del turno il satellite torna ad attendere la wake word senza aprire una replica e senza reinviare la richiesta.
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Tono di errore per voce non disponibile](../Requirements/VoiceSatellite.md#tono-di-errore-per-voce-non-disponibile)
+---
+
 ### Segnale locale di ascolto
 
-L'apertura dell'ascolto segue una sola regola, sia dopo la wake word sia dopo una risposta che attende replica: quando la sessione conversazionale è pronta a ricevere il turno, il satellite riproduce una volta un breve tono PCM16 mono a 16 kHz sullo speaker configurato e ammette il parlato solo quando il tono è terminato. Alla prima attivazione attende che la sessione sia pronta, riaprendola se necessario, prima del tono; il VAD resta inattivo durante il tono per non acquisire il bip come parlato. Il bip indica che si può davvero parlare. Per un `turn.completed` con `expectsReply: true`, applica la stessa regola nella sessione già aperta e avvia la finestra di inattività della replica dopo il tono. Non emette il tono dopo una risposta conclusiva o con indicazione non valida. Il tono è generato localmente, non inviato al backend e non deve sovrapporsi alla risposta parlata. Se lo speaker non riproduce il tono, il satellite registra `satellite_ready_cue_failed` e apre comunque l'ascolto. L'arresto annulla il tono in corso.
+L'apertura dell'ascolto segue una sola regola, sia dopo la wake word sia dopo una risposta che attende replica: quando la sessione conversazionale è pronta a ricevere il turno, il satellite riproduce una volta un breve tono PCM16 mono a 16 kHz sullo speaker configurato e ammette il parlato solo quando il tono è terminato. Il tono è una sinusoide di 880 Hz lunga 100 ms, con ampiezza pari a 0,18 del fondo scala e dissolvenze lineari di 10 ms ai bordi. Alla prima attivazione attende che la sessione sia pronta, riaprendola se necessario, prima del tono; il VAD resta inattivo durante il tono per non acquisire il bip come parlato. Il bip indica che si può davvero parlare. Per un `turn.completed` con `expectsReply: true`, applica la stessa regola nella sessione già aperta e avvia la finestra di inattività della replica dopo il tono. Non emette il tono dopo una risposta conclusiva o con indicazione non valida. Il tono è generato localmente, non inviato al backend e non deve sovrapporsi alla risposta parlata. Se lo speaker non riproduce il tono, il satellite registra `satellite_ready_cue_failed` e apre comunque l'ascolto. L'arresto annulla il tono in corso.
 
 #### Metadata
   * type: behavior
 
 #### Relations
   * define: [Segnale acustico di disponibilità](../Requirements/VoiceSatellite.md#segnale-acustico-di-disponibilità)
+---
+
+### Tono locale di errore
+
+Decisione concordata con la persona il 18 ottobre 2026: il satellite non distribuisce né riproduce messaggi parlati preregistrati. Le registrazioni «Non riesco a contattare Ambrogio. Riprova tra poco.» e «La voce non è disponibile.», sintetizzate con la voce Piper Riccardo x_low e distribuite come `assets/backend-unavailable.wav` e `assets/voice-unavailable.wav`, sono sostituite da un unico tono di errore generato dal programma. La decisione sostituisce le scelte delle registrazioni nei contratti «Recupero locale da backend irraggiungibile» e «Segnalazione locale di voce non disponibile», compresa quella del 17 ottobre 2026. Motivazione: un tono non dipende dalla lingua né dalla voce scelta nel backend, non richiede asset né licenze, e la famiglia può controllare il dettaglio del problema dalla chat testuale.
+
+Il tono è lo stesso nei due casi, backend irraggiungibile e risposta soltanto testuale a un turno vocale. È audio PCM16 mono a 16 kHz composto da due toni sinusoidali discendenti: 660 Hz per 150 ms, 50 ms di silenzio, 440 Hz per 150 ms, per una durata complessiva di 350 ms. Ampiezza e dissolvenze lineari di 10 ms ai bordi di ciascun tono sono quelle del segnale di ascolto. La sequenza discendente e la durata lo distinguono dal segnale di ascolto. Il tono è riprodotto sullo speaker configurato, non è inviato al backend e l'arresto lo annulla. Se lo speaker non lo riproduce, il satellite registra `satellite_error_tone_failed` e prosegue come se il tono fosse terminato. I log distinguono la causa: `satellite_failure` per il fallimento dell'interazione e `satellite_voice_unavailable` per la risposta soltanto testuale.
+
+#### Metadata
+  * type: behavior
+
+#### Relations
+  * define: [Tono di errore per backend irraggiungibile](../Requirements/VoiceSatellite.md#tono-di-errore-per-backend-irraggiungibile)
 ---
 
 ### Trasporto conversazionale ambrogio.v1
