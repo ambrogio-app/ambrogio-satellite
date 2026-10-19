@@ -92,6 +92,7 @@ test.each([
   ['audio.speaker', JSON.stringify({ ...validConfig, audio: { speaker: '' } }), 'audio.speaker'],
   ['wakeWord.model', JSON.stringify({ ...validConfig, wakeWord: { model: 'secret_word' } }), 'wakeWord.model'],
   ['wakeWord.threshold', JSON.stringify({ ...validConfig, wakeWord: { threshold: 2 } }), 'wakeWord.threshold'],
+  ['wakeWord.patience', JSON.stringify({ ...validConfig, wakeWord: { patience: 0 } }), 'wakeWord.patience'],
   ['interaction.replyTimeoutMs', JSON.stringify({ ...validConfig, interaction: { replyTimeoutMs: -1 } }),
     'interaction.replyTimeoutMs'],
 ])('an invalid configuration names the rejected field: %s', async (_case, content, field) => {

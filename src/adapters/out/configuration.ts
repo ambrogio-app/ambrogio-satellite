@@ -5,7 +5,7 @@ import { isWakeWordId } from './wake-word-catalog.js';
 export type InvalidConfiguration = Readonly<{
   kind: 'invalid_configuration';
   field: 'config' | 'backend.baseUrl' | 'client.id' | 'client.name' | 'audio.microphone' | 'audio.speaker'
-    | 'wakeWord.model' | 'wakeWord.threshold' | 'interaction.replyTimeoutMs';
+    | 'wakeWord.model' | 'wakeWord.threshold' | 'wakeWord.patience' | 'interaction.replyTimeoutMs';
 }>;
 
 type Result<T> = Readonly<{ ok: true; value: T }> | Readonly<{ ok: false; error: InvalidConfiguration }>;
@@ -14,7 +14,7 @@ export type SatelliteConfig = Readonly<{
   backend: Readonly<{ baseUrl: URL; sessionUrl: URL }>;
   client: Readonly<{ clientId: string; name: string }>;
   audio: Readonly<{ microphone?: string; speaker?: string }>;
-  wakeWord: Readonly<{ model: string; threshold: number }>;
+  wakeWord: Readonly<{ model: string; threshold: number; patience: number }>;
   interaction: Readonly<{ replyTimeoutMs: number }>;
 }>;
 
@@ -96,7 +96,7 @@ export function parseSatelliteConfig(input: unknown, availableModels: ReadonlySe
   if (!speaker.ok) return speaker;
 
   const wakeWord = root.wakeWord === undefined ? {} : record(root.wakeWord);
-  if (!wakeWord || !onlyKeys(wakeWord, ['model', 'threshold'])) {
+  if (!wakeWord || !onlyKeys(wakeWord, ['model', 'threshold', 'patience'])) {
     return { ok: false, error: { kind: 'invalid_configuration', field: 'wakeWord.model' } };
   }
   const model = wakeWord.model === undefined ? 'hey_jarvis' : wakeWord.model;
@@ -106,6 +106,10 @@ export function parseSatelliteConfig(input: unknown, availableModels: ReadonlySe
   const threshold = wakeWord.threshold === undefined ? 0.5 : wakeWord.threshold;
   if (typeof threshold !== 'number' || !Number.isFinite(threshold) || threshold <= 0 || threshold > 1) {
     return { ok: false, error: { kind: 'invalid_configuration', field: 'wakeWord.threshold' } };
+  }
+  const patience = wakeWord.patience === undefined ? 2 : wakeWord.patience;
+  if (typeof patience !== 'number' || !Number.isSafeInteger(patience) || patience < 1 || patience > 10) {
+    return { ok: false, error: { kind: 'invalid_configuration', field: 'wakeWord.patience' } };
   }
 
   const interaction = root.interaction === undefined ? {} : record(root.interaction);
@@ -122,7 +126,7 @@ export function parseSatelliteConfig(input: unknown, availableModels: ReadonlySe
       ...(microphone.value === undefined ? {} : { microphone: microphone.value }),
       ...(speaker.value === undefined ? {} : { speaker: speaker.value }),
     },
-    wakeWord: { model, threshold },
+    wakeWord: { model, threshold, patience },
     interaction: { replyTimeoutMs: timeout.value },
   } };
 }

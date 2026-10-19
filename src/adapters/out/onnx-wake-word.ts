@@ -14,6 +14,8 @@ export type WakeWordModelFiles = Readonly<{
 
 export type WakeWordOptions = Readonly<{
   threshold: number;
+  /** Consecutive 80 ms chunks that must reach the threshold, like openWakeWord's `patience`. */
+  patience: number;
   cooldownMs: number;
   maxQueuedChunks: number;
   detected(score: number): void;
@@ -38,6 +40,7 @@ export class OnnxWakeWord {
   private tail: Promise<void> = Promise.resolve();
   private queuedChunks = 0;
   private lastDetectedAt = -Infinity;
+  private chunksAboveThreshold = 0;
   private readonly classifierFrames: number;
 
   private constructor(
@@ -57,6 +60,7 @@ export class OnnxWakeWord {
 
   static async open(files: WakeWordModelFiles, options: WakeWordOptions): Promise<OnnxWakeWord> {
     if (!(options.threshold > 0 && options.threshold <= 1)
+      || !Number.isSafeInteger(options.patience) || options.patience < 1
       || !Number.isSafeInteger(options.cooldownMs) || options.cooldownMs < 0
       || !Number.isSafeInteger(options.maxQueuedChunks) || options.maxQueuedChunks <= 0) {
       throw new Error('Invalid wake word processing options');
@@ -105,6 +109,7 @@ export class OnnxWakeWord {
       { length: MEL_WINDOW_FRAMES }, () => new Float32Array(MEL_BANDS).fill(1),
     );
     this.embeddings = [];
+    this.chunksAboveThreshold = 0;
     this.lastDetectedAt = Date.now();
   }
 
@@ -163,8 +168,9 @@ export class OnnxWakeWord {
     });
     const score = firstTensor(classifierOutput, this.classifier.outputNames[0]!)[0];
     if (score === undefined || !Number.isFinite(score)) throw new Error('Invalid wake word score');
+    this.chunksAboveThreshold = score >= this.options.threshold ? this.chunksAboveThreshold + 1 : 0;
     const now = Date.now();
-    if (score >= this.options.threshold && now - this.lastDetectedAt >= this.options.cooldownMs) {
+    if (this.chunksAboveThreshold >= this.options.patience && now - this.lastDetectedAt >= this.options.cooldownMs) {
       this.lastDetectedAt = now;
       if (!this.closing) this.options.detected(score);
     }

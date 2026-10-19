@@ -64,6 +64,7 @@ export async function startSatellite(config: SatelliteConfig, signal?: AbortSign
     checkStopping();
     wake = await OnnxWakeWord.open(wakeWordFiles(config.wakeWord.model), {
       threshold: config.wakeWord.threshold,
+      patience: config.wakeWord.patience,
       cooldownMs: WAKE_COOLDOWN_MS,
       maxQueuedChunks: WAKE_MAX_QUEUED_CHUNKS,
       detected: events.wakeDetected,

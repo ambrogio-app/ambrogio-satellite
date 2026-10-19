@@ -13,6 +13,7 @@ describe('distributed ONNX wake word models', () => {
       const failures: unknown[] = [];
       const detector = await OnnxWakeWord.open(wakeWordFiles(id), {
         threshold: 0.5,
+        patience: 1,
         cooldownMs: 0,
         maxQueuedChunks: 20,
         detected: score => detected.push(score),
