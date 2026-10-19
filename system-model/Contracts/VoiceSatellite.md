@@ -158,6 +158,17 @@ Il tipo locale è `type Result<T, E> = Readonly<{ ok: true; value: T }> | Readon
   * define: [Esiti previsti come valori tipizzati](../Requirements/VoiceSatellite.md#esiti-previsti-come-valori-tipizzati)
 ---
 
+### Evento diagnostico dell'attivazione locale
+
+Decisione concordata con la persona il 19 ottobre 2026, perché le attivazioni spontanee dell'installazione di riferimento non lasciavano traccia e una misura dal vivo di dieci minuti non le ha riprodotte: a ogni rilevamento confermato della wake word il satellite emette una sola riga Pino di livello `info` con `event: "satellite_wake_detected"`, `score`, il punteggio del classificatore nel blocco che conferma il rilevamento arrotondato a tre decimali, e `chunks`, il numero di blocchi consecutivi da 80 ms che hanno raggiunto la soglia fino a quel blocco. L'ora è quella del campo `time` di Pino. La riga non contiene audio, identificatori del modello, configurazione o dati della sessione. Un rilevamento ignorato per l'intervallo minimo fra rilevamenti non produce la riga.
+
+#### Metadata
+  * type: input-output
+
+#### Relations
+  * define: [Registrazione delle attivazioni locali](../Requirements/VoiceSatellite.md#registrazione-delle-attivazioni-locali)
+---
+
 ### Evento diagnostico della configurazione rifiutata
 
 Decisione concordata con la persona il 18 ottobre 2026, per rendere comprensibile il rifiuto della configurazione: quando il file JSON selezionato con `--config` viene rifiutato, il satellite emette una sola riga Pino di livello `info` con `event: "invalid_configuration"` e il campo `reason`, che vale il `kind` del rifiuto previsto. Con `reason: "configuration_unavailable"` il file non esiste o non è leggibile e la riga non contiene altri campi diagnostici. Con `reason: "invalid_configuration"` la riga contiene anche `field`, il nome del campo rifiutato tra `backend.baseUrl`, `client.id`, `client.name`, `audio.microphone`, `audio.speaker`, `wakeWord.model`, `wakeWord.threshold`, `wakeWord.patience` e `interaction.replyTimeoutMs`, oppure `config` quando il contenuto non è JSON o la struttura del documento contiene sezioni o campi non previsti. Il processo termina con codice 2 senza costruire risorse audio o di rete.

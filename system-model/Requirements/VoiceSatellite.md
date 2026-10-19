@@ -620,6 +620,23 @@ Quando viene creato un tag di release valido, il progetto deve pubblicare su GHC
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Registrazione delle attivazioni locali
+
+Quando riconosce la wake word, il satellite deve registrare un evento diagnostico informativo con il punteggio di riconoscimento e il numero di blocchi audio consecutivi sopra soglia.
+
+#### Concept References
+  * [Wake word](../Thesaurus/Lessico.md#wake-word)
+  * [Attivazione locale](../Thesaurus/Lessico.md#attivazione-locale)
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Replica richiesta dal backend
 
 Quando termina la riproduzione di una risposta per cui il backend segnala di attendere una replica, il satellite deve permettere alla famiglia di rispondere senza wake word nella stessa interazione, finché essa resta attiva.

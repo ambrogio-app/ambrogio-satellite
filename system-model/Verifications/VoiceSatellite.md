@@ -106,7 +106,9 @@ Con ogni modello distribuito dimostrare che la pipeline ONNX riconosce localment
 
 Evidenza parziale del 17 ottobre 2026: `alexa_v0.1.onnx` della release openWakeWord v0.5.1 si carica con le risorse ONNX condivise. La pipeline del satellite, con soglia 0,5, ha riconosciuto `tests/data/alexa_test.wav` upstream (16 kHz mono, parola «Alexa») dopo un secondo di silenzio iniziale sia su x86_64 sia sul Raspberry arm64: 15 rilevamenti, picco 0,99999988, nessun errore su entrambe le macchine. Il campione non è incluso nel repository. Dopo la selezione di `alexa` nel Raspberry, la persona ha riferito una prova riuscita con il microfono reale. Questa osservazione non misura affidabilità, rumore, accenti o attivazioni spurie; le prove operative sistematiche restano aperte.
 
-Osservazione del 19 ottobre 2026: con «Alexa» e la conferma su un solo blocco, la persona ha riferito attivazioni spontanee dell'installazione di riferimento con colpi di tosse o senza causa evidente. La conferma su più blocchi consecutivi non è ancora stata provata con il microfono reale.
+Osservazione del 19 ottobre 2026: con «Alexa» e la conferma su un solo blocco, la persona ha riferito attivazioni spontanee dell'installazione di riferimento con colpi di tosse o senza causa evidente. Dopo l'installazione della conferma su 2 blocchi ha riferito altre due attivazioni spontanee, senza traccia nei log.
+
+Misura del 19 ottobre 2026 sull'installazione di riferimento (Raspberry arm64, array microfonico USB, `alexa`, soglia 0,8, conferma su 2 blocchi), con il satellite fermo e uno script temporaneo che registrava ogni punteggio del classificatore per 10 minuti: in silenzio, durante circa tre minuti di tosse e parlato e con rumori che arrivavano alla saturazione del microfono il punteggio massimo è stato 0,50; cinque «Alexa» pronunciati dalla persona hanno prodotto cinque rilevamenti con punteggi fra 0,89 e 0,997, sopra soglia per 2, 3, 6, 2 e 2 blocchi consecutivi. Con 3 blocchi richiesti tre di quei cinque sarebbero stati persi. Le attivazioni spontanee non sono state riprodotte; per identificarle si registra l'evento `satellite_wake_detected`.
 
 #### Metadata
   * type: demonstration-verification
@@ -563,6 +565,24 @@ La prova passa se il tono di errore è PCM16 mono a 16 kHz di 5600 campioni (350
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [local-tones.test.ts](../../test/adapters/out/local-tones.test.ts)
   * verify: [Tono di errore per backend irraggiungibile](../Requirements/VoiceSatellite.md#tono-di-errore-per-backend-irraggiungibile)
+---
+
+### Prova dell'evento di attivazione locale
+
+Acquisire la riga reale di Pino prodotta dal rilevamento: livello `info`, `event: "satellite_wake_detected"`, `score` arrotondato a tre decimali e `chunks` intero, con le sole chiavi `level`, `time`, `event`, `score` e `chunks`. Con sessioni ONNX simulate, il riconoscitore consegna al rilevamento il punteggio e il numero di blocchi consecutivi sopra soglia; la composition root registra l'evento e poi inoltra l'attivazione alla sessione vocale.
+
+#### Details
+Esecuzione del 2026-10-19: `diagnostics.test.ts` acquisisce la riga Pino con `score` 0,912 da 0,912345 e `chunks` 3 e le sole chiavi previste; `onnx-lifecycle.test.ts` controlla che ogni rilevamento simulato consegni il numero di blocchi consecutivi; `satellite-lifecycle.test.ts` controlla che la composition root registri l'evento prima di inoltrare l'attivazione. Typecheck completo e core e suite Vitest (168 test) PASS.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [diagnostics.test.ts](../../test/adapters/out/diagnostics.test.ts)
+  * satisfiedBy: [onnx-lifecycle.test.ts](../../test/adapters/out/onnx-lifecycle.test.ts)
+  * satisfiedBy: [satellite-lifecycle.test.ts](../../test/composition/satellite-lifecycle.test.ts)
+  * verify: [Registrazione delle attivazioni locali](../Requirements/VoiceSatellite.md#registrazione-delle-attivazioni-locali)
 ---
 
 ### Prova dell'evento di configurazione rifiutata
