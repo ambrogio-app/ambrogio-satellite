@@ -163,6 +163,27 @@ Il satellite deve distribuire nel proprio catalogo soltanto modelli wake word la
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Conferma della wake word su blocchi consecutivi
+
+Quando il punteggio di riconoscimento della wake word raggiunge la soglia configurata, il satellite deve avviare l'attivazione locale soltanto se la soglia è stata raggiunta nel numero configurato di blocchi audio consecutivi.
+
+#### Concept References
+  * [Wake word](../Thesaurus/Lessico.md#wake-word)
+  * [Attivazione locale](../Thesaurus/Lessico.md#attivazione-locale)
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
+  * [Motore locale della wake word con ONNX](../Contracts/VoiceSatellite.md#motore-locale-della-wake-word-con-onnx)
+
+#### Relations
+  * satisfiedBy: [configuration.ts](../../src/adapters/out/configuration.ts)
+  * satisfiedBy: [onnx-wake-word.ts](../../src/adapters/out/onnx-wake-word.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Configurazione JSON unica
 
 Il satellite deve leggere da un file JSON la configurazione del backend, dell'identità del client, dei dispositivi audio, della wake word e dell'intervallo locale di inattività, usando gli stessi significati sull'host e nel container.

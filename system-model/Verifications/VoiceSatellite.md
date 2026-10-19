@@ -102,9 +102,11 @@ In un clone con `core.hooksPath` impostato a `.githooks`, mettere in staging un 
 Verifica operativa pianificata; la sola prova sul campione upstream descritta nei dettagli è stata eseguita.
 
 #### Details
-Con ogni modello distribuito dimostrare che la pipeline ONNX riconosce localmente la wake word senza servizio esterno. Prima della wake word non si apre la chiamata backend. Con soglia iniziale 0,5 e cooldown 2000 ms, misurare attivazioni corrette e spurie. Provare Hey Jarvis, Hey Mycroft e Alexa su x86_64 e arm64. Pronunciare la wake word e la richiesta senza pausa, verificando che la riserva scorrevole di 1500 ms consegni l'inizio della richiesta dopo la connessione. Saturare la coda d'inferenza di 32 blocchi e verificare un guasto diagnostico senza crescita illimitata.
+Con ogni modello distribuito dimostrare che la pipeline ONNX riconosce localmente la wake word senza servizio esterno. Prima della wake word non si apre la chiamata backend. Con soglia iniziale 0,5, conferma su 2 blocchi consecutivi e cooldown 2000 ms, misurare attivazioni corrette e spurie, comprese quelle provocate da colpi di tosse e rumori impulsivi, e confrontarle con la conferma su un solo blocco. Provare Hey Jarvis, Hey Mycroft e Alexa su x86_64 e arm64. Pronunciare la wake word e la richiesta senza pausa, verificando che la riserva scorrevole di 1500 ms consegni l'inizio della richiesta dopo la connessione. Saturare la coda d'inferenza di 32 blocchi e verificare un guasto diagnostico senza crescita illimitata.
 
 Evidenza parziale del 17 ottobre 2026: `alexa_v0.1.onnx` della release openWakeWord v0.5.1 si carica con le risorse ONNX condivise. La pipeline del satellite, con soglia 0,5, ha riconosciuto `tests/data/alexa_test.wav` upstream (16 kHz mono, parola «Alexa») dopo un secondo di silenzio iniziale sia su x86_64 sia sul Raspberry arm64: 15 rilevamenti, picco 0,99999988, nessun errore su entrambe le macchine. Il campione non è incluso nel repository. Dopo la selezione di `alexa` nel Raspberry, la persona ha riferito una prova riuscita con il microfono reale. Questa osservazione non misura affidabilità, rumore, accenti o attivazioni spurie; le prove operative sistematiche restano aperte.
+
+Osservazione del 19 ottobre 2026: con «Alexa» e la conferma su un solo blocco, la persona ha riferito attivazioni spontanee dell'installazione di riferimento con colpi di tosse o senza causa evidente. La conferma su più blocchi consecutivi non è ancora stata provata con il microfono reale.
 
 #### Metadata
   * type: demonstration-verification
@@ -114,6 +116,7 @@ Evidenza parziale del 17 ottobre 2026: `alexa_v0.1.onnx` della release openWakeW
   * verify: [Ascolto locale della wake word](../Requirements/VoiceSatellite.md#ascolto-locale-della-wake-word)
   * verify: [Avvio dopo la wake word](../Requirements/VoiceSatellite.md#avvio-dopo-la-wake-word)
   * verify: [Catalogo distribuito delle wake word](../Requirements/VoiceSatellite.md#catalogo-distribuito-delle-wake-word)
+  * verify: [Conferma della wake word su blocchi consecutivi](../Requirements/VoiceSatellite.md#conferma-della-wake-word-su-blocchi-consecutivi)
   * verify: [Conservazione della richiesta continua](../Requirements/VoiceSatellite.md#conservazione-della-richiesta-continua)
   * verify: [Selezione della wake word configurata](../Requirements/VoiceSatellite.md#selezione-della-wake-word-configurata)
 ---
@@ -564,10 +567,12 @@ La prova passa se il tono di errore è PCM16 mono a 16 kHz di 5600 campioni (350
 
 ### Prova dell'evento di configurazione rifiutata
 
-Acquisire le righe reali di Pino prodotte dal rifiuto della configurazione. Per un file assente o illeggibile: una sola riga `info` con `event: "invalid_configuration"` e `reason: "configuration_unavailable"`, senza `field`. Per contenuto non JSON, sezione sconosciuta e per ciascun campo invalido (`backend.baseUrl`, `client.id`, `client.name`, `audio.microphone`, `audio.speaker`, `wakeWord.model`, `wakeWord.threshold`, `interaction.replyTimeoutMs`): `reason: "invalid_configuration"` e il `field` atteso, `config` per contenuto non JSON o struttura non prevista. Le righe non contengono valori del file, percorsi né `err`, e hanno soltanto le chiavi `level`, `time`, `event`, `reason` ed eventualmente `field`. Avviando il processo compilato con un file invalido, l'uscita è 2 e la riga è quella attesa.
+Acquisire le righe reali di Pino prodotte dal rifiuto della configurazione. Per un file assente o illeggibile: una sola riga `info` con `event: "invalid_configuration"` e `reason: "configuration_unavailable"`, senza `field`. Per contenuto non JSON, sezione sconosciuta e per ciascun campo invalido (`backend.baseUrl`, `client.id`, `client.name`, `audio.microphone`, `audio.speaker`, `wakeWord.model`, `wakeWord.threshold`, `wakeWord.patience`, `interaction.replyTimeoutMs`): `reason: "invalid_configuration"` e il `field` atteso, `config` per contenuto non JSON o struttura non prevista. Le righe non contengono valori del file, percorsi né `err`, e hanno soltanto le chiavi `level`, `time`, `event`, `reason` ed eventualmente `field`. Avviando il processo compilato con un file invalido, l'uscita è 2 e la riga è quella attesa.
 
 #### Details
 Esecuzione del 2026-10-18: `diagnostics.test.ts` carica file reali con `loadSatelliteConfig` e acquisisce l'uscita di Pino per il file assente, il contenuto non JSON, la sezione sconosciuta e gli otto campi; tutti i casi PASS, nessuna riga contiene i valori marcati `secret` né il percorso. Typecheck completo e core, suite Vitest (146 test in 19 file) e build PASS su Node.js 26. Prova del processo compilato: sezione sconosciuta `wakeword` produce `{"level":"info",…,"event":"invalid_configuration","reason":"invalid_configuration","field":"config"}` con uscita 2; file assente produce `"reason":"configuration_unavailable"` con uscita 2.
+
+Esecuzione del 2026-10-19: aggiunto il caso `wakeWord.patience` a `diagnostics.test.ts`; i nove campi PASS nella suite di 166 test. La prova del processo compilato non è stata ripetuta per il nuovo campo.
 
 #### Metadata
   * type: test-verification
@@ -593,6 +598,24 @@ La prova passa se senza configurazione `clientId` vale `satellite-<nome host>` e
   * satisfiedBy: [configuration.test.ts](../../test/adapters/out/configuration.test.ts)
   * satisfiedBy: [conversation-channel.test.ts](../../test/adapters/out/conversation-channel.test.ts)
   * verify: [Identificazione del satellite nella sessione](../Requirements/VoiceSatellite.md#identificazione-del-satellite-nella-sessione)
+---
+
+### Prova della conferma su blocchi consecutivi
+
+Con sessioni ONNX simulate che restituiscono una sequenza controllata di punteggi del classificatore, uno per blocco da 80 ms, e soglia 0,5: con `patience` 2 un solo blocco sopra soglia seguito da uno sotto soglia non produce rilevamenti; due blocchi consecutivi sopra soglia producono un solo rilevamento, sul secondo blocco; due blocchi sopra soglia separati da uno sotto soglia non producono rilevamenti; con `patience` 1 un solo blocco sopra soglia produce un rilevamento. Dopo l'azzeramento della pipeline un blocco sopra soglia non completa un conteggio iniziato prima. Opzioni con `patience` non intero o minore di 1 sono rifiutate all'apertura. La configurazione senza `wakeWord.patience` produce il valore 2, accetta 1 e 10 e rifiuta 0, 11, valori non interi e stringhe con `field: "wakeWord.patience"`; la composition root passa il valore configurato al riconoscitore.
+
+#### Details
+Esecuzione del 2026-10-19: gli 8 casi della conferma in `onnx-lifecycle.test.ts`, insieme a `configuration.test.ts`, `diagnostics.test.ts` e `satellite-lifecycle.test.ts`, PASS; typecheck completo e core, suite Vitest e build PASS. La prova usa punteggi simulati: non misura attivazioni spurie né parole mancate con il microfono reale, che restano affidate alla «Dimostrazione della attivazione locale».
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [configuration.test.ts](../../test/adapters/out/configuration.test.ts)
+  * satisfiedBy: [onnx-lifecycle.test.ts](../../test/adapters/out/onnx-lifecycle.test.ts)
+  * satisfiedBy: [satellite-lifecycle.test.ts](../../test/composition/satellite-lifecycle.test.ts)
+  * verify: [Conferma della wake word su blocchi consecutivi](../Requirements/VoiceSatellite.md#conferma-della-wake-word-su-blocchi-consecutivi)
 ---
 
 ### Prova della diagnostica Pino
