@@ -100,3 +100,11 @@ test.each([
   expect(record).toMatchObject({ level: 'info', event: 'invalid_configuration', reason: 'invalid_configuration', field });
   expect(Object.keys(record).sort()).toEqual(['event', 'field', 'level', 'reason', 'time']);
 });
+
+test('a wake word detection logs only its rounded score and consecutive chunks', () => {
+  const { log, lines, records } = capture();
+  log.wakeDetected(0.912345, 3);
+  expect(lines).toHaveLength(1);
+  expect(records()[0]).toMatchObject({ level: 'info', event: 'satellite_wake_detected', score: 0.912, chunks: 3 });
+  expect(Object.keys(records()[0]).sort()).toEqual(['chunks', 'event', 'level', 'score', 'time']);
+});

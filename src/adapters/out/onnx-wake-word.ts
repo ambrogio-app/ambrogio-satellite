@@ -18,7 +18,7 @@ export type WakeWordOptions = Readonly<{
   patience: number;
   cooldownMs: number;
   maxQueuedChunks: number;
-  detected(score: number): void;
+  detected(score: number, chunks: number): void;
   failed(error: unknown): void;
 }>;
 
@@ -172,7 +172,7 @@ export class OnnxWakeWord {
     const now = Date.now();
     if (this.chunksAboveThreshold >= this.options.patience && now - this.lastDetectedAt >= this.options.cooldownMs) {
       this.lastDetectedAt = now;
-      if (!this.closing) this.options.detected(score);
+      if (!this.closing) this.options.detected(score, this.chunksAboveThreshold);
     }
   }
 }

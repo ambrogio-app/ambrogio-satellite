@@ -5,8 +5,9 @@ const f = vi.hoisted(() => ({
   stop: vi.fn(), shutdown: vi.fn(), channelClose: vi.fn(), ensure: vi.fn(),
   wakeClose: vi.fn(), wakeOpen: vi.fn(), vadOpen: vi.fn(), vadClose: vi.fn(),
   micStart: vi.fn(), micClose: vi.fn(), playbackCancel: vi.fn(), info: vi.fn(),
+  wakeDetectedLog: vi.fn(), wakeDetected: vi.fn(),
 }));
-vi.mock('../../src/adapters/out/diagnostics.js', () => ({ diagnostics: { info: f.info, failure: vi.fn() } }));
+vi.mock('../../src/adapters/out/diagnostics.js', () => ({ diagnostics: { info: f.info, failure: vi.fn(), wakeDetected: f.wakeDetectedLog } }));
 vi.mock('../../src/adapters/out/onnx-wake-word.js', () => ({ OnnxWakeWord: { open: f.wakeOpen } }));
 vi.mock('../../src/adapters/out/silero-vad.js', () => ({ SileroVad: { open: f.vadOpen } }));
 vi.mock('../../src/adapters/out/microphone-input.js', () => ({
@@ -19,7 +20,7 @@ vi.mock('../../src/adapters/out/response-playback.js', () => ({
   ResponsePlayback: class { cancel = f.playbackCancel; },
 }));
 vi.mock('../../src/adapters/in/conversation-events.adapter.js', () => ({ createConversationEventsAdapter: () => ({
-  speech: {}, frames() {}, failed() {}, wakeDetected() {}, sessionLost() {},
+  speech: {}, frames() {}, failed() {}, wakeDetected: f.wakeDetected, sessionLost() {},
 }) }));
 vi.mock('../../src/adapters/out/conversation-call.adapter.js', () => ({ createConversationCallAdapter: () => ({
   shutdown: f.shutdown, closeCall: f.stop,
@@ -43,6 +44,16 @@ beforeEach(() => {
 test('passes the configured wake word threshold and patience to the recognizer', async () => {
   const satellite = await startSatellite(config);
   expect(f.wakeOpen).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ threshold: 0.7, patience: 3 }));
+  await satellite.stop();
+});
+
+test('logs each wake word detection before forwarding it to the voice session', async () => {
+  const satellite = await startSatellite(config);
+  const { detected } = f.wakeOpen.mock.calls[0]![1] as { detected(score: number, chunks: number): void };
+  detected(0.93, 2);
+  expect(f.wakeDetectedLog).toHaveBeenCalledWith(0.93, 2);
+  expect(f.wakeDetected).toHaveBeenCalledOnce();
+  expect(f.wakeDetectedLog.mock.invocationCallOrder[0]).toBeLessThan(f.wakeDetected.mock.invocationCallOrder[0]!);
   await satellite.stop();
 });
 

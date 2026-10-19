@@ -47,6 +47,10 @@ export function createDiagnostics(destination: DestinationStream = process.stdou
       logger.error({ event, err: normalizeDiagnosticError(value) }, 'Satellite operation failed');
     },
     info(event: InfoEvent): void { logger.info({ event }); },
+    /** The score of the confirming chunk and the consecutive chunks above the threshold. */
+    wakeDetected(score: number, chunks: number): void {
+      logger.info({ event: 'satellite_wake_detected', score: Math.round(score * 1000) / 1000, chunks });
+    },
     /** Only the rejection kind and the field name: never values, paths or library messages. */
     configurationRejected(rejection: LoadConfigRejection): void {
       logger.info(rejection.kind === 'invalid_configuration'

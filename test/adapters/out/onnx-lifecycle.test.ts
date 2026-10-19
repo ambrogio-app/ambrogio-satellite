@@ -42,9 +42,10 @@ function scriptedSessions(scores: number[]) {
 async function detections(scores: number[], patience: number, between?: (d: OnnxWakeWord) => void, split = scores.length) {
   scriptedSessions(scores);
   const detected: number[] = [];
+  const chunks: number[] = [];
   const detector = await OnnxWakeWord.open(files, {
     threshold: 0.5, patience, cooldownMs: 0, maxQueuedChunks: 32,
-    detected: score => detected.push(score), failed: error => { throw error; },
+    detected: (score, run) => { detected.push(score); chunks.push(run); }, failed: error => { throw error; },
   });
   const total = scores.length;
   for (let chunk = 0; chunk < total; chunk++) {
@@ -53,6 +54,7 @@ async function detections(scores: number[], patience: number, between?: (d: Onnx
   }
   await detector.waitUntilIdle();
   await detector.close();
+  expect(chunks).toEqual(detected.map(() => patience));
   return detected;
 }
 

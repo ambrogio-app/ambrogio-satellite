@@ -67,7 +67,10 @@ export async function startSatellite(config: SatelliteConfig, signal?: AbortSign
       patience: config.wakeWord.patience,
       cooldownMs: WAKE_COOLDOWN_MS,
       maxQueuedChunks: WAKE_MAX_QUEUED_CHUNKS,
-      detected: events.wakeDetected,
+      detected: (score, chunks) => {
+        diagnostics.wakeDetected(score, chunks);
+        events.wakeDetected();
+      },
       failed: events.failed,
     });
     checkStopping();
