@@ -54,6 +54,7 @@ stateDiagram-v2
 - Linux on x86_64 or arm64
 - Node.js 24 or later, with pnpm. Docker is optional
 - ALSA runtime (`libasound.so.2`) and OpenMP (`libgomp.so.1`)
+- `amixer` from `alsa-utils`, only if you use `audio.attenuation` (the Docker image includes it)
 - A microphone and a speaker that the process can access
 - A running [ambrogio-backend](https://github.com/ambrogio-app/ambrogio-backend) with voice enabled
 
@@ -83,6 +84,29 @@ Create a configuration file from the example:
 ```
 
 If you leave `audio` empty, the satellite uses the system's default microphone and speaker.
+
+### Lowering other audio during an interaction
+
+If a music player shares the satellite's speaker, the satellite can lower it while you talk. Route the player through an ALSA `softvol` device, which creates a volume control the satellite owns, and keep the satellite's own speaker outside it. For example, in `/etc/asound.conf`, with a `dmix` device named `mixer` on your sound card:
+
+```
+pcm.music {
+    type softvol
+    slave.pcm "mixer"
+    control { name "Music"; card 0 }
+}
+```
+
+Point the player at `music`, then name the control in the satellite configuration:
+
+```json
+"audio": {
+  "speaker": "alsa:mixer",
+  "attenuation": { "device": "hw:0", "control": "Music", "level": 25 }
+}
+```
+
+When the wake word is heard, the satellite sets the control to `level` percent before the listening beep, keeps it there for the whole interaction, including follow-up replies, and sets it back to 100% when it returns to waiting for the wake word. It also sets it to 100% at startup and on shutdown. ALSA creates the control the first time something plays through `music`; until then there is nothing to lower. If `amixer` fails, the interaction continues and the satellite logs `satellite_attenuation_failed`.
 
 **On the host**
 
