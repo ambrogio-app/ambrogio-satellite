@@ -1,4 +1,5 @@
 import type { DeadlineScheduler, ScheduledDeadline } from './deadline-scheduler.js';
+import type { LocalAttenuation } from './local-attenuation.js';
 import { advanceVoiceTurn, initialVoiceTurnState, type VoiceTurnEvent,
   type VoiceTurnState } from '../domain/voice-turn.js';
 
@@ -31,12 +32,17 @@ export class VoiceSession {
   private answerTimer?: ScheduledDeadline;
   private generation = 0;
   private failureInProgress = false;
+  /** Attenuation and restore run one at a time, in the order the interaction asks for them. */
+  private attenuationQueue: Promise<void> = Promise.resolve();
+  /** Settles when the attenuation requested at the wake word has been applied. */
+  private attenuated: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly ports: VoiceSessionPorts,
     private readonly replyTimeoutMs: number,
     private readonly answerTimeoutMs: number,
     private readonly deadlines: DeadlineScheduler,
+    private readonly attenuation?: LocalAttenuation,
   ) {
     if (!Number.isSafeInteger(replyTimeoutMs) || replyTimeoutMs <= 0
       || !Number.isSafeInteger(answerTimeoutMs) || answerTimeoutMs <= 0) {
@@ -66,8 +72,15 @@ export class VoiceSession {
 
   private applyEvent(event: VoiceTurnEvent): void {
     if (this.failureInProgress) return;
+    const before = this.current.phase;
     const transition = advanceVoiceTurn(this.current, event);
     this.current = transition.state;
+    if (this.attenuation && before === 'waiting_wake_word' && transition.state.phase !== 'waiting_wake_word') {
+      const attenuation = this.attenuation;
+      this.attenuated = this.enqueueAttenuation(() => attenuation.attenuate());
+    } else if (before !== 'waiting_wake_word' && transition.state.phase === 'waiting_wake_word') {
+      this.restoreAttenuation();
+    }
     for (const action of transition.actions) {
       switch (action) {
         case 'open_call': {
@@ -96,7 +109,9 @@ export class VoiceSession {
         case 'clear_answer_timeout': this.clearAnswerTimer(); break;
         case 'play_ready_cue': {
           const generation = this.generation;
-          void this.ports.playReadyCue().then(() => {
+          // Other local audio is lowered before the cue, so the person speaks over quiet music.
+          const cue = this.attenuation ? this.attenuated.then(() => this.ports.playReadyCue()) : this.ports.playReadyCue();
+          void cue.then(() => {
             if (generation === this.generation) this.applyEvent({ kind: 'ready_cue_played' });
           }, error => { if (generation === this.generation) void this.fail(error); });
           break;
@@ -122,6 +137,7 @@ export class VoiceSession {
     finally {
       this.current = initialVoiceTurnState;
       this.failureInProgress = false;
+      this.restoreAttenuation();
     }
   }
 
@@ -130,8 +146,22 @@ export class VoiceSession {
     this.clearReplyTimer();
     this.clearAnswerTimer();
     this.current = { phase: 'closing_call' };
-    await this.ports.closeCall();
-    this.current = initialVoiceTurnState;
+    try { await this.ports.closeCall(); }
+    finally {
+      this.current = initialVoiceTurnState;
+      if (this.attenuation) { const attenuation = this.attenuation; await this.enqueueAttenuation(() => attenuation.restore()); }
+    }
+  }
+
+  private restoreAttenuation(): void {
+    if (!this.attenuation) return;
+    const attenuation = this.attenuation;
+    void this.enqueueAttenuation(() => attenuation.restore());
+  }
+
+  private enqueueAttenuation(operation: () => Promise<void>): Promise<void> {
+    this.attenuationQueue = this.attenuationQueue.then(operation).catch(() => {});
+    return this.attenuationQueue;
   }
 
   private clearReplyTimer(): void {

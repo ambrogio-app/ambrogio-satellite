@@ -5,6 +5,7 @@ import { isWakeWordId } from './wake-word-catalog.js';
 export type InvalidConfiguration = Readonly<{
   kind: 'invalid_configuration';
   field: 'config' | 'backend.baseUrl' | 'client.id' | 'client.name' | 'audio.microphone' | 'audio.speaker'
+    | 'audio.attenuation'
     | 'wakeWord.model' | 'wakeWord.threshold' | 'wakeWord.patience' | 'interaction.replyTimeoutMs';
 }>;
 
@@ -13,7 +14,8 @@ type Result<T> = Readonly<{ ok: true; value: T }> | Readonly<{ ok: false; error:
 export type SatelliteConfig = Readonly<{
   backend: Readonly<{ baseUrl: URL; sessionUrl: URL }>;
   client: Readonly<{ clientId: string; name: string }>;
-  audio: Readonly<{ microphone?: string; speaker?: string }>;
+  audio: Readonly<{ microphone?: string; speaker?: string;
+    attenuation?: Readonly<{ device: string; control: string; level: number }> }>;
   wakeWord: Readonly<{ model: string; threshold: number; patience: number }>;
   interaction: Readonly<{ replyTimeoutMs: number }>;
 }>;
@@ -33,6 +35,22 @@ function audioSelector(value: unknown, field: 'audio.microphone' | 'audio.speake
     return { ok: false, error: { kind: 'invalid_configuration', field } };
   }
   return { ok: true, value };
+}
+
+function nonEmptyTrimmed(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '' && value === value.trim();
+}
+
+/** The optional ALSA control lowered during an interaction, with its level in percent. */
+export function parseAttenuation(value: unknown): Result<Readonly<{ device: string; control: string; level: number }> | undefined> {
+  if (value === undefined) return { ok: true, value: undefined };
+  const invalid = { ok: false as const, error: { kind: 'invalid_configuration' as const, field: 'audio.attenuation' as const } };
+  const settings = record(value);
+  if (!settings || !onlyKeys(settings, ['device', 'control', 'level'])) return invalid;
+  const { device, control, level } = settings;
+  if (!nonEmptyTrimmed(device) || !nonEmptyTrimmed(control)) return invalid;
+  if (typeof level !== 'number' || !Number.isSafeInteger(level) || level < 0 || level > 100) return invalid;
+  return { ok: true, value: { device, control, level } };
 }
 
 export function parseBackendBaseUrl(value: unknown): Result<Readonly<{ baseUrl: URL; sessionUrl: URL }>> {
@@ -87,13 +105,15 @@ export function parseSatelliteConfig(input: unknown, availableModels: ReadonlySe
   if (!name.ok) return name;
 
   const audio = root.audio === undefined ? {} : record(root.audio);
-  if (!audio || !onlyKeys(audio, ['microphone', 'speaker'])) {
+  if (!audio || !onlyKeys(audio, ['microphone', 'speaker', 'attenuation'])) {
     return { ok: false, error: { kind: 'invalid_configuration', field: 'config' } };
   }
   const microphone = audioSelector(audio.microphone, 'audio.microphone');
   if (!microphone.ok) return microphone;
   const speaker = audioSelector(audio.speaker, 'audio.speaker');
   if (!speaker.ok) return speaker;
+  const attenuation = parseAttenuation(audio.attenuation);
+  if (!attenuation.ok) return attenuation;
 
   const wakeWord = root.wakeWord === undefined ? {} : record(root.wakeWord);
   if (!wakeWord || !onlyKeys(wakeWord, ['model', 'threshold', 'patience'])) {
@@ -125,6 +145,7 @@ export function parseSatelliteConfig(input: unknown, availableModels: ReadonlySe
     audio: {
       ...(microphone.value === undefined ? {} : { microphone: microphone.value }),
       ...(speaker.value === undefined ? {} : { speaker: speaker.value }),
+      ...(attenuation.value === undefined ? {} : { attenuation: attenuation.value }),
     },
     wakeWord: { model, threshold, patience },
     interaction: { replyTimeoutMs: timeout.value },

@@ -125,3 +125,40 @@ describe('satellite configuration', () => {
       error: { kind: 'invalid_configuration', field } });
   });
 });
+
+describe('local attenuation configuration', () => {
+  const base = { backend: { baseUrl: 'http://localhost:3000' } };
+
+  it('is absent when the audio section does not name a control', () => {
+    const result = parseSatelliteConfig(base, distributedModels, 'host');
+    expect(result.ok && result.value.audio.attenuation).toBe(undefined);
+  });
+
+  it.each([0, 25, 100])('accepts a control with level %i', level => {
+    const result = parseSatelliteConfig({ ...base,
+      audio: { speaker: 'alsa:shared', attenuation: { device: 'hw:CARD=Example', control: 'Music', level } } },
+    distributedModels, 'host');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.audio).toEqual({ speaker: 'alsa:shared',
+        attenuation: { device: 'hw:CARD=Example', control: 'Music', level } });
+    }
+  });
+
+  it.each([
+    { control: 'Music', level: 25 },
+    { device: 'hw:CARD=Example', level: 25 },
+    { device: 'hw:CARD=Example', control: 'Music' },
+    { device: '', control: 'Music', level: 25 },
+    { device: 'hw:CARD=Example', control: ' Music', level: 25 },
+    { device: 'hw:CARD=Example', control: 'Music', level: -1 },
+    { device: 'hw:CARD=Example', control: 'Music', level: 101 },
+    { device: 'hw:CARD=Example', control: 'Music', level: 12.5 },
+    { device: 'hw:CARD=Example', control: 'Music', level: '25' },
+    { device: 'hw:CARD=Example', control: 'Music', level: 25, mode: 'db' },
+    'hw:CARD=Example',
+  ])('rejects %j', attenuation => {
+    expect(parseSatelliteConfig({ ...base, audio: { attenuation } }, distributedModels, 'host')).toEqual({
+      ok: false, error: { kind: 'invalid_configuration', field: 'audio.attenuation' } });
+  });
+});

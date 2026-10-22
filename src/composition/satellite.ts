@@ -2,6 +2,7 @@ import { NodeDeadlineScheduler } from '../adapters/out/node-deadline-scheduler.a
 import { VoiceSession } from '../application/voice-session.use-case.js';
 import { createConversationEventsAdapter } from '../adapters/in/conversation-events.adapter.js';
 import { createConversationCallAdapter } from '../adapters/out/conversation-call.adapter.js';
+import { AmixerAttenuation } from '../adapters/out/amixer-attenuation.adapter.js';
 import { AudioReserve } from '../adapters/out/audio-reserve.js';
 import { ConversationChannel } from '../adapters/out/conversation-channel.js';
 import { diagnostics } from '../adapters/out/diagnostics.js';
@@ -43,6 +44,9 @@ export async function startSatellite(config: SatelliteConfig, signal?: AbortSign
     pushWakeFrames: frames => { wake?.push(frames); },
   });
   const microphone = new MicrophoneInput(config.audio.microphone);
+  const attenuation = config.audio.attenuation
+    ? new AmixerAttenuation(config.audio.attenuation, (operation, reason) => diagnostics.attenuationFailed(operation, reason))
+    : undefined;
   function stop(): Promise<void> {
     if (stopped) return stopped;
     stopping = true;
@@ -81,7 +85,10 @@ export async function startSatellite(config: SatelliteConfig, signal?: AbortSign
       speaker: config.audio.speaker, wake,
       isStopping: () => stopping,
     });
-    session = new VoiceSession(call, config.interaction.replyTimeoutMs, ANSWER_TIMEOUT_MS, new NodeDeadlineScheduler());
+    session = new VoiceSession(call, config.interaction.replyTimeoutMs, ANSWER_TIMEOUT_MS, new NodeDeadlineScheduler(),
+      attenuation);
+    // A previous process may have stopped while other local audio was lowered.
+    await attenuation?.restore();
     await microphone.start(events.frames, events.failed);
     checkStopping();
     // The session is persistent: open it now; an unreachable backend is retried at the next activation.
