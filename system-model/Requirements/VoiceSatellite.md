@@ -98,6 +98,7 @@ L'interazione comprende le repliche richieste dal backend: l'attenuazione resta 
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [local-attenuation.ts](../../src/application/local-attenuation.ts)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -503,6 +504,7 @@ Se la regolazione del controllo di attenuazione non riesce, il satellite deve pr
   * [Attenuazione locale con softvol e amixer](../Contracts/VoiceSatellite.md#attenuazione-locale-con-softvol-e-amixer)
 
 #### Relations
+  * satisfiedBy: [amixer-attenuation.adapter.ts](../../src/adapters/out/amixer-attenuation.adapter.ts)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---

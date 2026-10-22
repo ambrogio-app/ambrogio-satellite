@@ -594,7 +594,9 @@ La prova passa se senza configurazione non avviene alcuna regolazione; se con la
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [amixer-attenuation.test.ts](../../test/adapters/out/amixer-attenuation.test.ts)
   * satisfiedBy: [configuration.test.ts](../../test/adapters/out/configuration.test.ts)
+  * satisfiedBy: [voice-session-attenuation.test.ts](../../test/application/voice-session-attenuation.test.ts)
   * verify: [Attenuazione dell'audio locale durante l'interazione](../Requirements/VoiceSatellite.md#attenuazione-dellaudio-locale-durante-linterazione)
   * verify: [Interazione indipendente dall'attenuazione](../Requirements/VoiceSatellite.md#interazione-indipendente-dallattenuazione)
   * verify: [Ripristino dell'attenuazione all'avvio e all'arresto](../Requirements/VoiceSatellite.md#ripristino-dellattenuazione-allavvio-e-allarresto)
