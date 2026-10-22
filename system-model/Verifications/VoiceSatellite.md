@@ -82,6 +82,21 @@ Chiudere la sessione lato backend mentre il satellite attende la wake word e ver
   * verify: [Sessione conversazionale persistente](../Requirements/VoiceSatellite.md#sessione-conversazionale-persistente)
 ---
 
+### Dimostrazione dell'attenuazione sul dispositivo
+
+Sull'installazione di riferimento, con il satellite in container e un player musicale che suona attraverso un dispositivo ALSA `softvol` sulla stessa uscita, pronunciare la wake word durante la riproduzione, porre una domanda e attendere la risposta; ripetere con una replica richiesta dal backend e con un'interazione conclusa per inattività. Durante ogni interazione leggere il controllo con `amixer` e ascoltare il volume della musica.
+
+#### Details
+La prova passa se la musica si abbassa prima del segnale di ascolto, resta abbassata durante il parlato e la risposta, comprese le repliche, e torna al volume precedente al ritorno in attesa della wake word, mentre la voce del satellite resta al volume pieno. Registrare architettura, hardware e versione usati, senza dati dell'installazione.
+
+#### Metadata
+  * type: demonstration-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Attenuazione dell'audio locale durante l'interazione](../Requirements/VoiceSatellite.md#attenuazione-dellaudio-locale-durante-linterazione)
+---
+
 ### Dimostrazione dell'hook dei segreti
 
 In un clone con `core.hooksPath` impostato a `.githooks`, mettere in staging un file con una credenziale fittizia nel formato di un fornitore noto e tentare il commit: il commit è bloccato e il valore non compare nell'output. Ripetere con modifiche prive di segreti: il commit riesce. Ripetere con `gitleaks` assente dal `PATH`: il commit è bloccato con il messaggio che indica installazione e attivazione. Annullare le modifiche di prova senza lasciarle nella storia.
@@ -565,6 +580,23 @@ La prova passa se il tono di errore è PCM16 mono a 16 kHz di 5600 campioni (350
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [local-tones.test.ts](../../test/adapters/out/local-tones.test.ts)
   * verify: [Tono di errore per backend irraggiungibile](../Requirements/VoiceSatellite.md#tono-di-errore-per-backend-irraggiungibile)
+---
+
+### Prova dell'attenuazione dell'audio locale
+
+Con una porta di attenuazione registrata nei test, avviare il satellite con e senza `audio.attenuation`, riconoscere la wake word e concludere l'interazione dopo la risposta, dopo una replica richiesta dal backend, per inattività, per backend irraggiungibile e per perdita della sessione; arrestare poi il processo. Con un esecutore di processi registrato, provare l'adapter `amixer` con esito riuscito, controllo inesistente, codice di uscita diverso da zero e scadenza del tempo massimo. Validare la configurazione con valori corretti, campi mancanti, `level` fuori da 0-100 e campi non previsti.
+
+#### Details
+La prova passa se senza configurazione non avviene alcuna regolazione; se con la configurazione il satellite porta il controllo al 100% all'avvio, al livello configurato alla wake word prima del segnale acustico di disponibilità e di nuovo al 100% al ritorno in attesa della wake word in ogni conclusione, mantenendolo attenuato durante le repliche; se lo porta al 100% durante l'arresto controllato; se l'adapter esegue `amixer -D <device> -q sset <control> <livello>%` senza shell; se il controllo inesistente non produce eventi di guasto mentre gli altri errori e la scadenza producono `satellite_attenuation_failed` senza interrompere l'interazione o l'attesa; e se la configurazione invalida è rifiutata prima dell'avvio operativo.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Attenuazione dell'audio locale durante l'interazione](../Requirements/VoiceSatellite.md#attenuazione-dellaudio-locale-durante-linterazione)
+  * verify: [Interazione indipendente dall'attenuazione](../Requirements/VoiceSatellite.md#interazione-indipendente-dallattenuazione)
+  * verify: [Ripristino dell'attenuazione all'avvio e all'arresto](../Requirements/VoiceSatellite.md#ripristino-dellattenuazione-allavvio-e-allarresto)
 ---
 
 ### Prova dell'evento di attivazione locale

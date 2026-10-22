@@ -83,6 +83,24 @@ Il satellite non deve conservare su memoria persistente l’audio acquisito dall
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Attenuazione dell'audio locale durante l'interazione
+
+Dove la configurazione indica un controllo di attenuazione, quando riconosce la wake word il satellite deve portare quel controllo al livello configurato prima del segnale acustico di disponibilità e riportarlo al livello pieno quando torna in attesa della wake word, qualunque sia la conclusione dell'interazione.
+
+#### Details
+L'interazione comprende le repliche richieste dal backend: l'attenuazione resta attiva finché il satellite non torna in attesa della wake word, dopo la risposta, per inattività, dopo un fallimento o per la perdita della sessione durante l'interazione. Il controllo attenua soltanto gli altri flussi audio locali che lo attraversano, come un player musicale; la voce del satellite non lo attraversa.
+
+#### Concept References
+  * [Interazione vocale](../Thesaurus/Lessico.md#interazione-vocale)
+  * [Dispositivo audio](../Thesaurus/Lessico.md#dispositivo-audio)
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Attesa della fine della risposta
 
 Mentre riproduce la risposta di Ambrogio, il satellite deve impedire interruzioni vocali e nuovi turni, e deve considerare conclusa la risposta soltanto quando ha ricevuto l'esito del turno e ha riprodotto tutti i campioni delle trasmissioni del turno chiuse da `output.end`. La riapertura della replica o il ritorno alla wake word avvengono soltanto dopo questa conclusione. Se l'esito non arriva entro 60 secondi dalla fine della richiesta, il satellite conclude l'interazione con il recupero locale.
@@ -473,6 +491,20 @@ Domain e Application del satellite devono usare soltanto API standard ECMAScript
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Interazione indipendente dall'attenuazione
+
+Se la regolazione del controllo di attenuazione non riesce, il satellite deve proseguire l'interazione o l'attesa della wake word senza interromperla e registrare un evento diagnostico del guasto.
+
+#### Metadata
+  * type: requirement
+
+#### Contract Bindings
+  * [Attenuazione locale con softvol e amixer](../Contracts/VoiceSatellite.md#attenuazione-locale-con-softvol-e-amixer)
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Invio soltanto su sessione pronta
 
 Il satellite deve inviare messaggi e frame audio soltanto su una sessione conversazionale pronta, senza terminare il processo per un errore di stato della connessione, e non deve mai riprendere su una nuova sessione una richiesta o una trasmissione iniziata su quella precedente. Il ripristino dell'interazione e l'eventuale perdita di un turno seguono le regole di recupero del satellite, senza reinvio automatico di audio già acquisito.
@@ -699,6 +731,23 @@ Quando termina o fallisce durante un avvio parziale, il satellite deve tentare i
 #### Relations
   * definedBy: [Ciclo di arresto e rilascio delle risorse](../Contracts/VoiceSatellite.md#ciclo-di-arresto-e-rilascio-delle-risorse)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Ripristino dell'attenuazione all'avvio e all'arresto
+
+Dove la configurazione indica un controllo di attenuazione, il satellite deve portare quel controllo al livello pieno all'avvio, prima di attendere la wake word, e durante l'arresto controllato.
+
+#### Details
+Il ripristino all'avvio corregge un'attenuazione rimasta attiva dopo un'interruzione improvvisa del processo, senza conservare il livello precedente.
+
+#### Metadata
+  * type: requirement
+
+#### Contract Bindings
+  * [Attenuazione locale con softvol e amixer](../Contracts/VoiceSatellite.md#attenuazione-locale-con-softvol-e-amixer)
+
+#### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
