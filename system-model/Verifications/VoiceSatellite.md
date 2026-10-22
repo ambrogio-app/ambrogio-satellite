@@ -89,6 +89,8 @@ Sull'installazione di riferimento, con il satellite in container e un player mus
 #### Details
 La prova passa se la musica si abbassa prima del segnale di ascolto, resta abbassata durante il parlato e la risposta, comprese le repliche, e torna al volume precedente al ritorno in attesa della wake word, mentre la voce del satellite resta al volume pieno. Registrare architettura, hardware e versione usati, senza dati dell'installazione.
 
+2026-10-22, esito parziale. Installazione di riferimento: Raspberry Pi 3B con Debian 13 arm64, scheda USB con microfono e uscita a 16 kHz, satellite `v0.4.0` in Docker, player Squeezelite in un secondo container sullo stesso dispositivo, uscita del player su `softvol` davanti a un `dmix` condiviso con il satellite, `level` 25. Prima della prova, senza riproduzione udibile, `amixer` ha portato il controllo al 25% e al 100% e il satellite all'avvio ha ignorato il controllo non ancora creato senza eventi di guasto. Interazione con domanda e risposta durante la musica: la persona ha sentito la musica abbassarsi e poi risalire; il controllo, letto ogni 0,3 secondi, è passato al 25% entro un secondo dalla wake word ed è tornato al 100% al ritorno in attesa, circa sei secondi dopo; la voce del satellite si sentiva. Restano da eseguire la replica richiesta dal backend e l'interazione conclusa per inattività. La lettura periodica non misura l'ordine rispetto al segnale di ascolto, verificato dalla prova automatica.
+
 #### Metadata
   * type: demonstration-verification
 
