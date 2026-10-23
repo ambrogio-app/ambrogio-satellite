@@ -76,7 +76,7 @@ The [`config.example.ts`](config.example.ts) module reads the satellite settings
 For Docker Compose, use [`compose.example.yaml`](compose.example.yaml):
 
 ```bash
-AMBROGIO_SATELLITE_VERSION=v0.5.0 AMBROGIO_BACKEND_URL=http://ambrogio.example.test:3000 \
+AMBROGIO_SATELLITE_VERSION=v0.6.0 AMBROGIO_BACKEND_URL=http://ambrogio.example.test:3000 \
   docker compose -f compose.example.yaml up -d
 ```
 
