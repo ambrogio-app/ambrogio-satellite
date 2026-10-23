@@ -1,59 +1,69 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { dirname, join, normalize, relative } from 'node:path';
+import { dirname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { type Node, SyntaxKind } from 'typescript/unstable/ast';
-import { API } from 'typescript/unstable/sync';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const tracked = execFileSync('git', ['-C', root, 'ls-files'], { encoding: 'utf8' }).split('\n').filter(Boolean);
 const sources = tracked.filter(path => /^(src|test)\/.*\.ts$/.test(path));
 
+type Specifier = Readonly<{ specifier: string; typeOnly: boolean }>;
 type Import = Readonly<{ from: string; specifier: string; target?: string; typeOnly: boolean }>;
-let imports: Import[] = [];
-let read: string[] = [];
 
-/** Reads every import, export, dynamic import and import type with the TypeScript 7 compiler API. */
-function collect(): void {
-  const api = new API({ cwd: root });
-  try {
-    const [project] = api.updateSnapshot({ openProject: join(root, 'tsconfig.json') }).getProjects();
-    if (!project) throw new Error('tsconfig.json was not loaded');
-    for (const path of sources) {
-      const file = project.program.getSourceFile(join(root, path));
-      if (!file) continue;
-      read.push(path);
-      const add = (specifier: string, typeOnly: boolean) => {
-        const target = specifier.startsWith('.')
-          ? normalize(join(dirname(path), specifier)).replace(/\.js$/, '.ts') : undefined;
-        imports.push({ from: path, specifier, target, typeOnly });
-      };
-      const visit = (node: Node): void => {
-        const any = node as any;
-        if (node.kind === SyntaxKind.ImportDeclaration) {
-          const clause = any.importClause;
-          const named = clause?.namedBindings?.kind === SyntaxKind.NamedImports ? clause.namedBindings.elements : undefined;
-          const typeOnly = clause?.phaseModifier === SyntaxKind.TypeKeyword || clause?.isTypeOnly === true
-            || (!!named && !clause.name && named.length > 0 && named.every((element: any) => element.isTypeOnly));
-          add(any.moduleSpecifier.text, typeOnly);
-        } else if (node.kind === SyntaxKind.ExportDeclaration && any.moduleSpecifier) {
-          add(any.moduleSpecifier.text, any.isTypeOnly === true);
-        } else if (node.kind === SyntaxKind.CallExpression && any.expression.kind === SyntaxKind.ImportKeyword) {
-          const argument = any.arguments[0];
-          // A computed specifier, such as the configuration module chosen at run time, has no layer.
-          add(argument?.kind === SyntaxKind.StringLiteral ? argument.text : '<computed>', false);
-        } else if (node.kind === SyntaxKind.ImportType) {
-          add(any.argument.literal.text, true);
-        } else if (node.kind === SyntaxKind.ImportEqualsDeclaration
-          && any.moduleReference.kind === SyntaxKind.ExternalModuleReference) {
-          add(any.moduleReference.expression.text, false);
-        }
-        node.forEachChild(visit);
-      };
-      file.forEachChild(visit);
+/**
+ * Reads import specifiers as text. Comments are removed and every string or template literal becomes a
+ * numbered token first, so text inside comments and strings never looks like an import.
+ */
+function readSpecifiers(source: string): Specifier[] {
+  const literals: string[] = [];
+  let code = '';
+  for (let index = 0; index < source.length;) {
+    const char = source[index]!;
+    const next = source[index + 1];
+    if (char === '/' && next === '/') {
+      while (index < source.length && source[index] !== '\n') index++;
+    } else if (char === '/' && next === '*') {
+      const close = source.indexOf('*/', index + 2);
+      index = close < 0 ? source.length : close + 2;
+      code += ' ';
+    } else if (char === "'" || char === '"' || char === '`') {
+      let end = index + 1;
+      while (end < source.length && source[end] !== char) end += source[end] === '\\' ? 2 : 1;
+      literals.push(char === '`' ? '<computed>' : source.slice(index + 1, end));
+      code += `"#${literals.length - 1}"`;
+      index = end + 1;
+    } else {
+      code += char;
+      index++;
     }
-  } finally { api.close(); }
+  }
+  const literal = (token: string) => literals[Number(token)]!;
+  const found: Array<Specifier & { at: number }> = [];
+  for (const match of code.matchAll(/\b(import|export)\s+(type\s+)?([^";]*?)\bfrom\s*"#(\d+)"/g)) {
+    const [, keyword, typeKeyword, clause] = match;
+    const named = /^\{([^}]*)\}$/.exec(clause!.trim());
+    const elements = named?.[1]!.split(',').map(element => element.trim()).filter(Boolean) ?? [];
+    const allTypes = elements.length > 0 && elements.every(element => element.startsWith('type '));
+    found.push({ at: match.index, specifier: literal(match[4]!),
+      typeOnly: !!typeKeyword || (keyword === 'import' && allTypes) || (keyword === 'export' && allTypes) });
+  }
+  for (const match of code.matchAll(/\bimport\s*"#(\d+)"/g)) {
+    found.push({ at: match.index, specifier: literal(match[1]!), typeOnly: false });
+  }
+  for (const match of code.matchAll(/\bimport\s*\(\s*(?:"#(\d+)"\s*)?/g)) {
+    found.push({ at: match.index, specifier: match[1] === undefined ? '<computed>' : literal(match[1]), typeOnly: false });
+  }
+  return found.sort((a, b) => a.at - b.at).map(({ specifier, typeOnly }) => ({ specifier, typeOnly }));
+}
+
+let imports: Import[] = [];
+
+function collect(): void {
+  imports = sources.flatMap(path => readSpecifiers(readFileSync(join(root, path), 'utf8')).map(({ specifier, typeOnly }) => ({
+    from: path, specifier, typeOnly,
+    target: specifier.startsWith('.') ? normalize(join(dirname(path), specifier)).replace(/\.js$/, '.ts') : undefined,
+  })));
 }
 
 /** Production layer of a file under `src`. */
@@ -66,12 +76,29 @@ function layer(path: string): string {
 const production = (from: string) => imports.filter(entry => entry.from === from && entry.target?.startsWith('src/'));
 const filesOf = (prefix: string) => sources.filter(path => path.startsWith(prefix));
 
-beforeAll(collect, 60_000);
-afterAll(() => { imports = []; read = []; });
+beforeAll(collect);
 
 describe('import boundaries', () => {
-  it('reads every tracked TypeScript file and resolves every relative import inside the repository', () => {
-    expect(read).toEqual(sources);
+  it('reads the self-check sample exactly', () => {
+    const sample = readFileSync(new URL('./import-sample.txt', import.meta.url), 'utf8');
+    expect(readSpecifiers(sample)).toEqual([
+      { specifier: './value.js', typeOnly: false },
+      { specifier: './only-type.js', typeOnly: true },
+      { specifier: './all-types.js', typeOnly: true },
+      { specifier: './mixed.js', typeOnly: false },
+      { specifier: './multi-line.js', typeOnly: false },
+      { specifier: 'node:path', typeOnly: false },
+      { specifier: './side-effect.js', typeOnly: false },
+      { specifier: './reexport.js', typeOnly: false },
+      { specifier: './reexport-type.js', typeOnly: true },
+      { specifier: './star.js', typeOnly: false },
+      { specifier: './dynamic.js', typeOnly: false },
+      { specifier: '<computed>', typeOnly: false },
+    ]);
+  });
+
+  it('finds layer files and resolves every relative import inside the repository', () => {
+    expect(imports.length).toBeGreaterThan(sources.length);
     for (const layerPrefix of ['src/domain/', 'src/application/', 'src/adapters/in/', 'src/adapters/out/',
       'src/composition/', 'test/domain/', 'test/application/', 'test/adapters/in/', 'test/adapters/out/']) {
       expect(filesOf(layerPrefix).length, layerPrefix).toBeGreaterThan(0);
@@ -127,6 +154,6 @@ describe('single project', () => {
     const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
     expect(manifest).not.toHaveProperty('workspaces');
     expect(readFileSync(join(root, 'pnpm-workspace.yaml'), 'utf8')).not.toMatch(/^packages:/m);
-    expect(relative(root, join(root, 'pnpm-workspace.yaml'))).toBe('pnpm-workspace.yaml');
+    expect(tracked).toContain('pnpm-workspace.yaml');
   });
 });

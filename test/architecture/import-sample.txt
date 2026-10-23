@@ -1,0 +1,21 @@
+// Self-check input for the textual import reader of import-boundaries.test.ts.
+// import { commented } from './line-comment.js';
+/* import { blocked } from './block-comment.js';
+   export * from './block-comment-export.js'; */
+import { value } from './value.js';
+import type { OnlyType } from './only-type.js';
+import { type A, type B } from './all-types.js';
+import Default, { type C } from './mixed.js';
+import {
+  multi,
+  line,
+} from './multi-line.js';
+import * as namespace from 'node:path';
+import './side-effect.js';
+export { value as reexported } from './reexport.js';
+export type { OnlyType as Reexported } from './reexport-type.js';
+export * from './star.js';
+const url = 'https://example.test/not-a-comment'; // trailing comment with import('./trailing.js')
+const literal = await import('./dynamic.js');
+const computed = await import(`${url}?revision=1`);
+const text = "import { quoted } from 'inside-a-string'";
