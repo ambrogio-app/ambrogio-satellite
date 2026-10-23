@@ -290,7 +290,10 @@ Quando una modifica viene inviata al branch main o proposta tramite pull request
 
 ### Controlli obbligatori prima del merge
 
-Quando una pull request viene integrata nel branch principale del satellite, il repository deve impedire il merge se i controlli CI richiesti non sono superati.
+Quando una modifica viene integrata nel branch principale, il repository GitHub deve accettarla soltanto tramite una pull request i cui controlli della CI e scansione dei segreti sono superati, e deve rifiutare il push diretto, la riscrittura forzata e la cancellazione del branch principale.
+
+#### Details
+La regola vale per chiunque, amministratori compresi: ogni modifica passa da un branch e da una pull request, così che CI e scansione dei segreti precedano sempre l'integrazione.
 
 #### Metadata
   * type: requirement
@@ -1209,3 +1212,4 @@ Una verifica automatizzabile è una verifica di test. Reqvire registra che una v
 #### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
+
