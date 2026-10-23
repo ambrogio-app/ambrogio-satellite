@@ -2,11 +2,11 @@
 
 Questo repository contiene il client satellite vocale di Ambrogio. Il workspace Reqvire canonico è la radice di questo repository e il modello è in `system-model/`. Il backend e il contratto pubblico della voce appartengono al repository separato `ambrogio-backend`.
 
-Prima di usare Reqvire, verificare radice Git, branch e workspace interessato. Non trattare i modelli o le sessioni MCP di repository diversi come un unico grafo. Usare una porta MCP distinta da quelle del backend e di `ambrogio-cli`; la porta locale prevista per questo repository è `8084`.
+Prima di usare Reqvire, verificare radice Git, branch e workspace interessato. Non trattare i modelli di repository diversi come un unico grafo.
 
 Prima di introdurre una scelta tecnica o architetturale nuova, presentare alternative e conseguenze, concordare la decisione con la persona e registrarla nel modello prima del codice. Seguire per le modifiche funzionali l'ordine: capability, concetti e ontologie se utili, requisiti, contratti, contratti semantici se necessari, verifiche, test e implementazione, validazione e revisione.
 
-Consultare la documentazione ufficiale di Reqvire su https://reqvire.org/ e verificare i comandi della versione installata. Preferire MCP per l'authoring e CLI per i controlli ripetibili. Non modificare direttamente il modello mentre una sessione MCP con mutazioni ne possiede lo snapshot.
+Consultare la documentazione ufficiale di Reqvire su https://reqvire.org/ e verificare i comandi della versione installata. Usare soltanto la CLI Reqvire 1.3.2, per l'authoring come per i controlli ripetibili; non si usano server MCP Reqvire. Quando la CLI non offre l'operazione, modificare direttamente il file Markdown del modello e poi eseguire `format`, `validate` e `lint`.
 
 Il modello del satellite deve registrare la versione compatibile del contratto vocale posseduto dal backend e le proprie obbligazioni. Dopo modifiche significative, eseguire `validate`, `lint`, `coverage` e `change-impact` e interpretare i risultati. Un collegamento a un test non ne certifica l'esito. Valutare l'impatto su sito e documentazione utente nei rispettivi repository esterni quando cambia un comportamento pubblico.
 

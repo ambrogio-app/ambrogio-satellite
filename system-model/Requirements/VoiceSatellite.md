@@ -27,6 +27,10 @@ Mentre attende una nuova interazione, il satellite deve acquisire continuamente 
 #### Metadata
   * type: requirement
 
+#### Contract References
+  * [Adapter audio con Decibri](../Contracts/VoiceSatellite.md#adapter-audio-con-decibri)
+  * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
+
 #### Relations
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
@@ -96,6 +100,7 @@ Mentre riproduce la risposta di Ambrogio, il satellite deve impedire interruzion
   * type: requirement
 
 #### Contract References
+  * [Adapter audio con Decibri](../Contracts/VoiceSatellite.md#adapter-audio-con-decibri)
   * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
 
 #### Relations
@@ -201,6 +206,12 @@ Il satellite deve caricare da un modulo TypeScript la configurazione del backend
 #### Metadata
   * type: requirement
 
+#### Contract References
+  * [Adapter audio con Decibri](../Contracts/VoiceSatellite.md#adapter-audio-con-decibri)
+  * [Attenuazione locale con softvol e amixer](../Contracts/VoiceSatellite.md#attenuazione-locale-con-softvol-e-amixer)
+  * [Catalogo e selezione dei modelli](../Contracts/VoiceSatellite.md#catalogo-e-selezione-dei-modelli)
+  * [Identità del satellite nella sessione](../Contracts/VoiceSatellite.md#identità-del-satellite-nella-sessione)
+
 #### Relations
   * satisfiedBy: [config-file.ts](../../src/adapters/out/config-file.ts)
   * satisfiedBy: [configuration.ts](../../src/adapters/out/configuration.ts)
@@ -263,10 +274,14 @@ Quando gli adapter interagiscono con i casi d'uso del satellite, devono usare da
 
 ### Controlli CI delle modifiche del satellite
 
-Quando una modifica viene proposta tramite pull request, la CI del satellite deve eseguire validazione e lint Reqvire, controllo TypeScript completo e dei layer interni, suite Vitest e build, segnalando il fallimento se uno dei controlli fallisce.
+Quando una modifica viene inviata al branch main o proposta tramite pull request, quando la CI viene avviata manualmente e quando un altro workflow la richiama, la CI del satellite deve eseguire validazione e lint Reqvire, controllo TypeScript completo e dei layer interni, suite Vitest e build, segnalando il fallimento se uno dei controlli fallisce.
 
 #### Metadata
   * type: requirement
+
+#### Contract References
+  * [Protezioni dei workflow GitHub Actions](../Contracts/VoiceSatellite.md#protezioni-dei-workflow-github-actions)
+  * [Script di integrità del modello](../Contracts/VoiceSatellite.md#script-di-integrità-del-modello)
 
 #### Relations
   * satisfiedBy: [ci.yml](../../.github/workflows/ci.yml)
@@ -284,6 +299,22 @@ Quando una pull request viene integrata nel branch principale del satellite, il 
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Controllo automatico dell'integrità del modello
+
+Quando la CI del repository esegue la validazione e il lint del modello Reqvire, deve eseguire anche lo script di integrità del modello e deve fallire se lo script segnala una violazione o non riesce a eseguire.
+
+#### Details
+Il controllo copre le regole di integrità verificabili sul testo e sui file; `validate` e `lint` di Reqvire non le controllano.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * satisfiedBy: [ci.yml](../../.github/workflows/ci.yml)
+  * satisfiedBy: [check-model.mjs](../../scripts/check-model.mjs)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Controllo dei segreti prima del commit locale
 
 Quando si crea un commit in un clone che ha abilitato l'hook versionato del repository, il repository deve bloccare il commit se le modifiche in staging contengono segreti oppure se lo strumento di scansione non è disponibile.
@@ -293,6 +324,23 @@ Quando si crea un commit in un clone che ha abilitato l'hook versionato del repo
 
 #### Relations
   * satisfiedBy: [pre-commit](../../.githooks/pre-commit)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Decisioni sostituite rimosse nella stessa modifica
+
+Quando una decisione ne sostituisce un'altra, la modifica che registra la nuova decisione deve aggiornare o rimuovere ogni requisito, contratto e verifica che afferma la decisione sostituita, e i testi di requisiti, contratti e verifiche non devono riportare date, storia delle decisioni o esiti di esecuzioni.
+
+#### Details
+Il modello descrive gli obblighi validi oggi e come verificarli; la storia è conservata da Git. Decisioni datate accumulate nei contratti convivono con elementi che affermano ancora le decisioni sostituite. Gli esiti dei test sono dati dalla CI; l'esito di una verifica manuale si registra nel messaggio del commit o nella pull request che la esegue, non nel modello.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Script di integrità del modello](../Contracts/VoiceSatellite.md#script-di-integrità-del-modello)
+
+#### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -307,8 +355,25 @@ Durante un'interazione vocale attiva, il satellite deve riconoscere localmente l
 #### Metadata
   * type: requirement
 
+#### Contract References
+  * [Adapter audio con Decibri](../Contracts/VoiceSatellite.md#adapter-audio-con-decibri)
+
 #### Relations
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Dipendenze fra contratti dichiarate come riferimenti
+
+Quando il contenuto di un contratto dipende da un contratto posseduto da un altro requisito, il requisito proprietario del contratto dipendente deve dichiarare una Contract Reference al contratto da cui dipende, e il contratto dipendente non deve ripetere il contenuto di quel contratto.
+
+#### Details
+Le Contract References propagano l'analisi di impatto: una modifica del contratto riferito segnala il contratto dipendente per la revisione. Un contratto che ripete un fatto posseduto da un altro requisito resta invariato quando quel fatto cambia, e il modello finisce per contraddirsi senza che l'analisi di impatto lo segnali.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -319,7 +384,15 @@ Il satellite deve offrire una distribuzione Docker facoltativa per Linux x86_64 
 #### Metadata
   * type: requirement
 
+#### Contract References
+  * [Adapter audio con Decibri](../Contracts/VoiceSatellite.md#adapter-audio-con-decibri)
+  * [Attenuazione locale con softvol e amixer](../Contracts/VoiceSatellite.md#attenuazione-locale-con-softvol-e-amixer)
+  * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
+
 #### Relations
+  * satisfiedBy: [Dockerfile](../../Dockerfile)
+  * satisfiedBy: [compose.example.yaml](../../compose.example.yaml)
+  * satisfiedBy: [pnpm-workspace.yaml](../../pnpm-workspace.yaml)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -342,8 +415,12 @@ Il satellite deve escludere configurazioni personali e credenziali dagli artefat
 #### Metadata
   * type: requirement
 
+#### Contract References
+  * [Esecuzione host e container](../Contracts/VoiceSatellite.md#esecuzione-host-e-container)
+
 #### Relations
   * satisfiedBy: [.dockerignore](../../.dockerignore)
+  * satisfiedBy: [.gitignore](../../.gitignore)
   * satisfiedBy: [Dockerfile](../../Dockerfile)
   * satisfiedBy: [config.example.ts](../../config.example.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
@@ -388,6 +465,23 @@ Quando emette un log tecnico, il satellite deve includere un nome event stabile 
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### File di governo collegati al modello
+
+Ogni workflow di CI, hook Git, file di build del container, esempio Compose, file di esclusione, configurazione del gestore di pacchetti, del compilatore o del runner di test e script del repository deve essere riferito da almeno un requisito o una verifica del modello.
+
+#### Details
+Un file che codifica decisioni ingegneristiche senza un collegamento al modello cambia senza che alcun obbligo lo segnali, e le decisioni presenti solo nei file divergono fra file simili, per esempio fra i workflow di controllo e quello di pubblicazione.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Script di integrità del modello](../Contracts/VoiceSatellite.md#script-di-integrità-del-modello)
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Forma TypeScript dei contratti Application
 
 Quando Application del satellite dichiara una porta a oggetto con operazioni nominate, deve usare interface; quando dichiara dati, unioni o contratti callable, deve usare type.
@@ -399,6 +493,23 @@ Quando Application del satellite dichiara una porta a oggetto con operazioni nom
   * definedBy: [Convenzione TypeScript di porte e dati](../Contracts/VoiceSatellite.md#convenzione-typescript-di-porte-e-dati)
   * satisfiedBy: [deadline-scheduler.ts](../../src/application/deadline-scheduler.ts)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Formulazione normativa degli obblighi
+
+Gli enunciati dei requisiti e i testi dei contratti devono esprimere gli obblighi con «deve» o «devono» e non devono usare `può`, `possono`, `potrebbe`, `potrebbero`, `dovrebbe`, `dovrebbero` o `eventualmente`; un'opzione lasciata a una parte deve essere espressa nominando la parte che sceglie.
+
+#### Details
+Il testo in code span, i messaggi citati e i nomi di elementi tra «» non sono formulazione dell'obbligo. Le sezioni Details dei requisiti sono indicazioni e non vengono controllate. Una formula permissiva rende ambiguo se il comportamento è obbligatorio, facoltativo o scelto da qualcuno, e il codice e il modello finiscono per darne letture diverse.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Script di integrità del modello](../Contracts/VoiceSatellite.md#script-di-integrità-del-modello)
+
+#### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -603,6 +714,23 @@ Nella prima versione, il satellite deve usare i log tecnici strutturati come seg
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Privilegi e durata limitati dei workflow GitHub Actions
+
+I workflow GitHub Actions del repository devono eseguire le azioni esterne fissate per commit, non conservare le credenziali del checkout, terminare ogni job entro un tempo massimo dichiarato e concedere ai job soltanto i permessi necessari, con la scrittura dei pacchetti riservata al job che pubblica le immagini.
+
+#### Details
+Un'azione indicata per tag cambia contenuto senza modifiche al repository; una credenziale conservata nel checkout resta disponibile ai passi successivi; un job senza tempo massimo occupa il runner fino al limite della piattaforma.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * satisfiedBy: [ci.yml](../../.github/workflows/ci.yml)
+  * satisfiedBy: [publish-image.yml](../../.github/workflows/publish-image.yml)
+  * satisfiedBy: [secret-scan.yml](../../.github/workflows/secret-scan.yml)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Progetto unico del satellite
 
 Il satellite deve organizzare Domain, Application e adapter in un solo progetto, senza suddivisione in package di workspace.
@@ -636,6 +764,11 @@ Quando viene creato un tag di release valido, il progetto deve pubblicare su GHC
 
 #### Metadata
   * type: requirement
+
+#### Contract References
+  * [Profilo CI del satellite](../Contracts/VoiceSatellite.md#profilo-ci-del-satellite)
+  * [Profilo della scansione dei segreti con gitleaks](../Contracts/VoiceSatellite.md#profilo-della-scansione-dei-segreti-con-gitleaks)
+  * [Protezioni dei workflow GitHub Actions](../Contracts/VoiceSatellite.md#protezioni-dei-workflow-github-actions)
 
 #### Relations
   * satisfiedBy: [publish-image.yml](../../.github/workflows/publish-image.yml)
@@ -767,6 +900,7 @@ Quando riceve una trasmissione audio della risposta dal backend, il satellite de
   * type: requirement
 
 #### Contract References
+  * [Adapter audio con Decibri](../Contracts/VoiceSatellite.md#adapter-audio-con-decibri)
   * [Contratto vocale backend di riferimento](../Contracts/VoiceSatellite.md#contratto-vocale-backend-di-riferimento)
 
 #### Relations
@@ -812,6 +946,9 @@ Quando una modifica viene inviata a qualunque branch del repository del satellit
 #### Metadata
   * type: requirement
 
+#### Contract References
+  * [Protezioni dei workflow GitHub Actions](../Contracts/VoiceSatellite.md#protezioni-dei-workflow-github-actions)
+
 #### Relations
   * satisfiedBy: [secret-scan.yml](../../.github/workflows/secret-scan.yml)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
@@ -826,6 +963,7 @@ Quando viene creato un tag di release valido, il progetto non deve pubblicare im
 
 #### Contract References
   * [Profilo della scansione dei segreti con gitleaks](../Contracts/VoiceSatellite.md#profilo-della-scansione-dei-segreti-con-gitleaks)
+  * [Profilo di pubblicazione Docker del satellite](../Contracts/VoiceSatellite.md#profilo-di-pubblicazione-docker-del-satellite)
 
 #### Relations
   * satisfiedBy: [publish-image.yml](../../.github/workflows/publish-image.yml)
@@ -834,7 +972,7 @@ Quando viene creato un tag di release valido, il progetto non deve pubblicare im
 
 ### Segnale acustico di disponibilità
 
-Ogni volta che sta per aprire il microfono per un turno della persona, il satellite deve emettere un breve segnale acustico locale e ammettere il parlato soltanto dopo il segnale, così la persona sa quando può parlare.
+Ogni volta che sta per aprire il microfono per un turno della persona, il satellite deve emettere un breve segnale acustico locale e ammettere il parlato soltanto dopo il segnale, così la persona sa da quando il satellite la ascolta.
 
 #### Metadata
   * type: requirement
@@ -843,6 +981,23 @@ Ogni volta che sta per aprire il microfono per un turno della persona, il satell
   * satisfiedBy: [ready-cue.ts](../../src/adapters/out/ready-cue.ts)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * satisfiedBy: [voice-turn.ts](../../src/domain/voice-turn.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Selezione dei dispositivi audio
+
+Quando la configurazione indica `audio.microphone` o `audio.speaker`, il satellite deve acquisire l'audio dal microfono selezionato e riprodurlo sullo speaker selezionato; in assenza del selettore deve usare il dispositivo predefinito del sistema, e se il dispositivo selezionato non è disponibile deve segnalarne il guasto senza sostituirlo con il dispositivo predefinito.
+
+#### Concept References
+  * [Dispositivo audio](../Thesaurus/Lessico.md#dispositivo-audio)
+  * [Configurazione del satellite](../Thesaurus/Lessico.md#configurazione-del-satellite)
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * satisfiedBy: [decibri-audio.ts](../../src/adapters/out/decibri-audio.ts)
+  * satisfiedBy: [microphone-input.ts](../../src/adapters/out/microphone-input.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -935,6 +1090,8 @@ Il satellite deve essere implementato in TypeScript ed eseguito su Node.js.
 
 #### Relations
   * satisfiedBy: [package.json](../../package.json)
+  * satisfiedBy: [tsconfig.build.json](../../tsconfig.build.json)
+  * satisfiedBy: [tsconfig.json](../../tsconfig.json)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -1036,3 +1193,19 @@ Il satellite deve consentire al modulo TypeScript di configurazione di ricavare 
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Verifiche manuali giustificate
+
+Ogni verifica di ispezione, analisi o dimostrazione deve indicare il motivo per cui non è automatizzabile, in una frase che inizia con «Non automatizzabile:».
+
+#### Details
+Una verifica automatizzabile è una verifica di test. Reqvire registra che una verifica esiste, non che sia stata eseguita: una verifica manuale non ripetuta dopo una modifica lascia passare una violazione del requisito.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Script di integrità del modello](../Contracts/VoiceSatellite.md#script-di-integrità-del-modello)
+
+#### Relations
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---

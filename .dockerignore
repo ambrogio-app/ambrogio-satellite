@@ -1,6 +1,7 @@
 .git
 .codex
 node_modules
+**/node_modules
 dist
 system-model
 test
@@ -12,3 +13,5 @@ config.ts
 *.sqlite-*
 *.db
 *.db-*
+*.env
+*.env.*

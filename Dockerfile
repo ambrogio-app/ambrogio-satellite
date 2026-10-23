@@ -12,7 +12,8 @@ RUN pnpm prune --prod
 FROM node:24-bookworm-slim
 
 WORKDIR /app
-LABEL org.opencontainers.image.source="https://github.com/ambrogio-app/ambrogio-satellite"
+LABEL org.opencontainers.image.source="https://github.com/ambrogio-app/ambrogio-satellite" \
+      org.opencontainers.image.licenses="MIT"
 RUN apt-get update && apt-get install -y --no-install-recommends libasound2 libgomp1 alsa-utils \
   && rm -rf /var/lib/apt/lists/*
 RUN mkdir -p /config

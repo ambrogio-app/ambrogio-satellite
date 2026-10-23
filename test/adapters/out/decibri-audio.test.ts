@@ -26,6 +26,31 @@ describe('Decibri device selection', () => {
     });
   });
 
+  it('passes any other microphone selector as a device name', async () => {
+    const open = vi.spyOn(Microphone, 'open').mockResolvedValue({} as Microphone);
+    await openConfiguredMicrophone('USB Microphone');
+    expect(open).toHaveBeenCalledExactlyOnceWith({
+      sampleRate: 16_000, channels: 1, dtype: 'float32', device: 'USB Microphone',
+    });
+  });
+
+  it('leaves the speaker device unset for the system default', async () => {
+    const speaker = { writeAsync: vi.fn().mockResolvedValue(undefined),
+      drainAsync: vi.fn().mockResolvedValue(undefined), stop: vi.fn() } as unknown as Speaker;
+    const open = vi.spyOn(Speaker, 'open').mockResolvedValue(speaker);
+    await playPcm16(oneChunk());
+    expect(open).toHaveBeenCalledExactlyOnceWith({ sampleRate: 16_000, channels: 1, dtype: 'int16' });
+  });
+
+  it('does not fall back to the default speaker when the selected one cannot be opened', async () => {
+    const failure = new Error('device unavailable');
+    const open = vi.spyOn(Speaker, 'open').mockRejectedValue(failure);
+    await expect(playPcm16(oneChunk(), 'alsa:card2')).rejects.toBe(failure);
+    expect(open).toHaveBeenCalledExactlyOnceWith({
+      sampleRate: 16_000, channels: 1, dtype: 'int16', device: { id: 'alsa:card2' },
+    });
+  });
+
   it('waits for queued output to play and releases the speaker', async () => {
     let releaseDrain: (() => void) | undefined;
     const drain = new Promise<void>(resolve => { releaseDrain = resolve; });

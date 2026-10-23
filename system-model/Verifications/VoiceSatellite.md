@@ -2,7 +2,7 @@
 
 ### Verifica del satellite vocale
 
-Organizzare le dimostrazioni operative, le ispezioni e le prove automatiche della prima versione. Ogni verifica concreta registra il proprio metodo, l'esito osservato e ciò che resta da provare.
+Organizzare le dimostrazioni operative, le ispezioni e le prove automatiche della prima versione. Ogni verifica concreta registra il proprio metodo e i criteri con cui passa o fallisce.
 
 #### Metadata
   * type: verification-objective
@@ -10,10 +10,8 @@ Organizzare le dimostrazioni operative, le ispezioni e le prove automatiche dell
 
 ### Dimostrazione degli esiti e della diagnostica
 
-Verifica parziale del 2026-10-16: mapping dei due rifiuti di configurazione esplicito nel bootstrap con default assertNever. In una copia temporanea dei sorgenti è stata aggiunta la variante audit_probe: compilazione rifiutata in main.ts con TS2345 verso never. I sorgenti di lavoro non contengono la variante. Suite di 89 test, typecheck e build PASS; le prove Pino e Application conservano le evidenze su unicità e cause. La lacuna dei log diretti Micdrop, aperta allora, è chiusa dalla rimozione della dipendenza decisa il 17 ottobre 2026; la verifica va ripetuta sul trasporto `ambrogio.v1` e nessuna nuova prova vocale reale è stata eseguita.
-
 #### Details
-Esaminare firme Result e mapping esaustivi dei rifiuti; introdurre una nuova variante in una prova controllata e verificare che il mapping incompleto sia rilevato. Iniettare un guasto attraverso più componenti: una sola diagnosi definitiva al confine, causa originale conservata e nessun logger nei layer interni. Acquisire stdout e verificare una riga JSON per evento. Un rifiuto previsto non diventa automaticamente un log di errore e il messaggio pubblico non contiene dettagli tecnici.
+Esaminare firme Result e mapping esaustivi dei rifiuti; introdurre una nuova variante in una prova controllata e verificare che il mapping incompleto sia rilevato. Iniettare un guasto attraverso più componenti: una sola diagnosi definitiva al confine, causa originale conservata e nessun logger nei layer interni. Acquisire stdout e verificare una riga JSON per evento. Un rifiuto previsto non diventa automaticamente un log di errore e il messaggio pubblico non contiene dettagli tecnici. Non automatizzabile: nella forma attuale la prova del mapping incompleto richiede di introdurre una variante in una copia dei sorgenti e osservare il rifiuto del compilatore; una prova di tipo con `@ts-expect-error` la renderebbe automatica. Le parti ripetibili sono coperte dalla «Prova della diagnostica Pino».
 
 #### Metadata
   * type: demonstration-verification
@@ -29,10 +27,8 @@ Esaminare firme Result e mapping esaustivi dei rifiuti; introdurre una nuova var
 
 ### Dimostrazione del recupero locale
 
-Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
-
 #### Details
-Rendere irraggiungibile il backend e attivare il satellite: si sente il tono di errore locale, due toni discendenti distinguibili dal bip di ascolto, nessun messaggio parlato, e il processo torna in attesa. Ripristinare il backend: senza una nuova attivazione non viene reinviata la richiesta fallita; con una nuova wake word viene tentata una nuova interazione. Ripetere con una disconnessione durante la chiamata. La prova passa se in ogni caso si sente soltanto il tono di errore e il satellite torna disponibile senza riavvio; fallisce se resta muto senza log `satellite_failure`, se pronuncia un messaggio, se reinvia la richiesta o se richiede un riavvio.
+Rendere irraggiungibile il backend e attivare il satellite: si sente il tono di errore locale, due toni discendenti distinguibili dal bip di ascolto, nessun messaggio parlato, e il processo torna in attesa. Ripristinare il backend: senza una nuova attivazione non viene reinviata la richiesta fallita; con una nuova wake word viene tentata una nuova interazione. Ripetere con una disconnessione durante la chiamata. La prova passa se in ogni caso si sente soltanto il tono di errore e il satellite torna disponibile senza riavvio; fallisce se resta muto senza log `satellite_failure`, se pronuncia un messaggio, se reinvia la richiesta o se richiede un riavvio. Non automatizzabile: richiede di ascoltare il tono sullo speaker reale e di rendere irraggiungibile un backend installato; la logica di recupero con sessioni controllate è coperta dalle prove automatiche.
 
 #### Metadata
   * type: demonstration-verification
@@ -47,12 +43,8 @@ Rendere irraggiungibile il backend e attivare il satellite: si sente il tono di 
 
 ### Dimostrazione del segnale di ascolto
 
-Verifica parziale: sul Raspberry sono confermati il bip iniziale, una risposta conclusiva senza nuovo bip e la prova di una replica senza nuova wake word dopo il bip. Restano da provare più repliche consecutive, il timeout e il guasto dello speaker.
-
 #### Details
-Su Raspberry con speaker e microfono reali, pronunciare «Hey Jarvis», attendere il bip che indica l'apertura effettiva dell'ascolto e formulare la richiesta. Verificare che la richiesta venga ricevuta. Con una risposta che attende replica, verificare che, finita la risposta, si senta lo stesso bip e che una nuova frase pronunciata dopo il bip venga ricevuta senza wake word. Ripetere dopo un altro turno e verificare l'assenza del bip dopo la risposta conclusiva. Controllare che il bip non venga acquisito come parlato, che la finestra di inattività parta dopo il bip e che un errore dello speaker non impedisca di parlare.
-
-Esito parziale del 17 ottobre 2026 riferito dalla persona sul Raspberry: dopo «Hey Jarvis» si è sentito il bip, la domanda «Quanto fa due più due?» ha ricevuto la risposta «4» e non è seguito un altro bip. L'assenza del secondo bip è coerente con una risposta conclusiva. Nella prova successiva, con la richiesta di fare una domanda e aspettare la risposta della persona, la persona ha confermato che il bip e la replica senza nuova wake word hanno funzionato. I valori effettivi del metadato `expectsReply` non sono stati letti direttamente; le prove di durata della finestra di inattività, errore dello speaker e più repliche consecutive restano aperte.
+Con speaker e microfono reali, pronunciare la wake word configurata, attendere il bip che indica l'apertura effettiva dell'ascolto e formulare la richiesta. Verificare che la richiesta venga ricevuta. Con una risposta che attende replica, verificare che, finita la risposta, si senta lo stesso bip e che una nuova frase pronunciata dopo il bip venga ricevuta senza wake word. Ripetere dopo un altro turno e verificare l'assenza del bip dopo la risposta conclusiva. Controllare che il bip non venga acquisito come parlato, che la finestra di inattività parta dopo il bip e che un errore dello speaker non impedisca di parlare. Non automatizzabile: richiede microfono e speaker reali e l'ascolto della persona; l'ordine fra tono, VAD e finestra di inattività è coperto dalla «Regressione del segnale di ascolto».
 
 #### Metadata
   * type: demonstration-verification
@@ -64,12 +56,10 @@ Esito parziale del 17 ottobre 2026 riferito dalla persona sul Raspberry: dopo «
 
 ### Dimostrazione del trasporto ambrogio.v1
 
-Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile per il protocollo `ambrogio.v1`. Le evidenze raccolte in precedenza con il trasporto Micdrop non valgono per questa verifica.
-
 #### Details
 Contro la revisione backend registrata nel «Contratto vocale backend di riferimento», avviare il satellite e verificare che apra una sola sessione su `api/session` con il sottoprotocollo `ambrogio.v1`, invii `session.hello` con l'identità configurata e trasmetta soltanto dopo `session.ready`. Completare un'interazione con la wake word e una replica senza wake word: la prima richiesta non contiene `conversationId`, la replica usa il `conversationId` ricevuto in `turn.accepted`; una nuova attivazione con la wake word inizia una nuova conversazione. Verificare `input.start` audio a 16 kHz con `reply: "audio"`, frame binari con il numero `stream` big-endian e `input.end` alla fine del parlato; osservare trasmissioni audio di risposta, `turn.completed` con `expectsReply`, un turno rifiutato con il messaggio parlato e il ritorno alla wake word.
 
-Chiudere la sessione lato backend mentre il satellite attende la wake word e verificare che la successiva attivazione la riapra senza avvisi; chiuderla durante un'interazione e verificare il recupero locale senza riprendere la richiesta sulla nuova sessione. Inviare un messaggio del server non legato a un turno con `id` e verificare `client.result` con `reason: "unsupported"`. Conservare versioni dei pacchetti, esiti e log della prova.
+Chiudere la sessione lato backend mentre il satellite attende la wake word e verificare che la successiva attivazione la riapra senza avvisi; chiuderla durante un'interazione e verificare il recupero locale senza riprendere la richiesta sulla nuova sessione. Inviare un messaggio del server non legato a un turno con `id` e verificare `client.result` con `reason: "unsupported"`. Registrare le versioni dei pacchetti e i log della prova. Non automatizzabile: richiede il backend installato con trascrizione e sintesi reali e la voce della persona al microfono del satellite; lo scambio dei messaggi con componenti vocali deterministici è provato da `scripts/verify-pinned-backend.mjs` nella «Prova della sessione e delle conversazioni del satellite».
 
 #### Metadata
   * type: demonstration-verification
@@ -87,9 +77,7 @@ Chiudere la sessione lato backend mentre il satellite attende la wake word e ver
 Sull'installazione di riferimento, con il satellite in container e un player musicale che suona attraverso un dispositivo ALSA `softvol` sulla stessa uscita, pronunciare la wake word durante la riproduzione, porre una domanda e attendere la risposta; ripetere con una replica richiesta dal backend e con un'interazione conclusa per inattività. Durante ogni interazione leggere il controllo con `amixer` e ascoltare il volume della musica.
 
 #### Details
-La prova passa se la musica si abbassa prima del segnale di ascolto, resta abbassata durante il parlato e la risposta, comprese le repliche, e torna al volume precedente al ritorno in attesa della wake word, mentre la voce del satellite resta al volume pieno. Registrare architettura, hardware e versione usati, senza dati dell'installazione.
-
-2026-10-22, esito parziale. Installazione di riferimento: Raspberry Pi 3B con Debian 13 arm64, scheda USB con microfono e uscita a 16 kHz, satellite `v0.4.0` in Docker, player Squeezelite in un secondo container sullo stesso dispositivo, uscita del player su `softvol` davanti a un `dmix` condiviso con il satellite, `level` 25. Prima della prova, senza riproduzione udibile, `amixer` ha portato il controllo al 25% e al 100% e il satellite all'avvio ha ignorato il controllo non ancora creato senza eventi di guasto. Interazione con domanda e risposta durante la musica: la persona ha sentito la musica abbassarsi e poi risalire; il controllo, letto ogni 0,3 secondi, è passato al 25% entro un secondo dalla wake word ed è tornato al 100% al ritorno in attesa, circa sei secondi dopo; la voce del satellite si sentiva. Restano da eseguire la replica richiesta dal backend e l'interazione conclusa per inattività. La lettura periodica non misura l'ordine rispetto al segnale di ascolto, verificato dalla prova automatica.
+La prova passa se la musica si abbassa prima del segnale di ascolto, resta abbassata durante il parlato e la risposta, comprese le repliche, e torna al volume precedente al ritorno in attesa della wake word, mentre la voce del satellite resta al volume pieno. Registrare architettura, hardware e versione usati, senza dati dell'installazione. Non automatizzabile: richiede un dispositivo ALSA `softvol` reale, un player in riproduzione e l'ascolto del volume della musica; la sequenza delle regolazioni è coperta dalla «Prova dell'attenuazione dell'audio locale».
 
 #### Metadata
   * type: demonstration-verification
@@ -104,7 +92,7 @@ La prova passa se la musica si abbassa prima del segnale di ascolto, resta abbas
 In un clone con `core.hooksPath` impostato a `.githooks`, mettere in staging un file con una credenziale fittizia nel formato di un fornitore noto e tentare il commit: il commit è bloccato e il valore non compare nell'output. Ripetere con modifiche prive di segreti: il commit riesce. Ripetere con `gitleaks` assente dal `PATH`: il commit è bloccato con il messaggio che indica installazione e attivazione. Annullare le modifiche di prova senza lasciarle nella storia.
 
 #### Details
-2026-10-18, clone locale con gitleaks 8.30.1 in `~/.local/bin`: un token fittizio nel formato GitHub `ghp_…` in staging ha bloccato il commit (uscita 1, «leaks found: 1»), e l'output non conteneva il token. Con `PATH` privo di gitleaks il commit è stato bloccato con il messaggio previsto. Il commit reale del workflow e dell'hook è passato attraverso l'hook senza ritrovamenti. I file di prova sono stati rimossi dallo staging senza entrare nella storia.
+Non automatizzabile: nella forma attuale la prova usa il gitleaks installato nel clone e commit reali; uno script che esegua l'hook in un repository temporaneo con gitleaks 8.30.1 la renderebbe automatica.
 
 #### Metadata
   * type: demonstration-verification
@@ -116,16 +104,8 @@ In un clone con `core.hooksPath` impostato a `.githooks`, mettere in staging un 
 
 ### Dimostrazione della attivazione locale
 
-Verifica operativa pianificata; la sola prova sul campione upstream descritta nei dettagli è stata eseguita.
-
 #### Details
-Con ogni modello distribuito dimostrare che la pipeline ONNX riconosce localmente la wake word senza servizio esterno. Prima della wake word non si apre la chiamata backend. Con soglia iniziale 0,5, conferma su 2 blocchi consecutivi e cooldown 2000 ms, misurare attivazioni corrette e spurie, comprese quelle provocate da colpi di tosse e rumori impulsivi, e confrontarle con la conferma su un solo blocco. Provare Hey Jarvis, Hey Mycroft e Alexa su x86_64 e arm64. Pronunciare la wake word e la richiesta senza pausa, verificando che la riserva scorrevole di 1500 ms consegni l'inizio della richiesta dopo la connessione. Saturare la coda d'inferenza di 32 blocchi e verificare un guasto diagnostico senza crescita illimitata.
-
-Evidenza parziale del 17 ottobre 2026: `alexa_v0.1.onnx` della release openWakeWord v0.5.1 si carica con le risorse ONNX condivise. La pipeline del satellite, con soglia 0,5, ha riconosciuto `tests/data/alexa_test.wav` upstream (16 kHz mono, parola «Alexa») dopo un secondo di silenzio iniziale sia su x86_64 sia sul Raspberry arm64: 15 rilevamenti, picco 0,99999988, nessun errore su entrambe le macchine. Il campione non è incluso nel repository. Dopo la selezione di `alexa` nel Raspberry, la persona ha riferito una prova riuscita con il microfono reale. Questa osservazione non misura affidabilità, rumore, accenti o attivazioni spurie; le prove operative sistematiche restano aperte.
-
-Osservazione del 19 ottobre 2026: con «Alexa» e la conferma su un solo blocco, la persona ha riferito attivazioni spontanee dell'installazione di riferimento con colpi di tosse o senza causa evidente. Dopo l'installazione della conferma su 2 blocchi ha riferito altre due attivazioni spontanee, senza traccia nei log.
-
-Misura del 19 ottobre 2026 sull'installazione di riferimento (Raspberry arm64, array microfonico USB, `alexa`, soglia 0,8, conferma su 2 blocchi), con il satellite fermo e uno script temporaneo che registrava ogni punteggio del classificatore per 10 minuti: in silenzio, durante circa tre minuti di tosse e parlato e con rumori che arrivavano alla saturazione del microfono il punteggio massimo è stato 0,50; cinque «Alexa» pronunciati dalla persona hanno prodotto cinque rilevamenti con punteggi fra 0,89 e 0,997, sopra soglia per 2, 3, 6, 2 e 2 blocchi consecutivi. Con 3 blocchi richiesti tre di quei cinque sarebbero stati persi. Le attivazioni spontanee non sono state riprodotte; per identificarle si registra l'evento `satellite_wake_detected`.
+Con ogni modello distribuito dimostrare che la pipeline ONNX riconosce localmente la wake word senza servizio esterno. Prima della wake word non si apre la chiamata backend. Con soglia iniziale 0,5, conferma su 2 blocchi consecutivi e cooldown 2000 ms, misurare attivazioni corrette e spurie, comprese quelle provocate da colpi di tosse e rumori impulsivi, e confrontarle con la conferma su un solo blocco. Provare Hey Jarvis, Hey Mycroft e Alexa su x86_64 e arm64. Pronunciare la wake word e la richiesta senza pausa, verificando che la riserva scorrevole di 1500 ms consegni l'inizio della richiesta dopo la connessione. Saturare la coda d'inferenza di 32 blocchi e verificare un guasto diagnostico senza crescita illimitata. Non automatizzabile: attivazioni corrette e spurie dipendono da voce, rumore e microfono reali su ciascuna architettura; la saturazione della coda e il caricamento dei modelli sono coperti anche dalle prove automatiche ONNX.
 
 #### Metadata
   * type: demonstration-verification
@@ -142,10 +122,8 @@ Misura del 19 ottobre 2026 sull'installazione di riferimento (Raspberry arm64, a
 
 ### Dimostrazione della configurazione
 
-Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
-
 #### Details
-Avviare usando un modulo TypeScript valido selezionato con `--config` e verificare `backend.baseUrl`, identità del client, modello scelto e intervallo locale di inattività. Verificare che l'URL base HTTP diventi `ws:` e HTTPS diventi `wss:`, preservando l'eventuale prefisso di percorso e aggiungendo una sola volta `api/session`. Omettere `client` e verificare i valori predefiniti ricavati dal nome host; poi indicare `client.id` e `client.name`. Omettere `audio` e verificare l'uso dei dispositivi predefiniti; poi indicare `audio.microphone` e `audio.speaker` e verificare tramite Decibri che siano usati quelli richiesti, senza ripiego silenzioso sul predefinito. Verificare il modello Hey Jarvis predefinito, un modello distribuito alternativo, il timeout predefinito di 15 secondi e un valore personalizzato. Cambiare le variabili d'ambiente lette dal modulo e verificare che i valori validati cambino al successivo avvio. Ripetere con modulo TypeScript non importabile, campi sconosciuti, URL non HTTP(S), timeout non positivo, selettore audio vuoto, identità vuota e modello non presente nel catalogo disponibile: l’avvio operativo è impedito con errore comprensibile. Eseguire i casi sia sull’host sia nel container dopo la disponibilità delle rispettive risorse.
+Avviare usando un modulo TypeScript valido selezionato con `--config` e verificare `backend.baseUrl`, identità del client, modello scelto e intervallo locale di inattività. Verificare che l'URL base HTTP diventi `ws:` e HTTPS diventi `wss:`, preservando l'eventuale prefisso di percorso e aggiungendo una sola volta `api/session`. Omettere `client` e verificare i valori predefiniti ricavati dal nome host; poi indicare `client.id` e `client.name`. Omettere `audio` e verificare l'uso dei dispositivi predefiniti; poi indicare `audio.microphone` e `audio.speaker` e verificare tramite Decibri che siano usati quelli richiesti, senza ripiego silenzioso sul predefinito. Verificare il modello Hey Jarvis predefinito, un modello distribuito alternativo, il timeout predefinito di 15 secondi e un valore personalizzato. Cambiare le variabili d'ambiente lette dal modulo e verificare che i valori validati cambino al successivo avvio. Ripetere con modulo TypeScript non importabile, campi sconosciuti, URL non HTTP(S), timeout non positivo, selettore audio vuoto, identità vuota e modello non presente nel catalogo disponibile: l’avvio operativo è impedito con errore comprensibile. Eseguire i casi sia sull’host sia nel container dopo la disponibilità delle rispettive risorse. Non automatizzabile: la selezione dei dispositivi richiede periferiche audio reali sull'host e nel container; validazione dei campi, valori predefiniti e rifiuti sono candidati a una prova automatica e in parte già coperti da `configuration.test.ts` e `diagnostics.test.ts`.
 
 #### Metadata
   * type: demonstration-verification
@@ -154,22 +132,17 @@ Avviare usando un modulo TypeScript valido selezionato con `--config` e verifica
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Configurazione TypeScript unica](../Requirements/VoiceSatellite.md#configurazione-typescript-unica)
   * verify: [Rifiuto della configurazione invalida](../Requirements/VoiceSatellite.md#rifiuto-della-configurazione-invalida)
+  * verify: [Selezione dei dispositivi audio](../Requirements/VoiceSatellite.md#selezione-dei-dispositivi-audio)
   * verify: [Selezione del file di configurazione](../Requirements/VoiceSatellite.md#selezione-del-file-di-configurazione)
   * verify: [Valori di configurazione da ambiente](../Requirements/VoiceSatellite.md#valori-di-configurazione-da-ambiente)
 ---
 
 ### Dimostrazione della conversazione e delle repliche
 
-Verifica da ripetere con il protocollo `ambrogio.v1`: le prove parziali registrate sotto, eseguite con il trasporto Micdrop, non valgono come evidenza per la versione attuale.
-
 #### Details
 Contro la revisione backend compatibile fissata nel contratto, riprodurre una risposta completa; parlare durante la riproduzione e verificare che non la interrompa né apra un turno. Provare `turn.completed` con `expectsReply` uguale a `true` e `false`, con l'esito arrivato sia prima sia dopo la fine della riproduzione: la replica senza wake word si apre soltanto con `true`, dopo che lo speaker ha riprodotto tutte le trasmissioni chiuse da `output.end`, e appartiene alla stessa conversazione. Con una risposta in più trasmissioni e con pause lunghe nella sintesi, la conclusione non deve anticipare la fine dell'audio. Se l'esito non arriva entro 60 secondi dalla fine della richiesta, concludere con il recupero locale senza aprire la replica.
 
-Con `expectsReply` non booleano non aprire la replica. Provare un turno rifiutato e uno fallito dopo l'ammissione: l'audio del messaggio pubblico è riprodotto e il satellite torna alla wake word. Dopo inattività occorre una nuova wake word.
-
-Prova parziale del 16 ottobre 2026 su Raspberry ARM64 con ReSpeaker e backend v0.1.1, con il trasporto Micdrop: wake word riconosciuta, richiesta trasmessa e risposta parlata udita dalla persona; rilevato mancato completamento locale della riproduzione con Micdrop muted.
-
-Prova parziale del 17 ottobre 2026 sullo stesso Raspberry, con il trasporto Micdrop: una risposta iniziale e una replica senza wake word sono state riprodotte, con circa 1,1 e 2,2 secondi fra la fine del parlato e l'inizio dell'audio; un terzo turno è rimasto senza risposta per 60 secondi e il recupero è fallito per la chiusura tardiva della WebSocket Micdrop. Dopo la distribuzione dello stesso giorno, con `alexa` selezionata sul Raspberry dell'installazione di riferimento e backend sul server dell'installazione di riferimento, la persona ha confermato che la prova vocale successiva ha funzionato.
+Con `expectsReply` non booleano non aprire la replica. Provare un turno rifiutato e uno fallito dopo l'ammissione: l'audio del messaggio pubblico è riprodotto e il satellite torna alla wake word. Dopo inattività occorre una nuova wake word. Non automatizzabile: la conclusione della risposta dipende dalla riproduzione effettiva sullo speaker reale e da sintesi reali con pause; le regole con sessioni e speaker controllati sono coperte dalle prove automatiche.
 
 #### Metadata
   * type: demonstration-verification
@@ -186,10 +159,8 @@ Prova parziale del 17 ottobre 2026 sullo stesso Raspberry, con il trasporto Micd
 
 ### Dimostrazione della distribuzione Linux
 
-Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
-
 #### Details
-Su host Linux x86_64 e arm64 dotati di microfono e speaker, installare ed eseguire la stessa versione sia direttamente sia in Docker; completare un’interazione vocale in ciascuna combinazione usando lo stesso schema di configurazione. Registrare sistema operativo, periferiche, versioni e dipendenze native, inclusi Decibri, `libasound.so.2`, ONNX Runtime e i file dei modelli caricati. Acquisire dal microfono e riprodurre fino alla fine una risposta sullo speaker configurato in tutte le combinazioni. Accertare che il rilevamento funzioni nel processo satellite sia su host sia nel container. Una build riuscita o una prova sotto emulazione non sostituisce la dimostrazione audio sulle due architetture.
+Su host Linux x86_64 e arm64 dotati di microfono e speaker, installare ed eseguire la stessa versione sia direttamente sia in Docker; completare un’interazione vocale in ciascuna combinazione usando lo stesso schema di configurazione. Controllare che `package.json` dichiari ogni dipendenza, di esecuzione e di sviluppo, con la versione esatta risolta in `pnpm-lock.yaml`, senza intervalli di versione. Registrare sistema operativo, periferiche, versioni e dipendenze native, inclusi Decibri, `libasound.so.2`, ONNX Runtime e i file dei modelli caricati. Acquisire dal microfono e riprodurre fino alla fine una risposta sullo speaker configurato in tutte le combinazioni. Accertare che il rilevamento funzioni nel processo satellite sia su host sia nel container. Una build riuscita o una prova sotto emulazione non sostituisce la dimostrazione audio sulle due architetture. Non automatizzabile: richiede host fisici x86_64 e arm64 con microfono e speaker; la CI dispone soltanto di runner x86_64 senza periferiche audio.
 
 #### Metadata
   * type: demonstration-verification
@@ -203,10 +174,8 @@ Su host Linux x86_64 e arm64 dotati di microfono e speaker, installare ed esegui
 
 ### Dimostrazione della protezione dei dati locali
 
-Verifica operativa ancora aperta. Ispezione parziale del 2026-10-16: Dockerfile usa COPY espliciti per artefatti, dipendenze, modelli e avviso; .dockerignore esclude config.json e *.local.json; config.example.ts contiene solo valori dimostrativi senza credenziali. Il test software dell’immagine amd64 ha già verificato assenza della configurazione personale nei percorsi di avvio. Nessuna nuova misura delle scritture durante interazioni reali. La protezione dei log Micdrop, aperta allora, non è più pertinente dopo la rimozione della dipendenza.
-
 #### Details
-Durante interazioni riuscite e fallite controllare scritture su disco e log usando audio, testo e credenziali riconoscibili: non devono comparire registrazioni persistenti né contenuti o credenziali nei log. Ispezionare gli artefatti host e container e gli esempi per escludere configurazioni personali. Dal 18 ottobre 2026 la distribuzione non contiene registrazioni audio: i segnali locali sono generati dal programma.
+Durante interazioni riuscite e fallite controllare scritture su disco e log usando audio, testo e credenziali riconoscibili: non devono comparire registrazioni persistenti né contenuti o credenziali nei log. Ispezionare gli artefatti host e container e gli esempi per escludere configurazioni personali; controllare che `.dockerignore` escluda dal contesto di build i moduli e i file JSON di configurazione locali, i file d'ambiente `*.env` e `*.env.*` e `node_modules` a ogni livello, come richiede il contratto «Esecuzione host e container». Non automatizzabile: richiede di osservare le scritture su disco durante interazioni reali con audio e credenziali riconoscibili; l'assenza della configurazione personale nell'immagine è controllata da `scripts/verify-docker-image.mjs`.
 
 #### Metadata
   * type: demonstration-verification
@@ -220,12 +189,8 @@ Durante interazioni riuscite e fallite controllare scritture su disco e log usan
 
 ### Dimostrazione della segmentazione vocale
 
-Verifica da ripetere con l'adapter Silero del satellite: le osservazioni registrate sotto sono state raccolte con la segmentazione di Micdrop.
-
 #### Details
-Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare il modello Silero ONNX incluso in Decibri 5.8.0, verificando hash e licenza. Con le soglie del contratto, 0,18 e 0,11, `minSpeechFrames` 4 e `redemptionFrames` 20, provare una richiesta continua dopo la wake word, una replica breve come «sì» e una frase con una pausa interna. Accertare che ogni turno ammesso produca un solo `input.start` alla conferma del parlato, la riserva e i frame PCM16 mono a 16 kHz e un solo `input.end`, senza perdere la replica breve né spezzare la frase alla pausa; un rumore breve non confermato non deve aprire una richiesta. Durante la riproduzione della risposta non devono partire nuovi turni. Registrare tempi di delimitazione e consumo di CPU su entrambe le architetture.
-
-Il 17 ottobre 2026 la diagnostica temporanea sul Raspberry, con il trasporto Micdrop, ha osservato il primo turno da 27,516 a 29,528 secondi e la replica da 34,907 a 36,392 secondi dall'avvio; Micdrop ha segnalato circa 19.950 campioni al secondo ricevuti da un microfono dichiarato a 16 kHz. È un'osservazione singola da verificare con una misura indipendente prima di modificare configurazione o driver.
+Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare il modello Silero ONNX incluso in Decibri 5.8.0, verificando hash e licenza. Con le soglie del contratto, 0,18 e 0,11, `minSpeechFrames` 4 e `redemptionFrames` 20, provare una richiesta continua dopo la wake word, una replica breve come «sì» e una frase con una pausa interna. Accertare che ogni turno ammesso produca un solo `input.start` alla conferma del parlato, la riserva e i frame PCM16 mono a 16 kHz e un solo `input.end`, senza perdere la replica breve né spezzare la frase alla pausa; un rumore breve non confermato non deve aprire una richiesta. Durante la riproduzione della risposta non devono partire nuovi turni. Registrare tempi di delimitazione e consumo di CPU su entrambe le architetture. Non automatizzabile: la delimitazione di repliche brevi e frasi con pause dipende da parlato reale, e il consumo di CPU va misurato sull'hardware di ciascuna architettura; le soglie con probabilità simulate sono coperte da `silero-vad.test.ts`.
 
 #### Metadata
   * type: demonstration-verification
@@ -237,10 +202,7 @@ Il 17 ottobre 2026 la diagnostica temporanea sul Raspberry, con il trasporto Mic
 
 ### Ispezione dei confini interni
 
-Esaminare manifest, import di produzione e di soli tipi, composition root e test. Accertare un solo progetto, assemblaggio delle porte nella composition root e rispetto della matrice di importazione nei test. I test Application devono poter usare porte simulate senza hardware.
-
-#### Details
-2026-10-16: PASS. Ispezionati import statici, dinamici, di soli tipi e vi.mock in test/domain, test/application, test/adapters/in, test/adapters/out, test/runtime, test/composition e test/support. Domain importa produzione Domain; Application importa Application; inbound usa il proprio ingresso e Application; outbound usa integrazioni outbound, senza ingressi. I test di composition sono integrazione esplicita. ManualDeadlines dipende dalla porta Application. Nessun workspace/package business separato. Typecheck completo e core, 89 test in 19 file e build PASS. Non attestate periferiche reali.
+Esaminare manifest, import di produzione e di soli tipi, composition root e test. Accertare un solo progetto, assemblaggio delle porte nella composition root e rispetto della matrice di importazione nei test. I test Application devono poter usare porte simulate senza hardware. Non automatizzabile: il modello non ha adottato uno strumento di analisi degli import, quindi occorre leggere gli import di ogni file di test e classificarli per layer. Candidata a una prova automatica con un controllo degli import.
 
 #### Metadata
   * type: inspection-verification
@@ -259,47 +221,7 @@ Partire dall'elenco completo dei file di produzione, dalle porte Application e d
 
 L'ispezione passa se tutti i casi d'uso hanno il suffisso `.use-case.ts`, tutti gli adapter di ingresso e di uscita hanno il suffisso `.adapter.ts` e i file di supporto non sono classificati come adapter soltanto per la cartella che li contiene. Considerare anche le implementazioni strutturali di porte a oggetto o callable; non affidarsi al solo `implements`. I ruoli ambigui devono essere risolti con motivazione documentata. L'ispezione fallisce se manca un suffisso richiesto o se un suffisso descrive un ruolo non realizzato.
 
-Per ogni rinomina controllare import, export pubblici, riferimenti nei test e collegamenti Reqvire. La compilazione e i test pertinenti devono continuare a passare. Registrare revisione Git esaminata, elenco dei file classificati, difetti ed esito; la presenza di una relazione `satisfiedBy` e il successo di `validate` o `lint` non sostituiscono questa ispezione.
-
-#### Esito dell'ispezione del 16 ottobre 2026
-Esito: PASS sul worktree successivo alla revisione base `cf91098f0504b947913e82e883ece157c5b6525c`. Esaminati tutti i 17 file TypeScript di produzione, comprese le implementazioni strutturali delle porte e i punti di ingresso. Nessuna non conformità residua di naming nel perimetro esaminato.
-
-Identificazione riproducibile dei sorgenti esaminati: SHA-256 `a82690bb206e72c594037bc6f27731f8e8b5bbd895850b42ae094fa98aa2241f`, calcolato concatenando, in ordine lessicografico, percorso relativo UTF-8, byte NUL, contenuto del file, byte NUL, per tutti i file dell'inventario. Il risultato riguarda questo stato del worktree, non attesta modifiche successive.
-
-Rinominato VoiceSession in `voice-session.use-case.ts`: lo stato e la forma a classe non ne cambiano il ruolo. Estratte dalla composition root la traduzione degli eventi inbound e l'implementazione outbound di VoiceSessionPorts. Il loader dell'avviso WAV è un supporto tecnico separato. Driver ONNX, Silero e Decibri restano senza suffisso perché realizzano contratti di libreria e non porte Application.
-
-#### Inventario completo
-Il percorso in tabella è anche il nome atteso. Classificazione basata su responsabilità, porte e chiamate esaminate; la cartella non determina il ruolo.
-
-| File di produzione e nome atteso | Responsabilità e classificazione | Controllo |
-| --- | --- | --- |
-| `src/adapters/in/config-arguments.ts` | Supporto CLI: parsing argomenti, nessun caso d'uso invocato. | Nome descrittivo, nessun suffisso richiesto |
-| `src/adapters/in/micdrop-events.adapter.ts` | Adapter inbound: eventi microfono, wake word, Micdrop e playback → VoiceSession. | Suffisso richiesto presente |
-| `src/adapters/out/backend-url.ts` | Supporto configurazione: costruzione URL. | Nome descrittivo, nessun suffisso richiesto |
-| `src/adapters/out/config-file.ts` | Supporto bootstrap: lettura configurazione. | Nome descrittivo, nessun suffisso richiesto |
-| `src/adapters/out/configuration.ts` | Supporto: schema e validazione configurazione. | Nome descrittivo, nessun suffisso richiesto |
-| `src/adapters/out/decibri-audio.ts` | Driver audio tecnico; non implementa una porta Application. | Nome descrittivo, nessun suffisso richiesto |
-| `src/adapters/out/local-notice.ts` | Supporto: caricamento WAV e formattazione diagnostica. | Nome descrittivo, nessun suffisso richiesto |
-| `src/adapters/out/micdrop-call.adapter.ts` | Adapter outbound: implementa VoiceSessionPorts (chiamata, mute, chiusura e avviso). | Suffisso richiesto presente |
-| `src/adapters/out/micdrop-decibri-drivers.ts` | Driver microfono/speaker di Micdrop; non implementano porte Application. | Nome descrittivo, nessun suffisso richiesto |
-| `src/adapters/out/micdrop-playback.ts` | Supporto tecnico: rilevamento della fine riproduzione. | Nome descrittivo, nessun suffisso richiesto |
-| `src/adapters/out/onnx-wake-word.ts` | Driver inferenza ONNX; segnala callback all'adapter inbound. | Nome descrittivo, nessun suffisso richiesto |
-| `src/adapters/out/silero-node.ts` | Driver VAD di Micdrop; non implementa una porta Application. | Nome descrittivo, nessun suffisso richiesto |
-| `src/adapters/out/wake-word-catalog.ts` | Supporto: catalogo e percorsi modelli. | Nome descrittivo, nessun suffisso richiesto |
-| `src/application/voice-session.use-case.ts` | Caso d'uso: interazione vocale con stato, timeout e VoiceSessionPorts. | Suffisso richiesto presente |
-| `src/composition/satellite.ts` | Composition root: costruisce e collega risorse, casi d'uso e adapter. | Nome descrittivo, nessun suffisso richiesto |
-| `src/domain/voice-turn.ts` | Domain: macchina a stati pura del turno. | Nome descrittivo, nessun suffisso richiesto |
-| `src/main.ts` | Bootstrap del processo e arresto delle risorse. | Nome descrittivo, nessun suffisso richiesto |
-
-#### Evidenze eseguite
-`./node_modules/.bin/tsc --noEmit` e `./node_modules/.bin/tsc -p tsconfig.build.json`: PASS. `./node_modules/.bin/vitest run`: 12 file di test, 52 test PASS. Il nuovo `test/adapters/in/micdrop-events.test.ts` controlla un turno e la replica senza altra wake word, il filtro dei frame e la rimozione dei listener. Caricamento WAV dal modulo compilato spostato: PASS, 48384 campioni.
-
-Riesaminati import relativi, export, riferimenti dei test e collegamenti del modello aggiornati dalle rinomine MCP. Questa ispezione attesta la convenzione dei nomi e la regressione software pertinente; non sostituisce le dimostrazioni audio su hardware o la validazione generale del prodotto.
-
-#### Revisione della tracciabilità
-Revisione successiva al commit di implementazione `4f82100`: aggiornati i collegamenti alle implementazioni estratte. Reqvire validate: PASS; lint: nessun rilievo. Coverage: tutti i 43 requisiti foglia hanno una verifica collegata; questo dato non attesta l'esecuzione di tutte le verifiche. Traces conferma il percorso requisito dei nomi → questa ispezione.
-
-Change-impact rispetto alla revisione base propaga la modifica della capability e dell'obiettivo a 14 verifiche. Riesaminato il perimetro della modifica: nomi, import/export e spostamento dei confini voce; non cambiano contratti pubblici, porte Application, regole Domain, configurazione o dipendenze. Eseguite l'ispezione e la regressione software sopra registrate. Le altre verifiche pianificate e le dimostrazioni hardware mantengono il loro stato; non sono dichiarate superate da questo refactoring. La copertura implementativa complessiva resta parziale (79.07%), con lacune ulteriori fuori dal requisito dei nomi.
+Per ogni rinomina controllare import, export pubblici, riferimenti nei test e collegamenti Reqvire. La compilazione e i test pertinenti devono continuare a passare. Non automatizzabile: classificare un file come caso d'uso, adapter o supporto richiede di leggerne la responsabilità; il nome da solo non la determina. La presenza di una relazione `satisfiedBy` e il successo di `validate` o `lint` non sostituiscono questa ispezione.
 
 #### Metadata
   * type: inspection-verification
@@ -311,10 +233,8 @@ Change-impact rispetto alla revisione base propaga la modifica della capability 
 
 ### Ispezione del bootstrap della configurazione
 
-Verifica pianificata; nessuna evidenza di esecuzione disponibile.
-
 #### Details
-Usare una configurazione invalida e osservare che nessuna risorsa audio, wake word o connessione operativa viene costruita. Con configurazione valida verificare che ogni componente riceva soltanto i dati necessari e che Domain e casi d’uso non leggano file o ambiente.
+Usare una configurazione invalida e osservare che nessuna risorsa audio, wake word o connessione operativa viene costruita. Con configurazione valida verificare che ogni componente riceva soltanto i dati necessari e che Domain e casi d’uso non leggano file o ambiente. Non automatizzabile: stabilire quali dati sono necessari a ciascun componente richiede di leggere la composition root; l'assenza di risorse costruite con configurazione invalida è candidata a una prova automatica del processo.
 
 #### Metadata
   * type: inspection-verification
@@ -327,10 +247,7 @@ Usare una configurazione invalida e osservare che nessuna risorsa audio, wake wo
 
 ### Ispezione del perimetro iniziale di osservabilità
 
-Ispezionare dipendenze, bootstrap, composition root, configurazione e logger: devono essere presenti soltanto i segnali diagnostici applicativi previsti, senza attivazione di sistemi separati di metriche, tracing distribuito o audit. Controllare che la documentazione non presenti i log come registro di audit garantito.
-
-#### Details
-2026-10-16: ispezione PASS sulla base 50f0329200b433f22132d3cd0c5dcc372ebc6986. Esaminati package.json, src/main.ts, src/composition/satellite.ts, src/adapters/out/diagnostics.ts, config.example.ts e Dockerfile; ricerca dei riferimenti nei sorgenti senza integrazioni di metriche, tracing o audit. Il logger applicativo usa Pino su stdout. Il bootstrap imposta ORT_DISABLE_TELEMETRY prima dell’import dinamico della composition root; l’ispezione non è una misura del traffico delle librerie native. Modifica solo di modello e documentazione, senza nuove prove software o hardware. La protezione dei log diretti Micdrop resta una verifica separata aperta.
+Ispezionare dipendenze, bootstrap, composition root, configurazione e logger: devono essere presenti soltanto i segnali diagnostici applicativi previsti, senza attivazione di sistemi separati di metriche, tracing distribuito o audit. Controllare che la documentazione non presenti i log come registro di audit garantito. Non automatizzabile: riconoscere un sistema di metriche, tracing o audit e il modo in cui la documentazione presenta i log richiede di leggere dipendenze, sorgenti e documenti.
 
 #### Metadata
   * type: inspection-verification
@@ -342,10 +259,7 @@ Ispezionare dipendenze, bootstrap, composition root, configurazione e logger: de
 
 ### Ispezione del workflow CI del satellite
 
-Verificare eventi di attivazione, versioni, lockfile congelato, sequenza dei cinque controlli e fallimento del job senza continue-on-error. Eseguire localmente i comandi compatibili; una prova locale non attesta un’esecuzione GitHub Actions. Per la prova remota richiedere una run del workflow sul commit pubblicato.
-
-#### Details
-2026-10-16: actionlint 1.7.12 senza rilievi (shellcheck non disponibile); installazione pnpm 12.11.2 con frozen-lockfile PASS su Node.js 24; typecheck completo e core, 89 test in 19 file e build PASS su Node.js 24. Validazione Reqvire PASS. Workflow ispezionato: nessun filtro per percorsi, nessun continue-on-error, controllo esplicito di entrambe le liste di rilievi lint, permessi contents:read. Esecuzione remota PASS: https://github.com/ambrogio-app/ambrogio-satellite/actions/runs/38908867632 sul commit 4583a41a20dd6c3ff2dddc49801bfaa6a2f9dfa1. Job Satellite checks riuscito: installazione congelata, validate e lint Reqvire, typecheck/core, test e build; nessuno step di controllo saltato. Nessuna attestazione delle prove audio hardware o arm64.
+Verificare eventi di attivazione, versioni, lockfile congelato, sequenza dei controlli e fallimento del job senza continue-on-error. Eseguire localmente i comandi compatibili; una prova locale non attesta un’esecuzione GitHub Actions. Per la prova remota richiedere una run del workflow sul commit pubblicato. Non automatizzabile: attesta la configurazione del workflow e l'esito di un'esecuzione GitHub Actions, che i test del repository non osservano.
 
 #### Metadata
   * type: inspection-verification
@@ -357,10 +271,8 @@ Verificare eventi di attivazione, versioni, lockfile congelato, sequenza dei cin
 
 ### Ispezione della architettura e degli esiti
 
-Revisione del 2026-10-16: repository Git autonomo, namespace dei concetti e ontologia appartenenti al satellite, contratto backend registrato localmente. Export MCP Turtle di ontologie e concetti riuscito; validazione strutturale verificata separatamente. Separazione e tipi già coperti dalle prove Application e core; 89 test, typecheck e build PASS. Questa ispezione non attesta la compatibilità operativa con il backend né chiude le lacune dei log Micdrop.
-
 #### Details
-Esaminare codice, import e firme: TypeScript eseguito da Node.js; stati e regole in Domain; coordinamento e porte in Application; librerie audio, wake word e trasporto negli adapter. Per ogni esito negativo dichiarato verificare la rappresentazione tipizzata; per i guasti inattesi verificare propagazione e gestione diagnostica al confine tecnico. Accertare repository e modello autonomi con riferimento esplicito al contratto backend, senza grafi fusi. Controllare che il lessico e l'ontologia locali definiscano i termini e le relazioni essenziali senza dipendere dal modello backend, che i riferimenti ai concetti risolvano e che le esportazioni semantiche e la validazione Reqvire abbiano esito corretto.
+Esaminare codice, import e firme: TypeScript eseguito da Node.js; stati e regole in Domain; coordinamento e porte in Application; librerie audio, wake word e trasporto negli adapter. Per ogni esito negativo dichiarato verificare la rappresentazione tipizzata; per i guasti inattesi verificare propagazione e gestione diagnostica al confine tecnico. Accertare repository e modello autonomi con riferimento esplicito al contratto backend, senza grafi fusi. Controllare che il lessico e l'ontologia locali definiscano i termini e le relazioni essenziali senza dipendere dal modello backend, che i riferimenti ai concetti risolvano e che le esportazioni semantiche e la validazione Reqvire abbiano esito corretto. Non automatizzabile: attribuire stati, regole e integrazioni al layer corretto e giudicare l'autonomia del lessico richiede di leggere codice e modello.
 
 #### Metadata
   * type: inspection-verification
@@ -377,23 +289,7 @@ Esaminare codice, import e firme: TypeScript eseguito da Node.js; stati e regole
 ### Ispezione della forma TypeScript dei contratti
 
 #### Details
-Inventariare tutte le dichiarazioni Application, incluse capacità restituite e callable. Passa se le porte a oggetto sono interface e dati, unioni e callable usano type o firme callable inline, senza cambiare operazioni o significato. Verificare anche le dichiarazioni generate, typecheck completo e core, build e suite esistente. Non aggiungere test che controllano soltanto la parola interface.
-
-#### Esito del 16 ottobre 2026
-PASS sul worktree derivato da f27987ddf166c01aed6ed95a15fb17c0b0c4dee3. Inventario completo dei contratti nei due file Application:
-
-| File | Dichiarazione | Ruolo | Forma verificata |
-| --- | --- | --- | --- |
-| src/application/voice-session.use-case.ts | VoiceSessionPorts | Porta a oggetto: chiamata, parlato e segnalazione guasti | interface |
-| src/application/voice-session.use-case.ts | VoiceSessionEvent | Unione di eventi Application | type |
-| src/application/voice-session.use-case.ts | VoiceSessionStatus | Dati osservabili | type Readonly |
-| src/application/deadline-scheduler.ts | DeadlineScheduler | Porta di programmazione | interface |
-| src/application/deadline-scheduler.ts | ScheduledDeadline | Capacità restituita per cancellare | interface |
-| src/application/deadline-scheduler.ts | callback di schedule | Callable senza stato | Firma inline () => void |
-
-VoiceSession è l'implementazione del caso d'uso e rimane una classe: la convenzione riguarda le dichiarazioni dei contratti. Convertiti VoiceSessionPorts e ScheduledDeadline, conservando readonly sulle operazioni precedentemente racchiuse in Readonly. Nessuna modifica a parametri, risultati o comportamento. DeadlineScheduler era già conforme.
-
-Controllate le dichiarazioni rigenerate voice-session.use-case.d.ts e deadline-scheduler.d.ts. Typecheck completo e core senza tipi ambientali: PASS. Build ESM: PASS. Vitest: 83 test in 18 file, tutti superati. Nessun test artificiale aggiunto per controllare soltanto la sintassi delle dichiarazioni. Il cambiamento è interno e non modifica il contratto vocale pubblico o la documentazione operativa.
+Inventariare tutte le dichiarazioni Application, incluse capacità restituite e callable. Passa se le porte a oggetto sono interface e dati, unioni e callable usano type o firme callable inline, senza cambiare operazioni o significato. Verificare anche le dichiarazioni generate, typecheck completo e core, build e suite esistente. Non aggiungere test che controllano soltanto la parola interface. Non automatizzabile: distinguere una porta a oggetto da dati o callable richiede di leggerne la responsabilità.
 
 #### Metadata
   * type: inspection-verification
@@ -405,10 +301,7 @@ Controllate le dichiarazioni rigenerate voice-session.use-case.d.ts e deadline-s
 
 ### Ispezione della protezione del merge
 
-Controllare via GitHub che main richieda il check `Satellite checks` e impedisca il merge con check fallito o mancante.
-
-#### Details
-2026-10-16: controllo remoto NON superato. Il repository è privato; gli endpoint rulesets e branch protection restituiscono HTTP 403 con richiesta di GitHub Pro o repository pubblico. Non sono state cambiate visibilità o sottoscrizione. Il requisito resta aperto fino alla disponibilità e attivazione della protezione.
+Controllare via GitHub che main richieda il check `Satellite checks` e impedisca il merge con check fallito o mancante. Non automatizzabile: le regole di protezione sono impostazioni del repository GitHub, non file del repository.
 
 #### Metadata
   * type: inspection-verification
@@ -420,10 +313,7 @@ Controllare via GitHub che main richieda il check `Satellite checks` e impedisca
 
 ### Ispezione della raccolta esterna dei log
 
-Ispezionare costruzione del logger, call site, configurazione, dipendenze e avvio container: nessuna destinazione file o remota applicativa, nessun meccanismo di rotazione interno, nessun servizio di logging richiesto per avviare il satellite. Verificare che la documentazione assegni conservazione, rotazione e inoltro all’installazione.
-
-#### Details
-2026-10-16: ispezione PASS su base 2a2aa358d51b731cc3b77722e6108123610326ab. diagnostics.ts costruisce l’istanza di produzione con process.stdout; la destinazione alternativa è usata dai test per acquisire le righe. Nessun transport Pino o backend di raccolta nelle dipendenze e nei sorgenti. Dockerfile avvia direttamente Node senza redirezioni verso file. Non sono state configurate o provate politiche reali di conservazione nel deployment. I log diretti di Micdrop rimangono una lacuna separata.
+Ispezionare costruzione del logger, call site, configurazione, dipendenze e avvio container: nessuna destinazione file o remota applicativa, nessun meccanismo di rotazione interno, nessun servizio di logging richiesto per avviare il satellite. Verificare che la documentazione assegni conservazione, rotazione e inoltro all’installazione. Non automatizzabile: richiede di leggere call site, dipendenze e documentazione per escludere destinazioni e meccanismi di raccolta.
 
 #### Metadata
   * type: inspection-verification
@@ -435,10 +325,7 @@ Ispezionare costruzione del logger, call site, configurazione, dipendenze e avvi
 
 ### Ispezione della scansione dei segreti in CI
 
-Verificare in `.github/workflows/secret-scan.yml` gli eventi di attivazione (push su ogni branch, pull request, richiesta manuale, chiamata da altri workflow), il checkout fissato per commit con l'intera storia e senza credenziali conservate, il download di gitleaks 8.30.1 con verifica dello SHA-256 prima dell'estrazione, il comando `gitleaks git --redact --no-banner --exit-code 1 .`, i permessi di sola lettura e l'assenza di continue-on-error. Verificare che `publish-image.yml` richiami il workflow e che il job di pubblicazione dipenda sia dai controlli CI sia dalla scansione. Eseguire localmente la stessa scansione sulla storia del repository; una prova locale non attesta un'esecuzione GitHub Actions, per la quale serve una run del workflow sul commit pubblicato.
-
-#### Details
-2026-10-18: actionlint 1.7.12 senza rilievi su tutti i workflow. Workflow ispezionato: eventi, checkout fissato a `d23441a48e516b6c34aea4fa41551a30e30af803` con `fetch-depth: 0` e `persist-credentials: false`, verifica `sha256sum --check --strict` prima di `tar`, permessi `contents: read`, nessun continue-on-error; `publish` dipende da `[checks, secret-scan]`. Lo SHA-256 dell'archivio è stato confrontato con il file `gitleaks_8.30.1_checksums.txt` della release. Scansione locale con gitleaks 8.30.1 dell'intera storia: nessun segreto trovato. Nessuna esecuzione GitHub Actions ancora osservata.
+Verificare in `.github/workflows/secret-scan.yml` gli eventi di attivazione (push su ogni branch, pull request, richiesta manuale, chiamata da altri workflow), il checkout fissato per commit con l'intera storia e senza credenziali conservate, il download di gitleaks 8.30.1 con verifica dello SHA-256 prima dell'estrazione, il comando `gitleaks git --redact --no-banner --exit-code 1 .`, i permessi di sola lettura e l'assenza di continue-on-error. Verificare che `publish-image.yml` richiami il workflow e che il job di pubblicazione dipenda sia dai controlli CI sia dalla scansione. Eseguire localmente la stessa scansione sulla storia del repository; una prova locale non attesta un'esecuzione GitHub Actions, per la quale serve una run del workflow sul commit pubblicato. Non automatizzabile: attesta la configurazione dei workflow e l'esito di esecuzioni GitHub Actions, che i test del repository non osservano.
 
 #### Metadata
   * type: inspection-verification
@@ -449,12 +336,40 @@ Verificare in `.github/workflows/secret-scan.yml` gli eventi di attivazione (pus
   * verify: [Scansione dei segreti prima della pubblicazione](../Requirements/VoiceSatellite.md#scansione-dei-segreti-prima-della-pubblicazione)
 ---
 
-### Ispezione delle licenze dei modelli distribuiti
+### Ispezione delle decisioni sostituite
 
-Verifica pianificata; nessuna esecuzione o evidenza positiva è ancora disponibile.
+Durante la revisione di ogni modifica che registra una decisione in sostituzione di un'altra, cercare nel modello gli elementi che affermano la decisione sostituita, con `change-impact` e con una ricerca testuale dei suoi termini chiave.
 
 #### Details
-Per ogni modello presente nel catalogo confrontare file, origine, versione, licenza, condizioni di redistribuzione e attribuzioni con le fonti del titolare. Verificare che le informazioni necessarie accompagnino sia il pacchetto host sia l'immagine container e che la licenza del codice sia presentata separatamente. Fallire l'ispezione se un modello distribuito non ha condizioni verificabili o manca una delle informazioni richieste.
+L'ispezione passa se, dopo la modifica, nessun requisito, contratto o verifica afferma ancora la decisione sostituita. Fallisce se un elemento la afferma ancora. Non automatizzabile: riconoscere che un testo afferma una decisione sostituita richiede di leggerlo; lo script copre soltanto date e formule di storia.
+
+#### Metadata
+  * type: inspection-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Decisioni sostituite rimosse nella stessa modifica](../Requirements/VoiceSatellite.md#decisioni-sostituite-rimosse-nella-stessa-modifica)
+---
+
+### Ispezione delle dipendenze fra contratti
+
+Durante la revisione di ogni modifica che aggiunge o modifica un contratto, leggere il contratto e i contratti dei requisiti da cui dipende, ed eseguire `change-impact` sulla modifica.
+
+#### Details
+L'ispezione passa se il contratto afferma soltanto la decisione del proprio requisito e ogni dipendenza da un contratto posseduto da un altro requisito è dichiarata come Contract Reference dal requisito proprietario del contratto dipendente, così che `change-impact` la segnali. Fallisce se un contratto ripete contenuto posseduto da un altro requisito o se una dipendenza non è dichiarata. Non automatizzabile: stabilire se due testi affermano lo stesso fatto richiede di leggerli.
+
+#### Metadata
+  * type: inspection-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Dipendenze fra contratti dichiarate come riferimenti](../Requirements/VoiceSatellite.md#dipendenze-fra-contratti-dichiarate-come-riferimenti)
+---
+
+### Ispezione delle licenze dei modelli distribuiti
+
+#### Details
+Per ogni modello presente nel catalogo confrontare file, origine, versione, licenza, condizioni di redistribuzione e attribuzioni con le fonti del titolare. Verificare che le informazioni necessarie accompagnino sia il pacchetto host sia l'immagine container e che la licenza del codice sia presentata separatamente. Fallire l'ispezione se un modello distribuito non ha condizioni verificabili o manca una delle informazioni richieste. Non automatizzabile: richiede di confrontare licenze e condizioni di redistribuzione con le fonti dei titolari.
 
 #### Metadata
   * type: inspection-verification
@@ -464,12 +379,27 @@ Per ogni modello presente nel catalogo confrontare file, origine, versione, lice
   * verify: [Condizioni di distribuzione dei modelli wake word](../Requirements/VoiceSatellite.md#condizioni-di-distribuzione-dei-modelli-wake-word)
 ---
 
+### Ispezione delle protezioni dei workflow
+
+Esaminare `.github/workflows/ci.yml`, `.github/workflows/secret-scan.yml` e `.github/workflows/publish-image.yml` e confrontarli con il contratto «Protezioni dei workflow GitHub Actions»: azioni esterne fissate per SHA e corrispondenti alla versione in commento, `persist-credentials: false` in ogni checkout, `package-manager-cache: false`, `timeout-minutes` di ogni job, permessi predefiniti `contents: read`, `packages: write` soltanto nel job `publish`, `workflow_call` nei workflow riutilizzati, gruppo di concorrenza, login con stdin e logout incondizionato.
+
+#### Details
+L'ispezione passa se ogni workflow corrisponde al contratto e nessun job riceve permessi di scrittura diversi da `packages: write` nel job `publish`. Fallisce se un'azione è indicata per tag, se lo SHA non corrisponde alla versione dichiarata, se un checkout conserva le credenziali o se un job non ha tempo massimo. Non automatizzabile: stabilire che lo SHA fissato corrisponde alla versione dichiarata dell'azione e che i permessi concessi sono i minimi necessari richiede di confrontare i workflow con i repository e la documentazione delle azioni; l'effetto dei permessi si osserva soltanto nelle esecuzioni GitHub Actions.
+
+#### Metadata
+  * type: inspection-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Privilegi e durata limitati dei workflow GitHub Actions](../Requirements/VoiceSatellite.md#privilegi-e-durata-limitati-dei-workflow-github-actions)
+---
+
 ### Prova degli eventi tardivi dopo la fine dell'interazione
 
 Con una sessione controllata, concludere un'interazione per risposta conclusiva, per scadenza dell'esito e per perdita della sessione; poi consegnare trasmissioni, frame audio, esiti e un evento di chiusura appartenenti alla richiesta o alla sessione precedente mentre il satellite ha già riaperto l'ascolto o avviato una nuova interazione.
 
 #### Details
-La prova passa se gli eventi tardivi non interrompono l'acquisizione del microfono, non vengono riprodotti e non sono attribuiti alla nuova interazione, e se l'evento di chiusura della sessione corrente conserva la gestione ordinaria. Fallisce se un esito o un frame della richiesta precedente apre una replica, chiude la nuova interazione o arresta l'ascolto. La regressione registrata il 17 ottobre 2026 riguardava la patch del client Micdrop 3.4.0 e non vale per il trasporto `ambrogio.v1`.
+La prova passa se gli eventi tardivi non interrompono l'acquisizione del microfono, non vengono riprodotti e non sono attribuiti alla nuova interazione, e se l'evento di chiusura della sessione corrente conserva la gestione ordinaria. Fallisce se un esito o un frame della richiesta precedente apre una replica, chiude la nuova interazione o arresta l'ascolto.
 
 #### Metadata
   * type: test-verification
@@ -488,8 +418,6 @@ Preparare una directory di modelli con le risorse comuni openWakeWord e un class
 #### Details
 La prova passa se il modello personalizzato è scoperto e caricato dal mount senza ricostruire l'immagine, le wake word distribuite continuano a funzionare senza mount e i nomi assenti o non sicuri sono rifiutati. Fallisce se il mount è ignorato, la configurazione accetta un percorso fuori directory o un modello comune come classificatore. La prova non dimostra l'accuratezza acustica di un modello personalizzato.
 
-Eseguita il 17 ottobre 2026 su immagine `linux/amd64` locale: i modelli distribuiti sono stati caricati, il mount ha sostituito la directory inclusa e un classificatore ONNX copiato come `personalizzato.onnx` è stato scoperto e caricato. La suite di 103 test e il typecheck sono passati. La prova Docker `arm64` e l'accuratezza di un modello personalizzato effettivo restano da verificare.
-
 #### Metadata
   * type: test-verification
 
@@ -504,15 +432,6 @@ Eseguita il 17 ottobre 2026 su immagine `linux/amd64` locale: i modelli distribu
 
 #### Details
 Iniettare risorse controllate e fallimenti: durante ascolto, chiamata e riproduzione, l'arresto deve bloccare nuovi eventi e interrompere i dispositivi senza attendere una risposta. Chiamare stop ripetutamente e in parallelo: una sola chiusura nativa per risorsa, stesso esito. Far fallire una chiusura: tutte le altre devono essere tentate e l'errore originale deve restare disponibile. Fallire l'avvio dopo acquisizioni parziali e interrompere un'acquisizione pendente: tutte le risorse ottenute devono essere rilasciate. Provare rilascio ONNX parziale e inferenza in corso, cancellazione del tono di errore e SIGINT/SIGTERM nel confine di processo. I test automatici usano risorse simulate; non attestano periferiche reali.
-
-#### Evidenze del 16 ottobre 2026
-Esito: PASS per la verifica automatica del ciclo di vita sul worktree derivato da d79775c13fc31c7ab7eb0071d9e0803bb7d18b11. Eseguiti Vitest (67 test, 17 file, tutti superati), typecheck TypeScript e build ESM, entrambi superati.
-
-La prova di composition root inietta guasti di avvio e chiusura, controlla il rilascio delle risorse indipendenti e l'identità dell'operazione di arresto ripetuta. La prova del processo esercita SIGINT e SIGTERM tramite un emettitore controllato anche durante l'avvio; verifica la rimozione degli handler e la propagazione del guasto al chiamante. La prova Micdrop copre un'apertura che termina dopo l'arresto e impedisce il riavvio dell'ascolto. Le prove Decibri coprono acquisizione tardiva del microfono, errore di stop senza doppio rilascio e interruzione della riproduzione dell'avviso con drain pendente. Le prove ONNX coprono caricamento parziale fallito, rilascio di tutte le sessioni nonostante un errore, scarto della coda e rifiuto di nuovi frame. La prova Silero attende l'inferenza già in corso, rilascia una sola volta e conserva un errore di release anche se Micdrop non attende il rilascio.
-
-Limiti: dispositivi, segnali e guasti sono simulati nelle nuove prove; la suite comprende anche il caricamento reale dei modelli distribuiti su questa macchina. Non sono attestate prove di terminazione con periferiche fisiche né su arm64. La durata di un'operazione nativa non cancellabile resta vincolata alla libreria; non è stata concordata una scadenza di arresto forzato.
-
-Revisione di impatto: interessati assemblaggio, ingressi eventi, recupero locale, audio e inferenza; resta invariata la normale attesa della risposta. La regressione completa è stata eseguita. Il README descrive ora SIGINT/SIGTERM; eventuali guide esterne di installazione dovranno riportare la stessa politica.
 
 #### Metadata
   * type: test-verification
@@ -533,15 +452,6 @@ Revisione di impatto: interessati assemblaggio, ingressi eventi, recupero locale
 
 #### Details
 Controllare proiezioni osservabili durante attesa, apertura, registrazione, risposta, replica, chiusura e guasto; una fotografia precedente non cambia con le transizioni e la sua mutazione non modifica lo stato interno. Verificare che gli eventi di timeout e completamento delle porte non siano ammessi dall'API pubblica. L'adapter legge solo il contratto Application, converte metadati non booleani in indicazione assente e conserva filtro dei frame, conclusione del parlato e gestione delle disconnessioni. Eseguire typecheck, build e regressione completa senza cambiare le regole Domain.
-
-#### Evidenze del 16 ottobre 2026
-Esito: PASS sul worktree derivato da b1142bbd08d72c3780a1259729052b6b232233e4. Eseguiti typecheck completo, controllo core senza tipi ambientali, build ESM e suite Vitest: 83 test in 18 file, tutti superati.
-
-VoiceSessionEvent e VoiceSessionStatus sono dichiarati in Application, senza alias o riesportazioni Domain. dispatch traduce esplicitamente i cinque eventi esterni; applyEvent è privato e gestisce anche completamenti delle porte e timeout. Il getter status restituisce una nuova proiezione dei tre indicatori necessari all'adapter. Nessun cambio al sorgente Domain o alle sue transizioni.
-
-Le prove Application attraversano attesa, apertura, registrazione, risposta e chiusura, verificano il contratto durante recupero dal guasto e controllano fotografie distaccate dallo stato interno. Le asserzioni di tipo escludono state dall'API e timeout/call_opened/call_closed dagli eventi pubblici. I test preesistenti continuano a controllare replica, scadenze e arresto. Le prove inbound esercitano true, false, stringa, null e campo assente per expectsReply; controllano inoltre filtro dei frame, fine del parlato, rimozione dei listener e disconnessione inattiva rispetto ad attiva.
-
-Ispezionata la dichiarazione generata dist/application/voice-session.use-case.d.ts: nessun import o tipo Domain, nessuna fase interna esposta. Ricerca negli ingressi e nella composition root: nessun riferimento a state.phase, VoiceTurn o import Domain. Il cambiamento riguarda un confine interno: contratto vocale pubblico, durate e comportamento operativo restano invariati. Le dimostrazioni hardware non sono sostituite dalla regressione software.
 
 #### Metadata
   * type: test-verification
@@ -608,9 +518,6 @@ La prova passa se senza configurazione non avviene alcuna regolazione; se con la
 
 Acquisire la riga reale di Pino prodotta dal rilevamento: livello `info`, `event: "satellite_wake_detected"`, `score` arrotondato a tre decimali e `chunks` intero, con le sole chiavi `level`, `time`, `event`, `score` e `chunks`. Con sessioni ONNX simulate, il riconoscitore consegna al rilevamento il punteggio e il numero di blocchi consecutivi sopra soglia; la composition root registra l'evento e poi inoltra l'attivazione alla sessione vocale.
 
-#### Details
-Esecuzione del 2026-10-19: `diagnostics.test.ts` acquisisce la riga Pino con `score` 0,912 da 0,912345 e `chunks` 3 e le sole chiavi previste; `onnx-lifecycle.test.ts` controlla che ogni rilevamento simulato consegni il numero di blocchi consecutivi; `satellite-lifecycle.test.ts` controlla che la composition root registri l'evento prima di inoltrare l'attivazione. Typecheck completo e core e suite Vitest (168 test) PASS.
-
 #### Metadata
   * type: test-verification
 
@@ -624,12 +531,7 @@ Esecuzione del 2026-10-19: `diagnostics.test.ts` acquisisce la riga Pino con `sc
 
 ### Prova dell'evento di configurazione rifiutata
 
-Acquisire le righe reali di Pino prodotte dal rifiuto della configurazione. Per un file assente o illeggibile: una sola riga `info` con `event: "invalid_configuration"` e `reason: "configuration_unavailable"`, senza `field`. Per modulo TypeScript non importabile, sezione sconosciuta e per ciascun campo invalido (`backend.baseUrl`, `client.id`, `client.name`, `audio.microphone`, `audio.speaker`, `wakeWord.model`, `wakeWord.threshold`, `wakeWord.patience`, `interaction.replyTimeoutMs`): `reason: "invalid_configuration"` e il `field` atteso, `config` per modulo non importabile o struttura non prevista. Le righe non contengono valori del file, percorsi né `err`, e hanno soltanto le chiavi `level`, `time`, `event`, `reason` ed eventualmente `field`. Avviando il processo compilato con un file invalido, l'uscita è 2 e la riga è quella attesa.
-
-#### Details
-Esecuzione del 2026-10-18: `diagnostics.test.ts` carica file reali con `loadSatelliteConfig` e acquisisce l'uscita di Pino per il file assente, il contenuto non JSON, la sezione sconosciuta e gli otto campi; tutti i casi PASS, nessuna riga contiene i valori marcati `secret` né il percorso. Typecheck completo e core, suite Vitest (146 test in 19 file) e build PASS su Node.js 26. Prova del processo compilato: sezione sconosciuta `wakeword` produce `{"level":"info",…,"event":"invalid_configuration","reason":"invalid_configuration","field":"config"}` con uscita 2; file assente produce `"reason":"configuration_unavailable"` con uscita 2.
-
-Esecuzione del 2026-10-19: aggiunto il caso `wakeWord.patience` a `diagnostics.test.ts`; i nove campi PASS nella suite di 166 test. La prova del processo compilato non è stata ripetuta per il nuovo campo.
+Acquisire le righe reali di Pino prodotte dal rifiuto della configurazione. Per un file assente o illeggibile: una sola riga `info` con `event: "invalid_configuration"` e `reason: "configuration_unavailable"`, senza `field`. Per modulo TypeScript non importabile, sezione sconosciuta e per ciascun campo invalido (`backend.baseUrl`, `client.id`, `client.name`, `audio.microphone`, `audio.speaker`, `audio.attenuation`, `wakeWord.model`, `wakeWord.threshold`, `wakeWord.patience`, `interaction.replyTimeoutMs`): `reason: "invalid_configuration"` e il `field` atteso, `config` per modulo non importabile o sezione non prevista. Le righe non contengono valori del file, percorsi né `err`, e hanno soltanto le chiavi `level`, `time`, `event`, `reason` ed eventualmente `field`. Avviando il processo compilato con un file invalido, l'uscita è 2 e la riga è quella attesa.
 
 #### Metadata
   * type: test-verification
@@ -645,7 +547,7 @@ Esecuzione del 2026-10-19: aggiunto il caso `wakeWord.patience` a `diagnostics.t
 Con una sessione controllata, avviare il satellite senza sezione `client`, poi con `client.id` e `client.name`, e osservare `session.hello`. Ripetere con valori vuoti o di tipo diverso.
 
 #### Details
-La prova passa se senza configurazione `clientId` vale `satellite-<nome host>` e `name` vale il nome host, se i valori configurati li sostituiscono senza effetto delle variabili d'ambiente, e se valori vuoti o di tipo diverso rendono invalida la configurazione prima dell'avvio operativo. Fallisce se il satellite apre una sessione con un identificativo vuoto o diverso da quello configurato.
+La prova passa se senza configurazione `clientId` vale `satellite-<nome host>` e `name` vale il nome host, se i valori configurati li sostituiscono e se valori vuoti o di tipo diverso rendono invalida la configurazione prima dell'avvio operativo. Fallisce se il satellite apre una sessione con un identificativo vuoto o diverso da quello configurato.
 
 #### Metadata
   * type: test-verification
@@ -657,12 +559,32 @@ La prova passa se senza configurazione `clientId` vale `satellite-<nome host>` e
   * verify: [Identificazione del satellite nella sessione](../Requirements/VoiceSatellite.md#identificazione-del-satellite-nella-sessione)
 ---
 
+### Prova dell'integrità del modello
+
+Eseguire `node scripts/check-model.mjs` nella radice del repository, come fa la CI dopo la validazione e il lint del modello.
+
+#### Details
+La prova passa se lo script non segnala storia delle decisioni, formule non normative, verifiche manuali senza «Non automatizzabile:» né file di governo non riferiti dal modello, e termina con stato 0. Fallisce se lo script segnala una violazione o non riesce a eseguire.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [check-model.mjs](../../scripts/check-model.mjs)
+  * verify: [Controllo automatico dell'integrità del modello](../Requirements/VoiceSatellite.md#controllo-automatico-dellintegrità-del-modello)
+  * verify: [Decisioni sostituite rimosse nella stessa modifica](../Requirements/VoiceSatellite.md#decisioni-sostituite-rimosse-nella-stessa-modifica)
+  * verify: [File di governo collegati al modello](../Requirements/VoiceSatellite.md#file-di-governo-collegati-al-modello)
+  * verify: [Formulazione normativa degli obblighi](../Requirements/VoiceSatellite.md#formulazione-normativa-degli-obblighi)
+  * verify: [Verifiche manuali giustificate](../Requirements/VoiceSatellite.md#verifiche-manuali-giustificate)
+---
+
 ### Prova della conferma su blocchi consecutivi
 
 Con sessioni ONNX simulate che restituiscono una sequenza controllata di punteggi del classificatore, uno per blocco da 80 ms, e soglia 0,5: con `patience` 2 un solo blocco sopra soglia seguito da uno sotto soglia non produce rilevamenti; due blocchi consecutivi sopra soglia producono un solo rilevamento, sul secondo blocco; due blocchi sopra soglia separati da uno sotto soglia non producono rilevamenti; con `patience` 1 un solo blocco sopra soglia produce un rilevamento. Dopo l'azzeramento della pipeline un blocco sopra soglia non completa un conteggio iniziato prima. Opzioni con `patience` non intero o minore di 1 sono rifiutate all'apertura. La configurazione senza `wakeWord.patience` produce il valore 2, accetta 1 e 10 e rifiuta 0, 11, valori non interi e stringhe con `field: "wakeWord.patience"`; la composition root passa il valore configurato al riconoscitore.
 
 #### Details
-Esecuzione del 2026-10-19: gli 8 casi della conferma in `onnx-lifecycle.test.ts`, insieme a `configuration.test.ts`, `diagnostics.test.ts` e `satellite-lifecycle.test.ts`, PASS; typecheck completo e core, suite Vitest e build PASS. La prova usa punteggi simulati: non misura attivazioni spurie né parole mancate con il microfono reale, che restano affidate alla «Dimostrazione della attivazione locale».
+La prova usa punteggi simulati: non misura attivazioni spurie né parole mancate con il microfono reale, affidate alla «Dimostrazione della attivazione locale».
 
 #### Metadata
   * type: test-verification
@@ -679,9 +601,6 @@ Esecuzione del 2026-10-19: gli 8 casi della conferma in `onnx-lifecycle.test.ts`
 
 Acquisire le righe reali di Pino: JSON, event stabili, nessun dato sensibile da message, name, stack, code, cause o proprietà aggiuntive. Controllare identità e immutabilità degli originali, valori lanciati non Error, cause cicliche, getter e aggregati. Iniettare un guasto di interazione e uno di riproduzione del tono di errore: un evento distinto per ciascun guasto e tono di errore indipendente dalla diagnosi. Verificare avvio e rifiuti di configurazione senza log automatici di errore. Con il trasporto `ambrogio.v1`, verificare che nessun componente emetta su console messaggi ricevuti o errori grezzi fuori dal logger applicativo.
 
-#### Details
-Esecuzione del 2026-10-16: npm run typecheck, npm test (89 test, 19 file) e npm run build PASS. Prova CLI dei rifiuti per argomenti e configurazione assente: singola riga JSON info su stdout, uscita 2. Le prove automatiche coprono il logger applicativo, la propagazione del valore originale e gli eventi distinti di interazione e avviso. La lacuna allora aperta sui log diretti di Micdrop 3.4.0 è chiusa dalla rimozione della dipendenza decisa il 17 ottobre 2026; la prova va ripetuta sul nuovo trasporto. Dal 18 ottobre 2026 l'evento di riproduzione è `satellite_error_tone_failed` e la prova va ripetuta per il tono di errore. Le dimostrazioni su backend e periferiche reali restano da eseguire.
-
 #### Metadata
   * type: test-verification
 
@@ -696,6 +615,24 @@ Esecuzione del 2026-10-16: npm run typecheck, npm test (89 test, 19 file) e npm 
   * verify: [Serializzazione protetta dei guasti](../Requirements/VoiceSatellite.md#serializzazione-protetta-dei-guasti)
   * verify: [Unicità della diagnosi definitiva](../Requirements/VoiceSatellite.md#unicità-della-diagnosi-definitiva)
   * verify: [Uso di Pino per la diagnostica](../Requirements/VoiceSatellite.md#uso-di-pino-per-la-diagnostica)
+---
+
+### Prova della selezione dei dispositivi audio
+
+Con Decibri sostituito da aperture controllate, aprire il microfono e lo speaker senza selettore, con un selettore che inizia con `alsa:` e con un selettore per nome; poi far fallire l'apertura del dispositivo selezionato. Con risorse controllate, far fallire l'avvio del microfono durante l'avvio del satellite e la riproduzione di una trasmissione sullo speaker.
+
+#### Details
+La prova passa se senza selettore l'apertura non indica alcun dispositivo, così che Decibri usi il predefinito del sistema; se un selettore `alsa:` è passato come identificatore `{ id }` e un altro selettore come nome; se un'apertura fallita del dispositivo selezionato è tentata una sola volta e ne propaga l'errore senza una seconda apertura sul dispositivo predefinito; se il fallimento del microfono all'avvio rilascia le risorse acquisite e fa fallire l'avvio; e se il fallimento dello speaker è segnalato come guasto dell'interazione. Fallisce se una selezione esplicita viene ignorata o sostituita dal dispositivo predefinito. La prova non dimostra la selezione su periferiche reali, affidata alla «Dimostrazione della configurazione».
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [decibri-audio.test.ts](../../test/adapters/out/decibri-audio.test.ts)
+  * satisfiedBy: [response-playback.test.ts](../../test/adapters/out/response-playback.test.ts)
+  * satisfiedBy: [satellite-lifecycle.test.ts](../../test/composition/satellite-lifecycle.test.ts)
+  * verify: [Selezione dei dispositivi audio](../Requirements/VoiceSatellite.md#selezione-dei-dispositivi-audio)
 ---
 
 ### Prova della sessione e delle conversazioni del satellite
@@ -722,15 +659,6 @@ La prova passa se all'avvio esiste una sola sessione pronta, se ogni attivazione
 #### Details
 Con una porta controllata verificare scadenza della risposta e della replica ai limiti concordati, cancellazione alla replica, sostituzione dopo un nuovo turno, arresto e guasto senza callback residui. I test Application non devono usare fake timer globali né importare l'adapter Node.js. Provare separatamente l'adapter: esecuzione singola differita, cancellazione ripetuta e cancellazione dopo esecuzione. Riesaminare tutti i file Domain e Application, inclusi import di soli tipi, per escludere API e tipi dell'ambiente; eseguire compilazione e regressione.
 
-#### Evidenze del 16 ottobre 2026
-Esito: PASS sul worktree derivato da 33bdc28450057c48501893aa3c687e45481aa042. Suite Vitest: 75 test in 18 file, tutti superati. Typecheck completo, compilazione dei layer interni con tsconfig.core.json (lib ES2024, types vuoto) e build ESM superati.
-
-VoiceSession riceve DeadlineScheduler dalla composition root; ScheduledDeadline espone solo cancel() senza handle runtime. Riesaminati tutti i sorgenti interni: domain/voice-turn.ts, application/voice-session.use-case.ts e application/deadline-scheduler.ts. Gli import puntano soltanto a Domain o Application; non sono presenti API o tipi Node.js, DOM, timer globali o dipendenze tecniche. Il nuovo node-deadline-scheduler.adapter.ts implementa la porta e rispetta la convenzione dei nomi; la dichiarazione della porta non è un adapter.
-
-I test Application usano ManualDeadlines: timeout di risposta a 60000 ms, finestra di replica a 15000 ms, cancellazione alla ripresa del parlato e nuova scadenza per il turno successivo; arresto e guasto annullano entrambe le categorie di scadenza senza chiusure tardive. I test dell'adapter usano timer Node.js reali per verificare esecuzione differita singola, cancellazione ripetuta, indipendenza fra registrazioni e ritardo zero asincrono. Il tentativo iniziale con fake timer globali non intercettava gli import node:timers ed è stato sostituito da queste prove reali.
-
-La revisione non cambia durate o protocollo pubblico; README aggiornato per il nuovo controllo architetturale. La compilazione senza tipi ambientali integra la revisione degli import, ma non sostituisce un controllo contro ogni possibile dipendenza tecnica futura. La regressione comprende i test di arresto e degli ingressi Micdrop; le dimostrazioni audio hardware rimangono fuori da questa verifica.
-
 #### Metadata
   * type: test-verification
 
@@ -745,10 +673,7 @@ La revisione non cambia durate o protocollo pubblico; README aggiornato per il n
 
 ### Prova software delle immagini del satellite
 
-Su ciascuna immagine verificare architettura, import delle dipendenze native Decibri e ONNX, caricamento e inferenza silenziosa dei modelli wake word distribuiti, caricamento Silero e generazione del tono di errore. Eseguire il processo senza configurazione: uscita 2 e JSON informativo, nessun avvio audio. Verificare assenza della configurazione personale. Le prove devono funzionare senza rete né periferiche e fallire se manca un artefatto necessario; non sostituiscono le prove audio reali.
-
-#### Details
-2026-10-16: build Docker linux/amd64 e scripts/verify-docker-image.mjs sull’immagine ambrogio-satellite:release-check (ID c7081aca3a0b) PASS. Verificati import nativi, inferenza silenziosa di entrambi i modelli wake word, caricamento Silero, avviso locale, assenza della configurazione e rifiuto di avvio con uscita 2 e JSON informativo. La prova usa --network none e nessuna periferica. Arm64 NON eseguito localmente: Buildx ed emulazione assenti; il workflow li prepara e blocca la pubblicazione finché entrambe le prove non riescono. Non attestate periferiche audio reali. Dal 18 ottobre 2026 l'immagine non contiene più gli avvisi registrati e la prova controlla il tono di errore generato: l'esecuzione va ripetuta.
+Su ciascuna immagine verificare architettura, import delle dipendenze native Decibri e ONNX, caricamento e inferenza silenziosa dei modelli wake word distribuiti, caricamento Silero e generazione del tono di errore. Eseguire il processo senza configurazione: uscita 2 e JSON informativo, nessun avvio audio. Verificare assenza della configurazione personale e le etichette dell'immagine: `org.opencontainers.image.source` con l'URL del repository e `org.opencontainers.image.licenses` con `MIT`. Le prove devono funzionare senza rete né periferiche e fallire se manca un artefatto necessario; non sostituiscono le prove audio reali.
 
 #### Metadata
   * type: test-verification
@@ -756,14 +681,13 @@ Su ciascuna immagine verificare architettura, import delle dipendenze native Dec
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [verify-docker-image.mjs](../../scripts/verify-docker-image.mjs)
+  * verify: [Distribuzione Docker facoltativa](../Requirements/VoiceSatellite.md#distribuzione-docker-facoltativa)
   * verify: [Pubblicazione delle immagini Docker del satellite](../Requirements/VoiceSatellite.md#pubblicazione-delle-immagini-docker-del-satellite)
 ---
 
 ### Regressione del segnale di ascolto
 
 Alla wake word, la prova Domain e Application accerta che il tono parta quando la sessione è pronta, prima che il parlato sia ammesso. Con una risposta che attende replica, la stessa azione apre l'ascolto: il VAD resta inattivo e il timer non parte finché il bip non termina. Verificare che una risposta conclusiva non emetta il bip e che un arresto durante il segnale non riapra l'ascolto. La prova dell'adapter controlla durata, livello e uscita configurata del tono, cancellazione all'arresto e continuità dell'ascolto se la riproduzione locale fallisce.
-
-Il 17 ottobre 2026 la suite locale ha superato 96 test, typecheck e build con il trasporto Micdrop; sul Raspberry ARM64 la persona ha confermato il bip iniziale, una risposta conclusiva senza nuovo bip e una replica dopo il bip nella stessa interazione. La prova dell'adapter va ripetuta sul trasporto `ambrogio.v1`; la verifica automatica e la dimostrazione acustica sono evidenze distinte.
 
 #### Metadata
   * type: test-verification
@@ -776,10 +700,7 @@ Il 17 ottobre 2026 la suite locale ha superato 96 test, typecheck e build con il
 
 ### Verifica della pubblicazione Docker del satellite
 
-Ispezionare trigger, formato versione, corrispondenza package.json, dipendenza dalla CI e assenza di latest. Controllare che la pubblicazione segua le verifiche di entrambe le immagini, che il manifest riporti amd64 e arm64 e che le credenziali siano fornite dal workflow. La verifica effettiva di pubblicazione richiede una release autorizzata; nessuna release viene creata per questa preparazione.
-
-#### Details
-2026-10-16: ispezione del workflow e actionlint 1.7.12 PASS (shellcheck non disponibile). Tag validato e confrontato con package.json; job di pubblicazione dipendente dalla CI riutilizzabile; entrambe le verifiche precedono login e push; manifest controllato per amd64 e arm64. Nessun tag latest. Build e smoke amd64 locali PASS. Run GitHub, prova arm64 e pubblicazione/lettura del manifest remoto NON eseguite: richiedono pubblicazione del workflow e una release autorizzata. Nessun tag di release creato e nessuna immagine pubblicata.
+Ispezionare trigger, formato versione, corrispondenza package.json, dipendenza dalla CI e assenza di latest. Controllare che la pubblicazione segua le verifiche di entrambe le immagini, che il manifest riporti amd64 e arm64 e che le credenziali siano fornite dal workflow. La verifica effettiva di pubblicazione richiede una release autorizzata. Non automatizzabile: la pubblicazione avviene soltanto al push di un tag di release e il manifest remoto si legge nel registro GHCR, fuori dai test del repository.
 
 #### Metadata
   * type: inspection-verification
@@ -788,4 +709,3 @@ Ispezionare trigger, formato versione, corrispondenza package.json, dipendenza d
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Pubblicazione delle immagini Docker del satellite](../Requirements/VoiceSatellite.md#pubblicazione-delle-immagini-docker-del-satellite)
 ---
-

@@ -16,6 +16,9 @@ function success(result) {
   return result.stdout;
 }
 assert.equal(success(docker(['image', 'inspect', '--format', '{{.Os}}/{{.Architecture}}', image])).trim(), `linux/${arch}`);
+const labels = JSON.parse(success(docker(['image', 'inspect', '--format', '{{json .Config.Labels}}', image])));
+assert.equal(labels['org.opencontainers.image.source'], 'https://github.com/ambrogio-app/ambrogio-satellite');
+assert.equal(labels['org.opencontainers.image.licenses'], 'MIT');
 const run = ['run', '--rm', '--network', 'none', '--platform', `linux/${arch}`, '--env', 'ORT_DISABLE_TELEMETRY=1'];
 const startup = docker([...run, image]);
 assert.equal(startup.status, 2, startup.stderr || startup.stdout);
@@ -87,4 +90,4 @@ try { assert(detector.push(new Float32Array(1280))); await detector.waitUntilIdl
 finally { await detector.close(); }
 `));
 } finally { rmSync(mountedModels, { recursive: true, force: true }); }
-console.log(`Verified ${image}: ${arch}, native imports, models, error tone and safe startup without configuration.`);
+console.log(`Verified ${image}: ${arch}, labels, native imports, models, error tone and safe startup without configuration.`);

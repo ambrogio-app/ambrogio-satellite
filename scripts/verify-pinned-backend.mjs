@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -10,10 +10,13 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 // synthesis are replaced by deterministic components, and playback is captured instead of Decibri.
 const satellite = fileURLToPath(new URL('..', import.meta.url));
 const root = resolve(process.env.AMBROGIO_BACKEND_REPO ?? resolve(satellite, '../ambrogio-backend'));
-const expectedCommit = '58b0df420aee7c08280afd818ffcd0e82b060029';
+const expectedCommit = 'a570c013617fe7b9e944063dfd67ce2c00da398e'; // ambrogio-backend v0.8.0
 const actualCommit = execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 assert.equal(actualCommit, expectedCommit, 'Il backend locale deve essere al commit dichiarato nel contratto del satellite.');
 
+const { loadConversationConfig } = await import(pathToFileURL(`${root}/packages/conversations/dist/adapters/out/conversation-config.js`));
+const { loadVoiceConfig } = await import(pathToFileURL(`${root}/packages/conversations/dist/adapters/out/voice-config.js`));
+const { loadHttpConfig } = await import(pathToFileURL(`${root}/apps/server/dist/runtime/http-config.js`));
 const { prepareConfiguredConversations } = await import(pathToFileURL(`${root}/apps/server/dist/composition/conversations.js`));
 const { buildConversationServer } = await import(pathToFileURL(`${root}/apps/server/dist/runtime/consultation-server.js`));
 const { ConversationChannel } = await import(pathToFileURL(`${satellite}/dist/adapters/out/conversation-channel.js`));
@@ -102,54 +105,68 @@ let built;
 let prepared;
 const channels = [];
 try {
-  prepared = await prepareConfiguredConversations({ archivePath: join(directory, 'archive.sqlite'),
-    listPageSize: 20, maxListPageSize: 100, language: 'it' }, new Date());
-  built = await buildConversationServer({ host: '127.0.0.1', port: 0, allowedOrigins: [], publicHttps: false },
-    prepared, reply, { voskModelPath: '/fake/vosk', piperModelPath: '/fake/voice.onnx', piperBinaryPath: '/fake/piper' },
-    speech, { sessionPingIntervalMs: 30_000 });
+  // The backend reads each component's configuration from a TypeScript module: write placeholder
+  // modules and load them with the backend's own loaders. The voice files only need to be readable,
+  // because the deterministic speech components replace Vosk and the synthesizer.
+  const voice = join(directory, 'voice');
+  await mkdir(join(directory, 'vosk'));
+  await mkdir(join(voice, 'espeak-ng-data'), { recursive: true });
+  await writeFile(join(voice, 'voice.onnx'), '');
+  await writeFile(join(voice, 'tokens.txt'), '');
+  const configModule = (name, value) => {
+    const filename = join(directory, name);
+    return writeFile(filename, `export default ${JSON.stringify(value, null, 2)};\n`).then(() => filename);
+  };
+  const conversationConfig = await loadConversationConfig(await configModule('conversations.ts', {
+    archivePath: join(directory, 'archive.sqlite'), language: 'it', timeZone: 'UTC', listPageSize: 20, maxListPageSize: 100 }));
+  const httpConfig = await loadHttpConfig(await configModule('http.ts', { host: '127.0.0.1', port: 3000, allowedOrigins: [] }));
+  const voiceConfig = await loadVoiceConfig(await configModule('voice.ts', {
+    voskModelPath: join(directory, 'vosk'), voiceEngine: 'piper', voiceModelDir: voice }), conversationConfig.language);
+  prepared = await prepareConfiguredConversations(conversationConfig, new Date());
+  built = await buildConversationServer(httpConfig, prepared, reply, voiceConfig, speech, { sessionPingIntervalMs: 30_000 });
   const address = await built.server.listen({ host: '127.0.0.1', port: 0 });
   const sessionUrl = new URL('api/session', `${address.replace('http:', 'ws:')}/`);
   const lost = [];
-  const kitchen = new ConversationChannel({ url: sessionUrl, identity: { clientId: 'satellite-cucina', name: 'Cucina' },
-    lost: () => lost.push('cucina') });
-  channels.push(kitchen);
+  const satelliteA = new ConversationChannel({ url: sessionUrl, identity: { clientId: 'satellite-a', name: 'Satellite A' },
+    lost: () => lost.push('satellite-a') });
+  channels.push(satelliteA);
 
   // Activation: a new conversation; the answer asks for a reply.
-  const first = await ask(kitchen, 'accendi la luce?', { activation: true });
+  const first = await ask(satelliteA, 'accendi la luce?', { activation: true });
   assert.deepEqual(first.outcome, { kind: 'completed', expectsReply: true });
   assert.deepEqual(first.played(), ['Hai detto: accendi la luce?']);
 
   // Reply without wake word: same conversation; the answer is conclusive.
-  const replyTurn = await ask(kitchen, 'in cucina');
+  const replyTurn = await ask(satelliteA, 'va bene');
   assert.equal(replyTurn.conversationId, first.conversationId);
   assert.deepEqual(replyTurn.outcome, { kind: 'completed', expectsReply: false });
 
   // A new activation starts another conversation.
-  const second = await ask(kitchen, 'che ore sono', { activation: true });
+  const second = await ask(satelliteA, 'che ore sono', { activation: true });
   assert.notEqual(second.conversationId, first.conversationId);
 
   // Failure after admission: the partial answer, then the spoken failure message.
-  const failed = await ask(kitchen, 'guasto', { activation: true });
+  const failed = await ask(satelliteA, 'guasto', { activation: true });
   assert.deepEqual(failed.outcome, { kind: 'failed' });
   assert.deepEqual(failed.played(), ['Inizio', 'Non riesco a completare la risposta.']);
 
   // Another satellite continuing a busy conversation is rejected with a spoken message.
   const slowTurn = capture();
-  kitchen.newConversation();
-  await kitchen.ensure();
-  kitchen.startRequest(spoken('lento'), slowTurn.events);
-  kitchen.endRequest();
+  satelliteA.newConversation();
+  await satelliteA.ensure();
+  satelliteA.startRequest(spoken('lento'), slowTurn.events);
+  satelliteA.endRequest();
   while (!slowTurn.conversationId) await new Promise(resolve => setTimeout(resolve, 5));
-  const living = await AmbrogioSession.open(sessionUrl, { clientId: 'satellite-soggiorno', name: 'Soggiorno' });
+  const satelliteB = await AmbrogioSession.open(sessionUrl, { clientId: 'satellite-b', name: 'Satellite B' });
   const occupied = capture();
-  living.startRequest(slowTurn.conversationId, occupied.events);
-  living.sendAudio(pcm('anche io'));
-  living.endRequest();
+  satelliteB.startRequest(slowTurn.conversationId, occupied.events);
+  satelliteB.sendAudio(pcm('anche io'));
+  satelliteB.endRequest();
   await occupied.done;
   assert.deepEqual(occupied.protocolErrors, []);
   assert.deepEqual(occupied.outcome, { kind: 'rejected' });
   assert.deepEqual(occupied.played(), ['Un altro turno è in corso.']);
-  living.close();
+  satelliteB.close();
   releaseSlow();
   await slowTurn.done;
   assert.deepEqual(slowTurn.outcome, { kind: 'completed', expectsReply: false });
@@ -157,7 +174,7 @@ try {
   // The archive holds the transcribed requests of each conversation.
   const history = async id => (await built.server.inject({ method: 'GET', url: `/api/conversations/${id}` })).json();
   assert.deepEqual((await history(first.conversationId)).turns.map(turn => [turn.text, turn.status]),
-    [['accendi la luce?', 'answered'], ['in cucina', 'answered']]);
+    [['accendi la luce?', 'answered'], ['va bene', 'answered']]);
   assert.deepEqual((await history(slowTurn.conversationId)).turns.map(turn => turn.text), ['lento']);
   assert.deepEqual(lost, []);
   process.stdout.write('Pinned ambrogio.v1 backend + satellite channel: activation, reply in the same conversation, '

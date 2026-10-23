@@ -83,13 +83,15 @@ test('an unavailable configuration file is reported with its reason only', async
 });
 
 test.each([
-  ['not JSON', '{ secret', 'config'],
+  ['a module that cannot be imported', '{ secret', 'config'],
   ['an unknown section', JSON.stringify({ ...validConfig, secret: {} }), 'config'],
   ['backend.baseUrl', JSON.stringify({ backend: { baseUrl: 'ftp://secret.test' } }), 'backend.baseUrl'],
   ['client.id', JSON.stringify({ ...validConfig, client: { id: ' ' } }), 'client.id'],
   ['client.name', JSON.stringify({ ...validConfig, client: { name: '' } }), 'client.name'],
   ['audio.microphone', JSON.stringify({ ...validConfig, audio: { microphone: ' secret' } }), 'audio.microphone'],
   ['audio.speaker', JSON.stringify({ ...validConfig, audio: { speaker: '' } }), 'audio.speaker'],
+  ['audio.attenuation', JSON.stringify({ ...validConfig, audio: { attenuation: { device: 'secret', control: 'Music', level: 101 } } }),
+    'audio.attenuation'],
   ['wakeWord.model', JSON.stringify({ ...validConfig, wakeWord: { model: 'secret_word' } }), 'wakeWord.model'],
   ['wakeWord.threshold', JSON.stringify({ ...validConfig, wakeWord: { threshold: 2 } }), 'wakeWord.threshold'],
   ['wakeWord.patience', JSON.stringify({ ...validConfig, wakeWord: { patience: 0 } }), 'wakeWord.patience'],
