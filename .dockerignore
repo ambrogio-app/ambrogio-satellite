@@ -6,6 +6,8 @@ system-model
 test
 config.json
 *.local.json
+config.ts
+*.local.ts
 *.sqlite
 *.sqlite-*
 *.db

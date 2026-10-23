@@ -71,17 +71,16 @@ The wake word models included here are **"Hey Jarvis"**, **"Hey Mycroft"** and *
 
 ## Quick start
 
-Create a configuration file from the example:
+The [`config.example.ts`](config.example.ts) module reads the satellite settings from environment variables and exports a default object. `AMBROGIO_BACKEND_URL` is required; other settings have defaults or are optional. Node.js 24 imports the `.ts` module directly, and the satellite validates its values before opening audio or network resources.
 
-```json
-{
-  "backend": { "baseUrl": "http://my-ambrogio:3000" },
-  "client": { "id": "kitchen", "name": "Kitchen" },
-  "audio": {},
-  "wakeWord": { "model": "hey_jarvis" },
-  "interaction": { "replyTimeoutMs": 15000 }
-}
+For Docker Compose, use [`compose.example.yaml`](compose.example.yaml):
+
+```bash
+AMBROGIO_SATELLITE_VERSION=v0.5.0 AMBROGIO_BACKEND_URL=http://ambrogio.example.test:3000 \
+  docker compose -f compose.example.yaml up -d
 ```
+
+You can put these values and the optional `AMBROGIO_*` variables in a local `.env` file.
 
 If you leave `audio` empty, the satellite uses the system's default microphone and speaker.
 
@@ -99,11 +98,11 @@ pcm.music {
 
 Point the player at `music`, then name the control in the satellite configuration:
 
-```json
-"audio": {
-  "speaker": "alsa:mixer",
-  "attenuation": { "device": "hw:0", "control": "Music", "level": 25 }
-}
+```bash
+AMBROGIO_SPEAKER=alsa:mixer
+AMBROGIO_ATTENUATION_DEVICE=hw:0
+AMBROGIO_ATTENUATION_CONTROL=Music
+AMBROGIO_ATTENUATION_LEVEL=25
 ```
 
 When the wake word is heard, the satellite sets the control to `level` percent before the listening beep, keeps it there for the whole interaction, including follow-up replies, and sets it back to 100% when it returns to waiting for the wake word. It also sets it to 100% at startup and on shutdown. ALSA creates the control the first time something plays through `music`; until then there is nothing to lower. If `amixer` fails, the interaction continues and the satellite logs `satellite_attenuation_failed`.
@@ -113,8 +112,7 @@ When the wake word is heard, the satellite sets the control to `level` percent b
 ```bash
 pnpm install --frozen-lockfile
 pnpm build
-cp config.example.json config.json   # then edit it
-node dist/main.js --config config.json
+AMBROGIO_BACKEND_URL=http://ambrogio.example.test:3000 node dist/main.js --config config.example.ts
 ```
 
 **With Docker**
@@ -122,7 +120,8 @@ node dist/main.js --config config.json
 ```bash
 docker build -t ambrogio-satellite .
 docker run --rm --network host --device /dev/snd \
-  -v "$PWD/config.json:/config/satellite.json:ro" \
+  -v "$PWD/config.example.ts:/config/satellite.ts:ro" \
+  -e AMBROGIO_BACKEND_URL=http://ambrogio.example.test:3000 \
   ambrogio-satellite
 ```
 

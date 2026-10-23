@@ -65,8 +65,8 @@ const models = new Set(['hey_jarvis']);
 
 async function rejectionRecord(content?: string) {
   const directory = await mkdtemp(join(tmpdir(), 'satellite-config-'));
-  const filename = join(directory, 'secret-path.json');
-  if (content !== undefined) await writeFile(filename, content);
+  const filename = join(directory, 'secret-path.ts');
+  if (content !== undefined) await writeFile(filename, `export default ${content};\n`);
   const loaded = await loadSatelliteConfig(filename, models);
   if (loaded.ok) throw new Error('expected a rejected configuration');
   const { log, lines, records } = capture();

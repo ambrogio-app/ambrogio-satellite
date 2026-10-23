@@ -12,14 +12,14 @@ Decibri fornisce binari nativi per Linux x64 e arm64 e richiede la libreria runt
   * type: specification
 
 #### Relations
-  * define: [Configurazione JSON unica](../Requirements/VoiceSatellite.md#configurazione-json-unica)
+  * define: [Configurazione TypeScript unica](../Requirements/VoiceSatellite.md#configurazione-typescript-unica)
 ---
 
 ### Attenuazione locale con softvol e amixer
 
 Decisione concordata con la persona il 22 ottobre 2026: il satellite attenua gli altri flussi audio locali durante l'interazione regolando un controllo ALSA di attenuazione con `amixer`. Il controllo appartiene al satellite ed è separato dal volume dei player: a riposo vale il livello pieno, il 100%, e durante l'interazione il livello configurato. Il volume della musica resta deciso dal player e dal suo server.
 
-La sezione facoltativa `audio.attenuation` del JSON contiene `device`, stringa non vuota che identifica il dispositivo di controllo ALSA, per esempio `hw:CARD=<scheda>`; `control`, stringa non vuota con il nome del controllo semplice; `level`, intero da 0 a 100, percentuale del controllo durante l'interazione. Senza la sezione il satellite non regola alcun controllo. L'installazione crea il controllo con un dispositivo ALSA `softvol` davanti all'uscita dei player da attenuare; la voce del satellite non attraversa quel dispositivo.
+La sezione facoltativa `audio.attenuation` della configurazione contiene `device`, stringa non vuota che identifica il dispositivo di controllo ALSA, per esempio `hw:CARD=<scheda>`; `control`, stringa non vuota con il nome del controllo semplice; `level`, intero da 0 a 100, percentuale del controllo durante l'interazione. Senza la sezione il satellite non regola alcun controllo. L'installazione crea il controllo con un dispositivo ALSA `softvol` davanti all'uscita dei player da attenuare; la voce del satellite non attraversa quel dispositivo.
 
 L'adapter esegue `amixer -D <device> -q sset <control> <livello>%` con l'esecuzione diretta del programma, senza shell, e un tempo massimo di 2 secondi: con `level` alla wake word, prima del segnale acustico di disponibilità, e con `100` al ritorno in attesa della wake word, all'avvio e durante l'arresto controllato. ALSA crea il controllo `softvol` alla prima apertura del dispositivo che lo usa: se `amixer` segnala che il controllo non esiste, nessun flusso lo ha ancora attraversato e non c'è nulla da attenuare, senza evento di guasto. Ogni altro errore, l'uscita con codice diverso da zero o la scadenza del tempo massimo producono l'evento diagnostico `satellite_attenuation_failed` con l'operazione, attenuazione o ripristino, e il motivo selezionato; l'interazione e l'attesa proseguono. L'immagine container include `amixer` dal pacchetto `alsa-utils`; per l'esecuzione sull'host è una dipendenza documentata.
 
@@ -46,7 +46,7 @@ La famiglia può pronunciare Hey Jarvis e la richiesta nella stessa frase. Il sa
 
 ### Catalogo e selezione dei modelli
 
-Il file JSON seleziona con `wakeWord.model` un solo identificatore disponibile. L'identificatore predefinito per Hey Jarvis è `hey_jarvis`. La distribuzione contiene `hey_jarvis`, `hey_mycroft` e `alexa`, associati rispettivamente a `hey_jarvis_v0.1.onnx`, `hey_mycroft_v0.1.onnx` e `alexa_v0.1.onnx` della release openWakeWord v0.5.1, con `melspectrogram.onnx` e `embedding_model.onnx` della stessa release. Origine, hash SHA-256, attribuzione e licenza dei file distribuiti sono registrati in `models/wakeword/README.md`; la licenza CC BY-NC-SA 4.0 accompagna i file. L'immagine container include questa directory; un mount in sola lettura su `/app/models/wakeword` la sostituisce. Un file personalizzato `<identificatore>.onnx` nella directory montata aggiunge quell'identificatore al catalogo disponibile, purché il nome sia composto solo da lettere minuscole ASCII, cifre, trattino o sottolineatura, inizi con una lettera o cifra e non sia riservato ai modelli comuni. Il file deve essere un classificatore openWakeWord compatibile; la directory montata deve contenere anche `melspectrogram.onnx` e `embedding_model.onnx`. Un identificatore non disponibile è una configurazione invalida; non si accettano percorsi arbitrari o separatori di directory nella configurazione. La provenienza e la licenza dei modelli personalizzati sono responsabilità di chi li installa.
+Il modulo TypeScript seleziona con `wakeWord.model` un solo identificatore disponibile. L'identificatore predefinito per Hey Jarvis è `hey_jarvis`. La distribuzione contiene `hey_jarvis`, `hey_mycroft` e `alexa`, associati rispettivamente a `hey_jarvis_v0.1.onnx`, `hey_mycroft_v0.1.onnx` e `alexa_v0.1.onnx` della release openWakeWord v0.5.1, con `melspectrogram.onnx` e `embedding_model.onnx` della stessa release. Origine, hash SHA-256, attribuzione e licenza dei file distribuiti sono registrati in `models/wakeword/README.md`; la licenza CC BY-NC-SA 4.0 accompagna i file. L'immagine container include questa directory; un mount in sola lettura su `/app/models/wakeword` la sostituisce. Un file personalizzato `<identificatore>.onnx` nella directory montata aggiunge quell'identificatore al catalogo disponibile, purché il nome sia composto solo da lettere minuscole ASCII, cifre, trattino o sottolineatura, inizi con una lettera o cifra e non sia riservato ai modelli comuni. Il file deve essere un classificatore openWakeWord compatibile; la directory montata deve contenere anche `melspectrogram.onnx` e `embedding_model.onnx`. Un identificatore non disponibile è una configurazione invalida; non si accettano percorsi arbitrari o separatori di directory nella configurazione. La provenienza e la licenza dei modelli personalizzati sono responsabilità di chi li installa.
 
 La frase selezionata per `alexa` è «Alexa», senza «Hey». Il modello openWakeWord è addestrato per questa parola; la documentazione segnala più mancati riconoscimenti possibili per «Hey Alexa» (https://github.com/dscripka/openWakeWord/blob/main/docs/models/alexa.md). Il file ONNX è stato caricato dalla pipeline locale e ha riconosciuto il campione `tests/data/alexa_test.wav` del progetto upstream con la soglia iniziale 0,5. La prova sul microfono reale, la misura delle attivazioni spurie e l'affidabilità finale restano da eseguire su Linux x86_64 e arm64 prima di dichiarare la verifica operativa completa.
 
@@ -82,17 +82,17 @@ Il progetto openWakeWord dichiara il proprio codice Apache-2.0 e i modelli pread
 
 ### Configurazione del processo satellite
 
-Un solo file JSON contiene le sezioni `backend`, `client`, `audio`, `wakeWord` e `interaction`. `backend.baseUrl` è obbligatorio: è un URL assoluto HTTP o HTTPS senza credenziali, query o frammento e non ha valore predefinito. Il satellite deriva il canale conversazionale WebSocket aggiungendo `api/session` al prefisso di percorso dell'URL base, usando `ws:` per `http:` e `wss:` per `https:`; la configurazione non contiene un percorso WebSocket separato.
+Un solo modulo TypeScript esporta per default un oggetto con le sezioni `backend`, `client`, `audio`, `wakeWord` e `interaction`. `backend.baseUrl` è obbligatorio: è un URL assoluto HTTP o HTTPS senza credenziali, query o frammento e non ha valore predefinito. Il satellite deriva il canale conversazionale WebSocket aggiungendo `api/session` al prefisso di percorso dell'URL base, usando `ws:` per `http:` e `wss:` per `https:`; la configurazione non contiene un percorso WebSocket separato.
 
 La sezione `client` è facoltativa e può contenere `id` e `name`, stringhe non vuote che identificano il satellite nella sessione secondo il contratto «Identità del satellite nella sessione»; i valori predefiniti derivano dal nome host. La sezione `audio` è facoltativa e può contenere `microphone` e `speaker` come selettori stringa non vuoti e `attenuation`, oggetto facoltativo con `device`, `control` e `level` definito dal contratto «Attenuazione locale con softvol e amixer». Un selettore presente viene passato a Decibri e deve identificare il dispositivo richiesto; un selettore assente usa il dispositivo predefinito del sistema. La sezione `wakeWord` è facoltativa e può indicare `model`, identificatore di un modello distribuito o personalizzato disponibile nella directory dei modelli, con valore predefinito il modello Hey Jarvis; `threshold`, numero maggiore di 0 e non superiore a 1 con valore predefinito 0,5, che è la soglia di riconoscimento; e `patience`, intero da 1 a 10 con valore predefinito 2, che è il numero di blocchi consecutivi da 80 ms in cui il punteggio deve raggiungere la soglia. La sezione `interaction` è facoltativa e può indicare `replyTimeoutMs`, intero positivo con valore predefinito di 15000. Sezioni, campi e tipi non previsti sono rifiutati per evitare errori di configurazione silenziosi.
 
-L'opzione di avvio `--config` seleziona esplicitamente il file JSON. I valori non sono sovrascritti dalle variabili d'ambiente. Il file e i modelli selezionati vengono validati prima dell'avvio operativo e una configurazione invalida produce un errore comprensibile. Host e container usano lo stesso schema. Impostazioni aggiuntive richiedono una nuova specificazione.
+Decisione concordata il 23 ottobre 2026: il modulo TypeScript sostituisce il file JSON di configurazione. L'opzione `--config` seleziona esplicitamente il modulo `.ts`; Node.js 24 lo importa con il supporto nativo ai tipi rimovibili. Il modulo può leggere `process.env` e convertire esplicitamente i tipi, così Docker Compose può fornire tutti i valori. L'oggetto esportato e i modelli selezionati sono validati prima dell'avvio operativo; un modulo non importabile o una configurazione invalida produce un errore comprensibile. Host e container usano lo stesso schema. Impostazioni aggiuntive richiedono una nuova specificazione.
 
 #### Metadata
   * type: specification
 
 #### Relations
-  * define: [Configurazione JSON unica](../Requirements/VoiceSatellite.md#configurazione-json-unica)
+  * define: [Configurazione TypeScript unica](../Requirements/VoiceSatellite.md#configurazione-typescript-unica)
 ---
 
 ### Contratto osservabile della sessione vocale
@@ -189,7 +189,7 @@ Decisione concordata con la persona il 19 ottobre 2026, perché le attivazioni s
 
 ### Evento diagnostico della configurazione rifiutata
 
-Decisione concordata con la persona il 18 ottobre 2026, per rendere comprensibile il rifiuto della configurazione: quando il file JSON selezionato con `--config` viene rifiutato, il satellite emette una sola riga Pino di livello `info` con `event: "invalid_configuration"` e il campo `reason`, che vale il `kind` del rifiuto previsto. Con `reason: "configuration_unavailable"` il file non esiste o non è leggibile e la riga non contiene altri campi diagnostici. Con `reason: "invalid_configuration"` la riga contiene anche `field`, il nome del campo rifiutato tra `backend.baseUrl`, `client.id`, `client.name`, `audio.microphone`, `audio.speaker`, `wakeWord.model`, `wakeWord.threshold`, `wakeWord.patience` e `interaction.replyTimeoutMs`, oppure `config` quando il contenuto non è JSON o la struttura del documento contiene sezioni o campi non previsti. Il processo termina con codice 2 senza costruire risorse audio o di rete.
+Decisione concordata con la persona il 18 ottobre 2026, per rendere comprensibile il rifiuto della configurazione: quando il modulo TypeScript selezionato con `--config` viene rifiutato, il satellite emette una sola riga Pino di livello `info` con `event: "invalid_configuration"` e il campo `reason`, che vale il `kind` del rifiuto previsto. Con `reason: "configuration_unavailable"` il file non esiste o non è leggibile e la riga non contiene altri campi diagnostici. Con `reason: "invalid_configuration"` la riga contiene anche `field`, il nome del campo rifiutato tra `backend.baseUrl`, `client.id`, `client.name`, `audio.microphone`, `audio.speaker`, `wakeWord.model`, `wakeWord.threshold`, `wakeWord.patience` e `interaction.replyTimeoutMs`, oppure `config` quando il contenuto non è JSON o la struttura del documento contiene sezioni o campi non previsti. Il processo termina con codice 2 senza costruire risorse audio o di rete.
 
 La riga non riporta valori letti dal file, percorsi, nome host o messaggi di librerie: `reason` e `field` sono costanti scelte dal satellite. Il rifiuto degli argomenti di avvio resta l'evento `invalid_arguments` senza campi aggiuntivi.
 
@@ -213,7 +213,7 @@ Decisione concordata con la persona il 18 ottobre 2026, insieme alla scansione i
 
 ### Identità del satellite nella sessione
 
-Decisione concordata il 17 ottobre 2026: il file JSON può contenere la sezione facoltativa `client` con `id` e `name`, stringhe non vuote. In assenza, `id` vale `satellite-<nome host>` e `name` vale il nome host. Il satellite invia questi valori come `clientId` e `name` di `session.hello`. L'identificativo resta stabile tra un avvio e l'altro sulla stessa macchina finché la configurazione non cambia; il nome serve alla famiglia per riconoscere il satellite, per esempio «Cucina». Un valore vuoto o di tipo diverso rende invalida la configurazione.
+Decisione concordata il 17 ottobre 2026: il modulo TypeScript può contenere la sezione facoltativa `client` con `id` e `name`, stringhe non vuote. In assenza, `id` vale `satellite-<nome host>` e `name` vale il nome host. Il satellite invia questi valori come `clientId` e `name` di `session.hello`. L'identificativo resta stabile tra un avvio e l'altro sulla stessa macchina finché la configurazione non cambia; il nome serve alla famiglia per riconoscere il satellite, per esempio «Cucina». Un valore vuoto o di tipo diverso rende invalida la configurazione.
 
 #### Metadata
   * type: specification
@@ -439,4 +439,3 @@ Le risposte arrivano come trasmissioni `output.start`, frame audio alla frequenz
 #### Relations
   * define: [Compatibilità con il canale vocale backend](../Requirements/VoiceSatellite.md#compatibilità-con-il-canale-vocale-backend)
 ---
-

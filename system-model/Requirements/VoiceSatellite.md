@@ -56,21 +56,6 @@ Domain e casi d’uso Application del satellite devono restare indipendenti dal 
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
-### Assenza di override da ambiente
-
-Il satellite deve preservare i valori letti dal file JSON senza sovrascriverli mediante variabili d’ambiente.
-
-#### Metadata
-  * type: requirement
-
-#### Contract References
-  * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
-
-#### Relations
-  * satisfiedBy: [config-file.ts](../../src/adapters/out/config-file.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
----
-
 ### Assenza di registrazioni audio persistenti
 
 Il satellite non deve conservare su memoria persistente l’audio acquisito dalle persone o ricevuto come risposta durante le interazioni.
@@ -204,9 +189,9 @@ Quando il punteggio di riconoscimento della wake word raggiunge la soglia config
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
-### Configurazione JSON unica
+### Configurazione TypeScript unica
 
-Il satellite deve leggere da un file JSON la configurazione del backend, dell'identità del client, dei dispositivi audio, della wake word e dell'intervallo locale di inattività, usando gli stessi significati sull'host e nel container.
+Il satellite deve caricare da un modulo TypeScript la configurazione del backend, dell'identità del client, dei dispositivi audio, della wake word e dell'intervallo locale di inattività, usando gli stessi significati sull'host e nel container.
 
 #### Concept References
   * [Configurazione del satellite](../Thesaurus/Lessico.md#configurazione-del-satellite)
@@ -217,6 +202,7 @@ Il satellite deve leggere da un file JSON la configurazione del backend, dell'id
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [config-file.ts](../../src/adapters/out/config-file.ts)
   * satisfiedBy: [configuration.ts](../../src/adapters/out/configuration.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -359,7 +345,7 @@ Il satellite deve escludere configurazioni personali e credenziali dagli artefat
 #### Relations
   * satisfiedBy: [.dockerignore](../../.dockerignore)
   * satisfiedBy: [Dockerfile](../../Dockerfile)
-  * satisfiedBy: [config.example.json](../../config.example.json)
+  * satisfiedBy: [config.example.ts](../../config.example.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -469,7 +455,7 @@ Quando riceve richieste ripetute o concorrenti di arresto, il satellite deve con
 
 ### Identificazione del satellite nella sessione
 
-Quando apre la sessione conversazionale con il backend, il satellite deve presentarsi con un identificativo di client stabile e un nome leggibile dalla famiglia, configurabili nel file JSON e con valori predefiniti ricavati dal nome host.
+Quando apre la sessione conversazionale con il backend, il satellite deve presentarsi con un identificativo di client stabile e un nome leggibile dalla famiglia, configurabili nel modulo TypeScript e con valori predefiniti ricavati dal nome host.
 
 #### Metadata
   * type: requirement
@@ -1031,6 +1017,22 @@ Il satellite deve caricare e validare la configurazione prima di costruire le ri
 
 #### Relations
   * satisfiedBy: [main.ts](../../src/main.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Valori di configurazione da ambiente
+
+Il satellite deve consentire al modulo TypeScript di configurazione di ricavare tutti i valori dalle variabili d'ambiente del processo, mantenendo la validazione prima dell'avvio operativo.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
+
+#### Relations
+  * satisfiedBy: [config.example.ts](../../config.example.ts)
+  * satisfiedBy: [config-file.ts](../../src/adapters/out/config-file.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 

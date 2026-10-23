@@ -28,8 +28,8 @@ success(docker([...run, '--interactive', '--entrypoint', 'node', image, '--input
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 assert.equal(process.arch, ${JSON.stringify(arch === 'amd64' ? 'x64' : 'arm64')});
-assert.equal(existsSync('/app/config.json'), false);
-assert.equal(existsSync('/config/satellite.json'), false);
+assert.equal(existsSync('/app/config.ts'), false);
+assert.equal(existsSync('/config/satellite.ts'), false);
 await import('decibri');
 await import('onnxruntime-node');
 const { errorToneSamples } = await import('./dist/adapters/out/ready-cue.js');
