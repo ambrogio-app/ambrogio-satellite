@@ -301,7 +301,10 @@ Inventariare tutte le dichiarazioni Application, incluse capacità restituite e 
 
 ### Ispezione della protezione del merge
 
-Controllare via GitHub che main richieda il check `Satellite checks` e impedisca il merge con check fallito o mancante. Non automatizzabile: le regole di protezione sono impostazioni del repository GitHub, non file del repository.
+Leggere con `gh api repos/<proprietario>/<repository>/rulesets` e con il dettaglio del ruleset `main` le regole attive sul branch principale.
+
+#### Details
+L'ispezione passa se il ruleset corrisponde al contratto: applicazione attiva sul branch predefinito, nessun attore escluso, integrazione solo tramite pull request, controlli richiesti con i nomi del contratto, riscrittura forzata e cancellazione vietate; e se un push diretto sul branch principale viene rifiutato. Fallisce se il ruleset manca, è disattivato, ha attori esclusi o differisce dal contratto. Non automatizzabile: il ruleset è un'impostazione del repository GitHub e non un file del repository, e leggerlo richiede credenziali con accesso amministrativo che la CI non possiede.
 
 #### Metadata
   * type: inspection-verification
@@ -709,3 +712,4 @@ Ispezionare trigger, formato versione, corrispondenza package.json, dipendenza d
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Pubblicazione delle immagini Docker del satellite](../Requirements/VoiceSatellite.md#pubblicazione-delle-immagini-docker-del-satellite)
 ---
+
