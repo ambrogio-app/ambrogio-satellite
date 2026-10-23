@@ -1,11 +1,20 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createConversationEventsAdapter } from '../../../src/adapters/in/conversation-events.adapter.js';
-import type { RequestEvents } from '../../../src/adapters/out/ambrogio-session.js';
-import { AudioReserve } from '../../../src/adapters/out/audio-reserve.js';
-import type { ConversationChannel } from '../../../src/adapters/out/conversation-channel.js';
-import type { ResponsePlayback } from '../../../src/adapters/out/response-playback.js';
-import type { SileroVad } from '../../../src/adapters/out/silero-vad.js';
 import type { VoiceSession } from '../../../src/application/voice-session.use-case.js';
+
+// Collaborator types come from the adapter signature: inbound tests import only their adapter and Application.
+type Options = Parameters<typeof createConversationEventsAdapter>[0];
+type ConversationChannel = NonNullable<ReturnType<Options['channel']>>;
+type RequestEvents = Parameters<ConversationChannel['startRequest']>[1];
+
+/** In-memory reserve with the same contract: frames kept in order, emptied when taken. */
+function reserveStub() {
+  let samples: number[] = [];
+  return {
+    push(frames: Float32Array) { samples.push(...frames); },
+    take() { const taken = Float32Array.from(samples); samples = []; return taken; },
+  };
+}
 
 function fixture(status = { acceptsWakeWord: false, acceptsSpeechEnd: false, interactionActive: true }) {
   let request: RequestEvents | undefined;
@@ -24,14 +33,14 @@ function fixture(status = { acceptsWakeWord: false, acceptsSpeechEnd: false, int
   const session = { status, dispatch: vi.fn(), fail: vi.fn(async (_error: unknown) => {}) };
   const vad = { push: vi.fn() };
   const wake: Float32Array[] = [];
-  const reserve = new AudioReserve(4);
+  const reserve = reserveStub();
   const adapter = createConversationEventsAdapter({
     getSession: () => session as unknown as VoiceSession,
     isStopping: () => false,
     channel: () => channel as unknown as ConversationChannel,
-    vad: () => vad as unknown as SileroVad,
-    reserve,
-    playback: playback as unknown as ResponsePlayback,
+    vad: () => vad as unknown as ReturnType<Options['vad']>,
+    reserve: reserve as unknown as Options['reserve'],
+    playback: playback as unknown as Options['playback'],
     pushWakeFrames: frames => wake.push(frames),
   });
   return { adapter, channel, playback, session, vad, wake, reserve,

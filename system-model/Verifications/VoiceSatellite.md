@@ -8,23 +8,6 @@ Organizzare le dimostrazioni operative, le ispezioni e le prove automatiche dell
   * type: verification-objective
 ---
 
-### Dimostrazione degli esiti e della diagnostica
-
-#### Details
-Esaminare firme Result e mapping esaustivi dei rifiuti; introdurre una nuova variante in una prova controllata e verificare che il mapping incompleto sia rilevato. Iniettare un guasto attraverso più componenti: una sola diagnosi definitiva al confine, causa originale conservata e nessun logger nei layer interni. Acquisire stdout e verificare una riga JSON per evento. Un rifiuto previsto non diventa automaticamente un log di errore e il messaggio pubblico non contiene dettagli tecnici. Non automatizzabile: nella forma attuale la prova del mapping incompleto richiede di introdurre una variante in una copia dei sorgenti e osservare il rifiuto del compilatore; una prova di tipo con `@ts-expect-error` la renderebbe automatica. Le parti ripetibili sono coperte dalla «Prova della diagnostica Pino».
-
-#### Metadata
-  * type: demonstration-verification
-
-#### Relations
-  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Assenza di logger nei layer interni](../Requirements/VoiceSatellite.md#assenza-di-logger-nei-layer-interni)
-  * verify: [Conservazione della causa dei guasti](../Requirements/VoiceSatellite.md#conservazione-della-causa-dei-guasti)
-  * verify: [Gestione esaustiva dei rifiuti previsti](../Requirements/VoiceSatellite.md#gestione-esaustiva-dei-rifiuti-previsti)
-  * verify: [Log tecnici JSON su stdout](../Requirements/VoiceSatellite.md#log-tecnici-json-su-stdout)
-  * verify: [Unicità della diagnosi definitiva](../Requirements/VoiceSatellite.md#unicità-della-diagnosi-definitiva)
----
-
 ### Dimostrazione del recupero locale
 
 #### Details
@@ -87,25 +70,10 @@ La prova passa se la musica si abbassa prima del segnale di ascolto, resta abbas
   * verify: [Attenuazione dell'audio locale durante l'interazione](../Requirements/VoiceSatellite.md#attenuazione-dellaudio-locale-durante-linterazione)
 ---
 
-### Dimostrazione dell'hook dei segreti
-
-In un clone con `core.hooksPath` impostato a `.githooks`, mettere in staging un file con una credenziale fittizia nel formato di un fornitore noto e tentare il commit: il commit è bloccato e il valore non compare nell'output. Ripetere con modifiche prive di segreti: il commit riesce. Ripetere con `gitleaks` assente dal `PATH`: il commit è bloccato con il messaggio che indica installazione e attivazione. Annullare le modifiche di prova senza lasciarle nella storia.
-
-#### Details
-Non automatizzabile: nella forma attuale la prova usa il gitleaks installato nel clone e commit reali; uno script che esegua l'hook in un repository temporaneo con gitleaks 8.30.1 la renderebbe automatica.
-
-#### Metadata
-  * type: demonstration-verification
-
-#### Relations
-  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Controllo dei segreti prima del commit locale](../Requirements/VoiceSatellite.md#controllo-dei-segreti-prima-del-commit-locale)
----
-
 ### Dimostrazione della attivazione locale
 
 #### Details
-Con ogni modello distribuito dimostrare che la pipeline ONNX riconosce localmente la wake word senza servizio esterno. Prima della wake word non si apre la chiamata backend. Con soglia iniziale 0,5, conferma su 2 blocchi consecutivi e cooldown 2000 ms, misurare attivazioni corrette e spurie, comprese quelle provocate da colpi di tosse e rumori impulsivi, e confrontarle con la conferma su un solo blocco. Provare Hey Jarvis, Hey Mycroft e Alexa su x86_64 e arm64. Pronunciare la wake word e la richiesta senza pausa, verificando che la riserva scorrevole di 1500 ms consegni l'inizio della richiesta dopo la connessione. Saturare la coda d'inferenza di 32 blocchi e verificare un guasto diagnostico senza crescita illimitata. Non automatizzabile: attivazioni corrette e spurie dipendono da voce, rumore e microfono reali su ciascuna architettura; la saturazione della coda e il caricamento dei modelli sono coperti anche dalle prove automatiche ONNX.
+Su Linux x86_64 e arm64, con ciascun modello distribuito (Hey Jarvis, Hey Mycroft e Alexa) e microfono reale, pronunciare la wake word e verificare che la pipeline ONNX la riconosca localmente senza servizio esterno e che prima della wake word non si apra alcuna chiamata backend. Pronunciare la wake word e la richiesta senza pausa e verificare che la riserva scorrevole di 1500 ms consegni l'inizio della richiesta dopo la connessione. Saturare la coda d'inferenza di 32 blocchi e verificare un guasto diagnostico senza crescita illimitata. La prova passa se ogni modello attiva il satellite senza servizi esterni, se nessuna chiamata backend precede la wake word, se l'inizio della richiesta arriva al backend e se la coda satura produce un guasto diagnostico; fallisce altrimenti. La prova non misura l'accuratezza del riconoscimento: attivazioni corrette e spurie dipendono dal modello e dalla soglia scelti da chi installa. Non automatizzabile: richiede la voce della persona al microfono reale su ciascuna architettura; la saturazione della coda e il caricamento dei modelli sono coperti anche dalle prove automatiche ONNX.
 
 #### Metadata
   * type: demonstration-verification
@@ -115,7 +83,6 @@ Con ogni modello distribuito dimostrare che la pipeline ONNX riconosce localment
   * verify: [Ascolto locale della wake word](../Requirements/VoiceSatellite.md#ascolto-locale-della-wake-word)
   * verify: [Avvio dopo la wake word](../Requirements/VoiceSatellite.md#avvio-dopo-la-wake-word)
   * verify: [Catalogo distribuito delle wake word](../Requirements/VoiceSatellite.md#catalogo-distribuito-delle-wake-word)
-  * verify: [Conferma della wake word su blocchi consecutivi](../Requirements/VoiceSatellite.md#conferma-della-wake-word-su-blocchi-consecutivi)
   * verify: [Conservazione della richiesta continua](../Requirements/VoiceSatellite.md#conservazione-della-richiesta-continua)
   * verify: [Selezione della wake word configurata](../Requirements/VoiceSatellite.md#selezione-della-wake-word-configurata)
 ---
@@ -123,7 +90,7 @@ Con ogni modello distribuito dimostrare che la pipeline ONNX riconosce localment
 ### Dimostrazione della configurazione
 
 #### Details
-Avviare usando un modulo TypeScript valido selezionato con `--config` e verificare `backend.baseUrl`, identità del client, modello scelto e intervallo locale di inattività. Verificare che l'URL base HTTP diventi `ws:` e HTTPS diventi `wss:`, preservando l'eventuale prefisso di percorso e aggiungendo una sola volta `api/session`. Omettere `client` e verificare i valori predefiniti ricavati dal nome host; poi indicare `client.id` e `client.name`. Omettere `audio` e verificare l'uso dei dispositivi predefiniti; poi indicare `audio.microphone` e `audio.speaker` e verificare tramite Decibri che siano usati quelli richiesti, senza ripiego silenzioso sul predefinito. Verificare il modello Hey Jarvis predefinito, un modello distribuito alternativo, il timeout predefinito di 15 secondi e un valore personalizzato. Cambiare le variabili d'ambiente lette dal modulo e verificare che i valori validati cambino al successivo avvio. Ripetere con modulo TypeScript non importabile, campi sconosciuti, URL non HTTP(S), timeout non positivo, selettore audio vuoto, identità vuota e modello non presente nel catalogo disponibile: l’avvio operativo è impedito con errore comprensibile. Eseguire i casi sia sull’host sia nel container dopo la disponibilità delle rispettive risorse. Non automatizzabile: la selezione dei dispositivi richiede periferiche audio reali sull'host e nel container; validazione dei campi, valori predefiniti e rifiuti sono candidati a una prova automatica e in parte già coperti da `configuration.test.ts` e `diagnostics.test.ts`.
+Sull'host e nel container, con microfono e speaker reali, avviare con un modulo TypeScript selezionato con `--config` che indica `audio.microphone` e `audio.speaker` e verificare tramite Decibri che siano usati i dispositivi richiesti, senza ripiego silenzioso sul predefinito; poi omettere `audio` e verificare l'uso dei dispositivi predefiniti; infine avviare in entrambe le modalità con un modulo invalido. La prova passa se in entrambe le modalità i dispositivi usati sono quelli selezionati o, senza selettori, i predefiniti, e se il modulo invalido impedisce l'avvio operativo con l'errore comprensibile del contratto; fallisce se una selezione esplicita è ignorata o sostituita dal predefinito o se il significato della configurazione differisce fra host e container. Non automatizzabile: la selezione dei dispositivi richiede periferiche audio reali sull'host e nel container; validazione dei campi, valori predefiniti e rifiuti sono coperti dalla «Prova della configurazione del satellite».
 
 #### Metadata
   * type: demonstration-verification
@@ -131,10 +98,7 @@ Avviare usando un modulo TypeScript valido selezionato con `--config` e verifica
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Configurazione TypeScript unica](../Requirements/VoiceSatellite.md#configurazione-typescript-unica)
-  * verify: [Rifiuto della configurazione invalida](../Requirements/VoiceSatellite.md#rifiuto-della-configurazione-invalida)
   * verify: [Selezione dei dispositivi audio](../Requirements/VoiceSatellite.md#selezione-dei-dispositivi-audio)
-  * verify: [Selezione del file di configurazione](../Requirements/VoiceSatellite.md#selezione-del-file-di-configurazione)
-  * verify: [Valori di configurazione da ambiente](../Requirements/VoiceSatellite.md#valori-di-configurazione-da-ambiente)
 ---
 
 ### Dimostrazione della conversazione e delle repliche
@@ -200,20 +164,6 @@ Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare il model
   * verify: [Delimitazione locale dei turni vocali](../Requirements/VoiceSatellite.md#delimitazione-locale-dei-turni-vocali)
 ---
 
-### Ispezione dei confini interni
-
-Esaminare manifest, import di produzione e di soli tipi, composition root e test. Accertare un solo progetto, assemblaggio delle porte nella composition root e rispetto della matrice di importazione nei test. I test Application devono poter usare porte simulate senza hardware. Non automatizzabile: il modello non ha adottato uno strumento di analisi degli import, quindi occorre leggere gli import di ogni file di test e classificarli per layer. Candidata a una prova automatica con un controllo degli import.
-
-#### Metadata
-  * type: inspection-verification
-
-#### Relations
-  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Assemblaggio delle risorse nella composition root](../Requirements/VoiceSatellite.md#assemblaggio-delle-risorse-nella-composition-root)
-  * verify: [Confini degli import nei test](../Requirements/VoiceSatellite.md#confini-degli-import-nei-test)
-  * verify: [Progetto unico del satellite](../Requirements/VoiceSatellite.md#progetto-unico-del-satellite)
----
-
 ### Ispezione dei nomi secondo le responsabilità
 
 #### Details
@@ -234,7 +184,7 @@ Per ogni rinomina controllare import, export pubblici, riferimenti nei test e co
 ### Ispezione del bootstrap della configurazione
 
 #### Details
-Usare una configurazione invalida e osservare che nessuna risorsa audio, wake word o connessione operativa viene costruita. Con configurazione valida verificare che ogni componente riceva soltanto i dati necessari e che Domain e casi d’uso non leggano file o ambiente. Non automatizzabile: stabilire quali dati sono necessari a ciascun componente richiede di leggere la composition root; l'assenza di risorse costruite con configurazione invalida è candidata a una prova automatica del processo.
+Con una configurazione valida leggere la composition root e verificare che ogni componente riceva soltanto i valori validati necessari alla propria responsabilità. L'ispezione passa se nessun componente riceve l'intera configurazione o valori che non usa; fallisce altrimenti. L'assenza di letture di file e ambiente in Domain e Application è controllata dalla «Prova dei confini interni» e la validazione prima della costruzione delle risorse dalla «Prova del bootstrap della configurazione». Non automatizzabile: stabilire quali dati sono necessari a ciascun componente richiede di leggere la composition root.
 
 #### Metadata
   * type: inspection-verification
@@ -242,7 +192,6 @@ Usare una configurazione invalida e osservare che nessuna risorsa audio, wake wo
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Distribuzione mirata della configurazione](../Requirements/VoiceSatellite.md#distribuzione-mirata-della-configurazione)
-  * verify: [Validazione prima della costruzione delle risorse](../Requirements/VoiceSatellite.md#validazione-prima-della-costruzione-delle-risorse)
 ---
 
 ### Ispezione del perimetro iniziale di osservabilità
@@ -259,7 +208,10 @@ Ispezionare dipendenze, bootstrap, composition root, configurazione e logger: de
 
 ### Ispezione del workflow CI del satellite
 
-Verificare eventi di attivazione, versioni, lockfile congelato, sequenza dei controlli e fallimento del job senza continue-on-error. Eseguire localmente i comandi compatibili; una prova locale non attesta un’esecuzione GitHub Actions. Per la prova remota richiedere una run del workflow sul commit pubblicato. Non automatizzabile: attesta la configurazione del workflow e l'esito di un'esecuzione GitHub Actions, che i test del repository non osservano.
+Sul commit pubblicato di una pull request o di `main`, aprire l'esecuzione del workflow `Satellite CI` su GitHub Actions.
+
+#### Details
+L'ispezione passa se il job `Satellite checks` ha eseguito tutti i passi del contratto «Profilo CI del satellite» e il suo esito corrisponde a quello dei passi. Fallisce se l'esecuzione manca, se un passo non è stato eseguito o se il job risulta riuscito con un passo fallito. La configurazione del workflow è controllata dalla «Prova della configurazione del workflow CI». Non automatizzabile: attesta l'esito di un'esecuzione GitHub Actions, che i test del repository non osservano.
 
 #### Metadata
   * type: inspection-verification
@@ -328,7 +280,10 @@ Ispezionare costruzione del logger, call site, configurazione, dipendenze e avvi
 
 ### Ispezione della scansione dei segreti in CI
 
-Verificare in `.github/workflows/secret-scan.yml` gli eventi di attivazione (push su ogni branch, pull request, richiesta manuale, chiamata da altri workflow), il checkout fissato per commit con l'intera storia e senza credenziali conservate, il download di gitleaks 8.30.1 con verifica dello SHA-256 prima dell'estrazione, il comando `gitleaks git --redact --no-banner --exit-code 1 .`, i permessi di sola lettura e l'assenza di continue-on-error. Verificare che `publish-image.yml` richiami il workflow e che il job di pubblicazione dipenda sia dai controlli CI sia dalla scansione. Eseguire localmente la stessa scansione sulla storia del repository; una prova locale non attesta un'esecuzione GitHub Actions, per la quale serve una run del workflow sul commit pubblicato. Non automatizzabile: attesta la configurazione dei workflow e l'esito di esecuzioni GitHub Actions, che i test del repository non osservano.
+Eseguire localmente `gitleaks git --redact --no-banner --exit-code 1 .` sulla storia del repository; sul commit pubblicato di una pull request o di un branch, aprire l'esecuzione del workflow `Secret scan` su GitHub Actions.
+
+#### Details
+L'ispezione passa se la scansione locale termina senza ritrovamenti e l'esecuzione GitHub Actions ha analizzato l'intera storia con esito corrispondente ai ritrovamenti. Fallisce se la scansione locale trova un segreto, se l'esecuzione manca o se risulta riuscita con un ritrovamento. La configurazione dei workflow è controllata dalla «Prova della configurazione della scansione dei segreti». Non automatizzabile: attesta l'esito di un'esecuzione GitHub Actions, che i test del repository non osservano.
 
 #### Metadata
   * type: inspection-verification
@@ -336,7 +291,6 @@ Verificare in `.github/workflows/secret-scan.yml` gli eventi di attivazione (pus
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Scansione dei segreti nella storia del repository](../Requirements/VoiceSatellite.md#scansione-dei-segreti-nella-storia-del-repository)
-  * verify: [Scansione dei segreti prima della pubblicazione](../Requirements/VoiceSatellite.md#scansione-dei-segreti-prima-della-pubblicazione)
 ---
 
 ### Ispezione delle decisioni sostituite
@@ -384,10 +338,10 @@ Per ogni modello presente nel catalogo confrontare file, origine, versione, lice
 
 ### Ispezione delle protezioni dei workflow
 
-Esaminare `.github/workflows/ci.yml`, `.github/workflows/secret-scan.yml` e `.github/workflows/publish-image.yml` e confrontarli con il contratto «Protezioni dei workflow GitHub Actions»: azioni esterne fissate per SHA e corrispondenti alla versione in commento, `persist-credentials: false` in ogni checkout, `package-manager-cache: false`, `timeout-minutes` di ogni job, permessi predefiniti `contents: read`, `packages: write` soltanto nel job `publish`, `workflow_call` nei workflow riutilizzati, gruppo di concorrenza, login con stdin e logout incondizionato.
+Per ogni azione esterna fissata in `.github/workflows/ci.yml`, `.github/workflows/secret-scan.yml` e `.github/workflows/publish-image.yml`, confrontare lo SHA con le release della versione maggiore indicata in commento nel repository GitHub dell'azione; nel log di un'esecuzione GitHub Actions di ciascun workflow leggere i permessi concessi al `GITHUB_TOKEN`.
 
 #### Details
-L'ispezione passa se ogni workflow corrisponde al contratto e nessun job riceve permessi di scrittura diversi da `packages: write` nel job `publish`. Fallisce se un'azione è indicata per tag, se lo SHA non corrisponde alla versione dichiarata, se un checkout conserva le credenziali o se un job non ha tempo massimo. Non automatizzabile: stabilire che lo SHA fissato corrisponde alla versione dichiarata dell'azione e che i permessi concessi sono i minimi necessari richiede di confrontare i workflow con i repository e la documentazione delle azioni; l'effetto dei permessi si osserva soltanto nelle esecuzioni GitHub Actions.
+L'ispezione passa se ogni SHA è il commit di una release della versione maggiore dichiarata e se i permessi del token nelle esecuzioni corrispondono a quelli del contratto «Protezioni dei workflow GitHub Actions», con `packages: write` soltanto nel job `publish`. Fallisce se uno SHA non appartiene alla versione dichiarata o se un job riceve permessi diversi da quelli dichiarati. I valori statici dei workflow sono controllati dalla «Prova delle protezioni dei workflow». Non automatizzabile: richiede di consultare i repository delle azioni su GitHub e i log delle esecuzioni GitHub Actions, che i test del repository non osservano.
 
 #### Metadata
   * type: inspection-verification
@@ -395,6 +349,30 @@ L'ispezione passa se ogni workflow corrisponde al contratto e nessun job riceve 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Privilegi e durata limitati dei workflow GitHub Actions](../Requirements/VoiceSatellite.md#privilegi-e-durata-limitati-dei-workflow-github-actions)
+---
+
+### Prova degli esiti e della diagnostica
+
+Copiare `src`, `tsconfig.json` e `package.json` in una directory temporanea ed eseguire sulla copia il compilatore TypeScript del progetto, prima senza modifiche e poi dopo aver aggiunto una variante ai rifiuti previsti della configurazione e, separatamente, a quelli degli argomenti di avvio. Iniettare un guasto che attraversa più componenti e acquisire le righe reali di Pino dei guasti e dei rifiuti previsti; controllare gli import di Domain e Application con la «Prova dei confini interni».
+
+#### Details
+La prova passa se la copia non modificata compila senza errori e ciascuna variante aggiunta produce un errore del compilatore nel mapping esaustivo di `src/main.ts`; se Domain e casi d'uso Application non importano logger; se un guasto propagato attraverso più componenti produce una sola diagnosi definitiva al confine con la causa originale conservata; se ogni evento è una sola riga JSON; se un rifiuto previsto produce una riga `info` senza `err`; e se il segnale pubblico del fallimento resta il tono di errore, senza dettagli tecnici. Fallisce se una variante aggiunta compila, se la copia non modificata non compila, se un guasto produce più diagnosi definitive o perde la causa originale, se un rifiuto previsto diventa un log di errore o se un dettaglio tecnico raggiunge il segnale pubblico.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [diagnostics.test.ts](../../test/adapters/out/diagnostics.test.ts)
+  * satisfiedBy: [local-tones.test.ts](../../test/adapters/out/local-tones.test.ts)
+  * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
+  * satisfiedBy: [import-boundaries.test.ts](../../test/architecture/import-boundaries.test.ts)
+  * satisfiedBy: [rejection-mapping.test.ts](../../test/architecture/rejection-mapping.test.ts)
+  * verify: [Assenza di logger nei layer interni](../Requirements/VoiceSatellite.md#assenza-di-logger-nei-layer-interni)
+  * verify: [Conservazione della causa dei guasti](../Requirements/VoiceSatellite.md#conservazione-della-causa-dei-guasti)
+  * verify: [Gestione esaustiva dei rifiuti previsti](../Requirements/VoiceSatellite.md#gestione-esaustiva-dei-rifiuti-previsti)
+  * verify: [Log tecnici JSON su stdout](../Requirements/VoiceSatellite.md#log-tecnici-json-su-stdout)
+  * verify: [Unicità della diagnosi definitiva](../Requirements/VoiceSatellite.md#unicità-della-diagnosi-definitiva)
 ---
 
 ### Prova degli eventi tardivi dopo la fine dell'interazione
@@ -412,6 +390,41 @@ La prova passa se gli eventi tardivi non interrompono l'acquisizione del microfo
   * satisfiedBy: [conversation-events.test.ts](../../test/adapters/in/conversation-events.test.ts)
   * satisfiedBy: [conversation-channel.test.ts](../../test/adapters/out/conversation-channel.test.ts)
   * verify: [Riapertura sicura dopo la chiusura vocale](../Requirements/VoiceSatellite.md#riapertura-sicura-dopo-la-chiusura-vocale)
+---
+
+### Prova dei confini interni
+
+Con l'API del compilatore della dipendenza di sviluppo `typescript`, leggere le dichiarazioni di import ed export, gli import dinamici e i tipi importati di tutti i file TypeScript di `src` e `test`, compresi quelli di soli tipi, risolvere i percorsi relativi e classificarli per layer; leggere `package.json`, `pnpm-workspace.yaml` e l'elenco dei file tracciati da Git.
+
+#### Details
+La prova passa se i file Domain importano soltanto Domain; se i file Application importano soltanto Application e Domain; se Domain e Application non importano moduli esterni né moduli `node:`, e quindi né logger né accesso a file o ambiente; se soltanto la composition root importa come valore i casi d'uso Application e i file `*.adapter.ts`; se, fra il codice di produzione, i test Domain importano soltanto Domain, i test Application soltanto Application e Domain, i test inbound soltanto l'adapter inbound con il nome del test e Application, e i test outbound soltanto adapter outbound, Application e Domain; e se il repository traccia un solo `package.json`, senza campo `workspaces`, e `pnpm-workspace.yaml` non dichiara `packages`. Le prove di integrazione della composition root e del confine di processo sono escluse dalle regole dei test, come prevede il contratto «Regole di importazione dei test». Fallisce se un import, anche di soli tipi, viola una regola, se un percorso relativo non si risolve in un file del repository o se un layer non contiene file.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [import-boundaries.test.ts](../../test/architecture/import-boundaries.test.ts)
+  * verify: [Assemblaggio delle risorse nella composition root](../Requirements/VoiceSatellite.md#assemblaggio-delle-risorse-nella-composition-root)
+  * verify: [Confini degli import nei test](../Requirements/VoiceSatellite.md#confini-degli-import-nei-test)
+  * verify: [Distribuzione mirata della configurazione](../Requirements/VoiceSatellite.md#distribuzione-mirata-della-configurazione)
+  * verify: [Progetto unico del satellite](../Requirements/VoiceSatellite.md#progetto-unico-del-satellite)
+---
+
+### Prova del bootstrap della configurazione
+
+Importare il punto di ingresso `src/main.ts` con un modulo di configurazione invalido e poi con uno valido, sostituendo nella prova la composition root, la diagnostica, Decibri e ONNX Runtime con moduli registrati che annotano il proprio caricamento.
+
+#### Details
+La prova passa se con il modulo invalido il processo registra il rifiuto, imposta il codice di uscita 2 e non carica la composition root, Decibri né ONNX Runtime; e se con il modulo valido la composition root viene caricata soltanto dopo la validazione e riceve la configurazione validata. Fallisce se una risorsa audio, wake word o di rete viene caricata o costruita con una configurazione invalida o prima della validazione.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [process-bootstrap.test.ts](../../test/runtime/process-bootstrap.test.ts)
+  * verify: [Validazione prima della costruzione delle risorse](../Requirements/VoiceSatellite.md#validazione-prima-della-costruzione-delle-risorse)
 ---
 
 ### Prova del catalogo wake word montato
@@ -434,7 +447,11 @@ La prova passa se il modello personalizzato è scoperto e caricato dal mount sen
 ### Prova del ciclo di arresto del satellite
 
 #### Details
-Iniettare risorse controllate e fallimenti: durante ascolto, chiamata e riproduzione, l'arresto deve bloccare nuovi eventi e interrompere i dispositivi senza attendere una risposta. Chiamare stop ripetutamente e in parallelo: una sola chiusura nativa per risorsa, stesso esito. Far fallire una chiusura: tutte le altre devono essere tentate e l'errore originale deve restare disponibile. Fallire l'avvio dopo acquisizioni parziali e interrompere un'acquisizione pendente: tutte le risorse ottenute devono essere rilasciate. Provare rilascio ONNX parziale e inferenza in corso, cancellazione del tono di errore e SIGINT/SIGTERM nel confine di processo. I test automatici usano risorse simulate; non attestano periferiche reali.
+Iniettare risorse controllate e fallimenti: durante ascolto, chiamata e riproduzione, l'arresto deve bloccare nuovi eventi e interrompere i dispositivi senza attendere una risposta. Chiamare stop ripetutamente e in parallelo: una sola chiusura nativa per risorsa, stesso esito. Far fallire una chiusura: tutte le altre devono essere tentate e l'errore originale deve restare disponibile. Fallire l'avvio dopo acquisizioni parziali e interrompere un'acquisizione pendente: tutte le risorse ottenute devono essere rilasciate. Provare rilascio ONNX parziale e inferenza in corso, cancellazione del tono di errore e SIGINT/SIGTERM nel confine di processo.
+
+Nel confine di processo, con una scadenza controllata dalla prova, inviare SIGINT o SIGTERM a un satellite la cui chiusura non si risolve mai, poi a un avvio che non termina dopo l'interruzione, inviando un secondo segnale durante l'attesa; ripetere con un arresto che termina prima della scadenza. Con il timer predefinito basato su Node.js verificare che la scadenza non trattenga il processo. Acquisire la riga reale di Pino dell'evento di scadenza.
+
+La prova passa se ogni condizione precedente è rispettata; se, alla scadenza di 5000 ms dal primo segnale, il confine di processo registra una sola volta `satellite_shutdown_timeout` e termina con codice 1; se il secondo segnale non riavvia la scadenza; se un arresto concluso prima annulla la scadenza senza registrare l'evento né forzare l'uscita; se il timer predefinito non mantiene attivo l'event loop; e se la riga è di livello `error` con soltanto le chiavi `level`, `time`, `event` e `timeoutMs` uguale a 5000. Fallisce se una risorsa resta aperta, se una chiusura è ripetuta, se l'errore originale si perde, se una chiusura che non si risolve lascia il processo attivo oltre la scadenza, se l'uscita forzata avviene dopo un arresto concluso o con codice diverso da 1, o se la riga contiene altre chiavi. I test automatici usano risorse simulate; non attestano periferiche reali.
 
 #### Metadata
   * type: test-verification
@@ -442,6 +459,7 @@ Iniettare risorse controllate e fallimenti: durante ascolto, chiamata e riproduz
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [decibri-audio.test.ts](../../test/adapters/out/decibri-audio.test.ts)
+  * satisfiedBy: [diagnostics.test.ts](../../test/adapters/out/diagnostics.test.ts)
   * satisfiedBy: [onnx-lifecycle.test.ts](../../test/adapters/out/onnx-lifecycle.test.ts)
   * satisfiedBy: [silero-vad.test.ts](../../test/adapters/out/silero-vad.test.ts)
   * satisfiedBy: [satellite-lifecycle.test.ts](../../test/composition/satellite-lifecycle.test.ts)
@@ -449,6 +467,7 @@ Iniettare risorse controllate e fallimenti: durante ascolto, chiamata e riproduz
   * verify: [Arresto immediato del processo satellite](../Requirements/VoiceSatellite.md#arresto-immediato-del-processo-satellite)
   * verify: [Idempotenza dell'arresto del satellite](../Requirements/VoiceSatellite.md#idempotenza-dellarresto-del-satellite)
   * verify: [Rilascio completo delle risorse del satellite](../Requirements/VoiceSatellite.md#rilascio-completo-delle-risorse-del-satellite)
+  * verify: [Tempo massimo dell'arresto del processo](../Requirements/VoiceSatellite.md#tempo-massimo-dellarresto-del-processo)
 ---
 
 ### Prova del confine Application della sessione
@@ -545,6 +564,22 @@ Acquisire le righe reali di Pino prodotte dal rifiuto della configurazione. Per 
   * verify: [Rifiuto della configurazione invalida](../Requirements/VoiceSatellite.md#rifiuto-della-configurazione-invalida)
 ---
 
+### Prova dell'hook dei segreti
+
+In un repository Git temporaneo con `core.hooksPath` impostato a una copia di `.githooks`, eseguire `git commit` con gitleaks 8.30.1 nel `PATH`: mettere in staging un file con una credenziale fittizia nel formato di un fornitore noto, costruita durante la prova e mai salvata nel repository del satellite, poi un file privo di segreti; infine ripetere con un `PATH` che non contiene `gitleaks`. Il repository temporaneo viene rimosso al termine.
+
+#### Details
+La prova passa se l'hook versionato è eseguibile; se il commit con la credenziale è rifiutato, la storia del repository temporaneo resta senza commit e il valore non compare nell'output; se il commit privo di segreti riesce; e se senza `gitleaks` il commit è rifiutato con il messaggio che indica l'installazione di gitleaks 8.30.1 e l'attivazione con `git config core.hooksPath .githooks`. Fallisce se la versione di gitleaks nel `PATH` non è 8.30.1, se la credenziale entra nella storia, se il valore compare nell'output, se il commit privo di segreti è rifiutato o se il commit senza `gitleaks` riesce.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [pre-commit-hook.test.ts](../../test/repository/pre-commit-hook.test.ts)
+  * verify: [Controllo dei segreti prima del commit locale](../Requirements/VoiceSatellite.md#controllo-dei-segreti-prima-del-commit-locale)
+---
+
 ### Prova dell'identità del satellite nella sessione
 
 Con una sessione controllata, avviare il satellite senza sezione `client`, poi con `client.id` e `client.name`, e osservare `session.hello`. Ripetere con valori vuoti o di tipo diverso.
@@ -587,7 +622,7 @@ La prova passa se lo script non segnala storia delle decisioni, formule non norm
 Con sessioni ONNX simulate che restituiscono una sequenza controllata di punteggi del classificatore, uno per blocco da 80 ms, e soglia 0,5: con `patience` 2 un solo blocco sopra soglia seguito da uno sotto soglia non produce rilevamenti; due blocchi consecutivi sopra soglia producono un solo rilevamento, sul secondo blocco; due blocchi sopra soglia separati da uno sotto soglia non producono rilevamenti; con `patience` 1 un solo blocco sopra soglia produce un rilevamento. Dopo l'azzeramento della pipeline un blocco sopra soglia non completa un conteggio iniziato prima. Opzioni con `patience` non intero o minore di 1 sono rifiutate all'apertura. La configurazione senza `wakeWord.patience` produce il valore 2, accetta 1 e 10 e rifiuta 0, 11, valori non interi e stringhe con `field: "wakeWord.patience"`; la composition root passa il valore configurato al riconoscitore.
 
 #### Details
-La prova usa punteggi simulati: non misura attivazioni spurie né parole mancate con il microfono reale, affidate alla «Dimostrazione della attivazione locale».
+La prova usa punteggi simulati e non misura attivazioni spurie né parole mancate: l'accuratezza del riconoscimento dipende dal modello e dalla soglia scelti da chi installa.
 
 #### Metadata
   * type: test-verification
@@ -598,6 +633,62 @@ La prova usa punteggi simulati: non misura attivazioni spurie né parole mancate
   * satisfiedBy: [onnx-lifecycle.test.ts](../../test/adapters/out/onnx-lifecycle.test.ts)
   * satisfiedBy: [satellite-lifecycle.test.ts](../../test/composition/satellite-lifecycle.test.ts)
   * verify: [Conferma della wake word su blocchi consecutivi](../Requirements/VoiceSatellite.md#conferma-della-wake-word-su-blocchi-consecutivi)
+---
+
+### Prova della configurazione del satellite
+
+Con moduli TypeScript temporanei e con `config.example.ts`, analizzare l'opzione `--config`, caricare e validare configurazioni valide e invalide, cambiando fra due caricamenti le variabili d'ambiente lette dal modulo; avviare il punto di ingresso del processo con un modulo invalido.
+
+#### Details
+La prova passa se l'avvio richiede un solo percorso indicato con `--config`; se un modulo valido produce `backend.baseUrl`, identità, modello e intervallo locale di inattività configurati; se l'URL base `http:` diventa `ws:` e `https:` diventa `wss:`, conservando l'eventuale prefisso di percorso e aggiungendo una sola volta `api/session`; se senza `client` l'identità vale `satellite-<nome host>` con il nome host e con `client.id` e `client.name` vale quella indicata; se senza `audio` non è indicato alcun selettore e con `audio.microphone` e `audio.speaker` i selettori indicati sono conservati; se il modello predefinito è `hey_jarvis`, un modello distribuito alternativo è accettato, l'intervallo predefinito è di 15000 ms e un valore personalizzato è conservato; se, cambiando le variabili d'ambiente lette dal modulo, il caricamento successivo produce i nuovi valori validati; e se modulo non importabile, campi sconosciuti, URL non HTTP(S), intervallo non positivo, selettore audio vuoto, identità vuota e modello assente dal catalogo disponibile sono rifiutati con il campo atteso e il processo termina con codice 2 senza avvio operativo. Fallisce se una configurazione invalida è accettata, se un valore predefinito differisce dal contratto, se un valore configurato o un cambio delle variabili d'ambiente è ignorato o se il processo prosegue dopo un rifiuto.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [config-arguments.test.ts](../../test/adapters/in/config-arguments.test.ts)
+  * satisfiedBy: [backend-url.test.ts](../../test/adapters/out/backend-url.test.ts)
+  * satisfiedBy: [config-file.test.ts](../../test/adapters/out/config-file.test.ts)
+  * satisfiedBy: [configuration.test.ts](../../test/adapters/out/configuration.test.ts)
+  * satisfiedBy: [process-bootstrap.test.ts](../../test/runtime/process-bootstrap.test.ts)
+  * verify: [Configurazione TypeScript unica](../Requirements/VoiceSatellite.md#configurazione-typescript-unica)
+  * verify: [Rifiuto della configurazione invalida](../Requirements/VoiceSatellite.md#rifiuto-della-configurazione-invalida)
+  * verify: [Selezione del file di configurazione](../Requirements/VoiceSatellite.md#selezione-del-file-di-configurazione)
+  * verify: [Valori di configurazione da ambiente](../Requirements/VoiceSatellite.md#valori-di-configurazione-da-ambiente)
+---
+
+### Prova della configurazione del workflow CI
+
+Leggere come testo `.github/workflows/ci.yml` e confrontarlo con il contratto «Profilo CI del satellite» e con `.github/workflows/secret-scan.yml`.
+
+#### Details
+La prova passa se il workflow si attiva su `pull_request`, sui `push` al solo branch `main`, su `workflow_dispatch` e su `workflow_call`, senza filtri `paths` o `paths-ignore`; se il job `Satellite checks` usa `ubuntu-24.04`, Node.js `24`, pnpm 12.11.2 e `pnpm install --frozen-lockfile`, con `ONNXRUNTIME_NODE_INSTALL: skip` e `ORT_DISABLE_TELEMETRY: '1'`; se installa gitleaks con la versione e lo SHA-256 di `.github/workflows/secret-scan.yml`, dallo stesso archivio della release ufficiale, ed esegue `sha256sum --check --strict` prima dell'estrazione; se esegue nell'ordine la validazione Reqvire 1.3.2, il lint JSON Reqvire 1.3.2 con il controllo `jq` che richiede liste vuote, `node scripts/check-model.mjs`, `pnpm typecheck`, `pnpm test` e `pnpm build`, con l'installazione di gitleaks prima di `pnpm test`; e se nessun workflow o passo usa `continue-on-error`. Fallisce se manca un controllo, se l'ordine differisce, se un attivatore manca o è filtrato per percorso, se la versione o l'impronta di gitleaks differiscono dalla scansione dei segreti o se un passo fallito non fa fallire il job.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [workflows.test.ts](../../test/repository/workflows.test.ts)
+  * verify: [Controlli CI delle modifiche del satellite](../Requirements/VoiceSatellite.md#controlli-ci-delle-modifiche-del-satellite)
+---
+
+### Prova della configurazione della scansione dei segreti
+
+Leggere come testo `.github/workflows/secret-scan.yml` e `.github/workflows/publish-image.yml` e confrontarli con i contratti «Profilo della scansione dei segreti con gitleaks» e «Profilo di pubblicazione Docker del satellite».
+
+#### Details
+La prova passa se la scansione si attiva su `push` senza filtri di branch o percorso, su `pull_request`, su `workflow_dispatch` e su `workflow_call`; se il checkout usa `fetch-depth: 0` e `persist-credentials: false`; se `GITLEAKS_VERSION` vale `8.30.1` e `GITLEAKS_SHA256` vale l'impronta del contratto; se il passo di installazione scarica `gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz` dalla release ufficiale ed esegue `sha256sum --check --strict` prima di `tar`; se il comando di scansione è `gitleaks git --redact --no-banner --exit-code 1 .`; se nessun passo usa `continue-on-error`; e se `publish-image.yml` richiama `./.github/workflows/ci.yml` e `./.github/workflows/secret-scan.yml` e il job `publish` dichiara `needs: [checks, secret-scan]`. Fallisce se un attivatore manca o è filtrato, se l'impronta è verificata dopo l'estrazione o non è verificata, se versione, impronta o comando differiscono dal contratto o se il job `publish` non dipende da entrambi i workflow.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [workflows.test.ts](../../test/repository/workflows.test.ts)
+  * verify: [Scansione dei segreti nella storia del repository](../Requirements/VoiceSatellite.md#scansione-dei-segreti-nella-storia-del-repository)
+  * verify: [Scansione dei segreti prima della pubblicazione](../Requirements/VoiceSatellite.md#scansione-dei-segreti-prima-della-pubblicazione)
 ---
 
 ### Prova della diagnostica Pino
@@ -657,6 +748,22 @@ La prova passa se all'avvio esiste una sola sessione pronta, se ogni attivazione
   * verify: [Sessione conversazionale persistente](../Requirements/VoiceSatellite.md#sessione-conversazionale-persistente)
 ---
 
+### Prova delle protezioni dei workflow
+
+Leggere come testo `.github/workflows/ci.yml`, `.github/workflows/secret-scan.yml` e `.github/workflows/publish-image.yml` e confrontarli con il contratto «Protezioni dei workflow GitHub Actions».
+
+#### Details
+La prova passa se ogni `uses:` di un'azione esterna indica uno SHA di 40 caratteri esadecimali seguito dal commento della versione maggiore e la terna di azione, SHA e versione è una di quelle del contratto; se ogni checkout ha `persist-credentials: false`; se ogni `actions/setup-node` ha `package-manager-cache: false`; se i job `Satellite checks`, `Secret scan` e `publish` hanno rispettivamente `timeout-minutes` 15, 10 e 60 e ogni job che esegue passi dichiara un tempo massimo; se ogni workflow dichiara come permessi predefiniti soltanto `contents: read`; se soltanto il job `publish` dichiara permessi propri, `contents: read` e `packages: write`; se `ci.yml` e `secret-scan.yml` dichiarano `workflow_call`; e se il workflow di pubblicazione usa il gruppo di concorrenza `satellite-release-${{ github.ref }}` con `cancel-in-progress: false`, passa `GITHUB_TOKEN` a `docker login` con `--password-stdin` ed esegue `docker logout ghcr.io` con `if: always()`. Fallisce se un'azione è indicata per tag o ramo, se SHA e versione non corrispondono al contratto, se un checkout conserva le credenziali, se un job che esegue passi non ha tempo massimo o se un job diverso da `publish` riceve permessi di scrittura.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [workflows.test.ts](../../test/repository/workflows.test.ts)
+  * verify: [Privilegi e durata limitati dei workflow GitHub Actions](../Requirements/VoiceSatellite.md#privilegi-e-durata-limitati-dei-workflow-github-actions)
+---
+
 ### Prova delle scadenze indipendenti dal runtime
 
 #### Details
@@ -712,4 +819,3 @@ Ispezionare trigger, formato versione, corrispondenza package.json, dipendenza d
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Pubblicazione delle immagini Docker del satellite](../Requirements/VoiceSatellite.md#pubblicazione-delle-immagini-docker-del-satellite)
 ---
-

@@ -48,7 +48,7 @@ Il satellite deve accettare la wake word e la richiesta pronunciate nella stessa
 
 Il modulo TypeScript seleziona con `wakeWord.model` un solo identificatore disponibile. L'identificatore predefinito per Hey Jarvis è `hey_jarvis`. La distribuzione contiene `hey_jarvis`, `hey_mycroft` e `alexa`, associati rispettivamente a `hey_jarvis_v0.1.onnx`, `hey_mycroft_v0.1.onnx` e `alexa_v0.1.onnx` della release openWakeWord v0.5.1, con `melspectrogram.onnx` e `embedding_model.onnx` della stessa release. Origine, hash SHA-256, attribuzione e licenza dei file distribuiti sono registrati in `models/wakeword/README.md`; la licenza CC BY-NC-SA 4.0 accompagna i file. L'immagine container include questa directory; un mount in sola lettura su `/app/models/wakeword` la sostituisce. Un file personalizzato `<identificatore>.onnx` nella directory montata aggiunge quell'identificatore al catalogo disponibile, purché il nome sia composto solo da lettere minuscole ASCII, cifre, trattino o sottolineatura, inizi con una lettera o cifra e non sia riservato ai modelli comuni. Il file deve essere un classificatore openWakeWord compatibile; la directory montata deve contenere anche `melspectrogram.onnx` e `embedding_model.onnx`. Un identificatore non disponibile è una configurazione invalida; non si accettano percorsi arbitrari o separatori di directory nella configurazione. La provenienza e la licenza dei modelli personalizzati sono responsabilità di chi li installa.
 
-La frase selezionata per `alexa` è «Alexa», senza «Hey». Il modello openWakeWord è addestrato per questa parola; la documentazione segnala più mancati riconoscimenti possibili per «Hey Alexa» (https://github.com/dscripka/openWakeWord/blob/main/docs/models/alexa.md). Il file ONNX è stato caricato dalla pipeline locale e ha riconosciuto il campione `tests/data/alexa_test.wav` del progetto upstream con la soglia iniziale 0,5. La prova sul microfono reale, la misura delle attivazioni spurie e l'affidabilità finale restano da eseguire su Linux x86_64 e arm64 prima di dichiarare la verifica operativa completa.
+La frase selezionata per `alexa` è «Alexa», senza «Hey». Il modello openWakeWord è addestrato per questa parola; la documentazione segnala più mancati riconoscimenti possibili per «Hey Alexa» (https://github.com/dscripka/openWakeWord/blob/main/docs/models/alexa.md). L'accuratezza del riconoscimento, attivazioni corrette e spurie comprese, dipende dal modello e dalla soglia scelti da chi installa; il satellite non la misura.
 
 #### Metadata
   * type: specification
@@ -233,9 +233,9 @@ Il modulo TypeScript ammette la sezione facoltativa `client` con `id` e `name`, 
 
 La prima versione esegue nel processo TypeScript/Node.js del satellite la pipeline di riconoscimento openWakeWord con modelli ONNX, usando `onnxruntime-node` 1.30.0 fissato nel lockfile. Il riconoscimento della wake word rimane locale al satellite. I modelli e le risorse condivise necessari alla pipeline sono caricati dai file distribuiti con l'applicazione; il satellite non richiede un servizio Wyoming per questa funzione.
 
-I valori iniziali da tarare con prove su Linux x86_64 e arm64 sono la soglia di riconoscimento e il numero di blocchi consecutivi predefiniti dal contratto «Configurazione del processo satellite», l'intervallo minimo fra rilevamenti di 2000 ms e al massimo 32 blocchi da 80 ms accodati per l'inferenza. Il superamento del limite è un guasto diagnosticato, non un accumulo illimitato. Il supporto dei binari Node.js per Linux x64 e arm64 è documentato da ONNX Runtime: https://onnxruntime.ai/docs/get-started/with-javascript/node.html .
+I valori predefiniti sono la soglia di riconoscimento e il numero di blocchi consecutivi definiti dal contratto «Configurazione del processo satellite», l'intervallo minimo fra rilevamenti di 2000 ms e al massimo 32 blocchi da 80 ms accodati per l'inferenza. Il superamento del limite è un guasto diagnosticato, non un accumulo illimitato. Il supporto dei binari Node.js per Linux x64 e arm64 è documentato da ONNX Runtime: https://onnxruntime.ai/docs/get-started/with-javascript/node.html .
 
-La soglia di riconoscimento è configurabile con `wakeWord.threshold`, perché un modello attiva il satellite anche senza che la parola sia pronunciata. Una soglia più alta riduce le attivazioni spontanee e aumenta il rischio di parole non riconosciute; la taratura resta affidata alle prove con il microfono reale.
+La soglia di riconoscimento è configurabile con `wakeWord.threshold`, perché un modello attiva il satellite anche senza che la parola sia pronunciata. Una soglia più alta riduce le attivazioni spontanee e aumenta il rischio di parole non riconosciute; la scelta del modello e della soglia, e quindi l'accuratezza del riconoscimento, è responsabilità di chi installa.
 
 Un rilevamento richiede che il punteggio del classificatore raggiunga la soglia in `wakeWord.patience` blocchi consecutivi da 80 ms, come il parametro `patience` di `Model.predict` di openWakeWord (https://github.com/dscripka/openWakeWord/blob/main/openwakeword/model.py). Un blocco sotto soglia azzera il conteggio; anche l'azzeramento della pipeline al ritorno in attesa della wake word lo azzera. Con 2 blocchi richiesti un impulso sonoro, come un colpo di tosse, che supera la soglia in un solo blocco non attiva il satellite; con 1 basta un solo blocco. Ogni blocco richiesto in più aggiunge circa 80 ms al riconoscimento e aumenta il rischio di parole non riconosciute se la wake word è pronunciata in fretta. L'intervallo minimo fra rilevamenti si applica al rilevamento confermato. Non si introducono il filtro VAD sui punteggi né la soppressione del rumore di openWakeWord.
 
@@ -258,7 +258,7 @@ La composition root fornisce l'adapter Node.js; nei test Application una impleme
 
 ### Profilo CI del satellite
 
-GitHub Actions esegue il job stabile `Satellite checks` del workflow `.github/workflows/ci.yml` su ogni pull request, sui push a main, su richiesta manuale e quando un altro workflow lo richiama come workflow riutilizzabile, senza filtri sui percorsi. Runner Linux Ubuntu 24.04 x86_64, Node.js 24, pnpm 12.11.2 e installazione con lockfile congelato, senza scaricare i binari di ONNX Runtime durante l'installazione e con la telemetria di ONNX Runtime disattivata. Reqvire 1.3.2 valida il modello e produce il lint JSON: sia rilievi automatici sia rilievi manuali fanno fallire il controllo. Segue lo script del contratto «Script di integrità del modello», poi pnpm typecheck (compreso tsconfig.core.json), pnpm test e pnpm build. Nessuna credenziale personale è richiesta; permessi, tempo massimo e azioni fissate seguono il contratto «Protezioni dei workflow GitHub Actions». Le prove audio con periferiche e la compatibilità arm64 restano verifiche separate prima del rilascio.
+GitHub Actions esegue il job stabile `Satellite checks` del workflow `.github/workflows/ci.yml` su ogni pull request, sui push a main, su richiesta manuale e quando un altro workflow lo richiama come workflow riutilizzabile, senza filtri sui percorsi. Runner Linux Ubuntu 24.04 x86_64, Node.js 24, pnpm 12.11.2 e installazione con lockfile congelato, senza scaricare i binari di ONNX Runtime durante l'installazione e con la telemetria di ONNX Runtime disattivata. Reqvire 1.3.2 valida il modello e produce il lint JSON: sia rilievi automatici sia rilievi manuali fanno fallire il controllo. Segue lo script del contratto «Script di integrità del modello», poi pnpm typecheck (compreso tsconfig.core.json), pnpm test e pnpm build. Prima di pnpm test il job installa la versione di gitleaks del contratto «Profilo della scansione dei segreti con gitleaks» con lo stesso archivio della release ufficiale e la stessa impronta SHA-256, verificata prima dell'estrazione, perché la suite esegue l'hook pre-commit; se l'impronta non corrisponde il job fallisce. Nessuna credenziale personale è richiesta; permessi, tempo massimo e azioni fissate seguono il contratto «Protezioni dei workflow GitHub Actions». Le prove audio con periferiche e la compatibilità arm64 restano verifiche separate prima del rilascio.
 
 #### Metadata
   * type: specification
@@ -415,6 +415,19 @@ Il repository GitHub ha un ruleset di branch chiamato `main`, con applicazione `
   * define: [Controlli obbligatori prima del merge](../Requirements/VoiceSatellite.md#controlli-obbligatori-prima-del-merge)
 ---
 
+### Scadenza dell'arresto del processo
+
+Al primo SIGINT o SIGTERM il confine di processo avvia, insieme all'arresto ordinato del contratto «Ciclo di arresto e rilascio delle risorse», un tempo massimo di 5000 ms. I segnali successivi non lo riavviano né lo prolungano. Se l'arresto ordinato, compresa l'interruzione di un avvio in corso, non è terminato alla scadenza, per esempio perché una chiusura nativa non restituisce mai il controllo, il satellite emette una sola riga Pino di livello `error` con `event: "satellite_shutdown_timeout"` e `timeoutMs: 5000`, e termina subito il processo con codice di uscita 1 senza attendere le chiusure pendenti. La riga contiene soltanto le chiavi `level`, `time`, `event` e `timeoutMs`: nessun `err`, messaggio di librerie, configurazione, percorso o dato della sessione.
+
+Se l'arresto ordinato termina prima della scadenza, il tempo massimo è annullato, non trattiene il processo e non produce la riga; il codice di uscita resta quello dell'arresto ordinato.
+
+#### Metadata
+  * type: behavior
+
+#### Relations
+  * define: [Tempo massimo dell'arresto del processo](../Requirements/VoiceSatellite.md#tempo-massimo-dellarresto-del-processo)
+---
+
 ### Script di integrità del modello
 
 Lo script `scripts/check-model.mjs` legge il modello con Reqvire 1.3.2 (`search --filter-type <tipo> --json` e `resources`) e i file tracciati con `git ls-files`, e segnala:
@@ -497,4 +510,3 @@ Le risposte arrivano come trasmissioni `output.start`, frame audio alla frequenz
 #### Relations
   * define: [Compatibilità con il canale vocale backend](../Requirements/VoiceSatellite.md#compatibilità-con-il-canale-vocale-backend)
 ---
-

@@ -280,6 +280,7 @@ Quando una modifica viene inviata al branch main o proposta tramite pull request
   * type: requirement
 
 #### Contract References
+  * [Profilo della scansione dei segreti con gitleaks](../Contracts/VoiceSatellite.md#profilo-della-scansione-dei-segreti-con-gitleaks)
   * [Protezioni dei workflow GitHub Actions](../Contracts/VoiceSatellite.md#protezioni-dei-workflow-github-actions)
   * [Script di integrità del modello](../Contracts/VoiceSatellite.md#script-di-integrità-del-modello)
 
@@ -1112,6 +1113,26 @@ Il satellite deve poter essere eseguito su Linux x86_64 e arm64 senza richiedere
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Tempo massimo dell'arresto del processo
+
+Se l'arresto ordinato avviato da SIGINT o SIGTERM non termina entro il tempo massimo di arresto, il satellite deve registrare un evento diagnostico e terminare il processo con stato di uscita non riuscito.
+
+#### Details
+Una chiusura nativa che non restituisce mai il controllo non deve lasciare attivo il processo: il gestore dei servizi o il runtime dei container attende la sua terminazione.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Ciclo di arresto e rilascio delle risorse](../Contracts/VoiceSatellite.md#ciclo-di-arresto-e-rilascio-delle-risorse)
+  * [Profilo diagnostico Pino](../Contracts/VoiceSatellite.md#profilo-diagnostico-pino)
+
+#### Relations
+  * satisfiedBy: [main.ts](../../src/main.ts)
+  * satisfiedBy: [satellite-process.ts](../../src/runtime/satellite-process.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Tono di errore per backend irraggiungibile
 
 Quando non riesce ad avviare un’interazione perché il backend non è raggiungibile, il satellite deve segnalare il fallimento riproducendo il tono di errore locale generato dal programma, senza messaggi parlati.
@@ -1212,4 +1233,3 @@ Una verifica automatizzabile è una verifica di test. Reqvire registra che una v
 #### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
-

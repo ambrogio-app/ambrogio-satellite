@@ -7,7 +7,13 @@ import { diagnostics } from './adapters/out/diagnostics.js';
 
 const args = parseConfigArguments(process.argv.slice(2));
 if (!args.ok) {
-  diagnostics.info('invalid_arguments');
+  switch (args.error.kind) {
+    case 'invalid_arguments':
+      diagnostics.info('invalid_arguments');
+      break;
+    default:
+      assertNever(args.error.kind);
+  }
   process.exitCode = 2;
 } else {
   const config = await loadSatelliteConfig(args.value.filename, availableWakeWordIds());
@@ -30,6 +36,8 @@ if (!args.ok) {
         const satellite = await startSatellite(config.value, signal);
         if (!signal.aborted) diagnostics.info('satellite_ready');
         return satellite;
+      }, {
+        reportShutdownTimeout: timeoutMs => diagnostics.shutdownTimeout(timeoutMs),
       });
     } catch (error) {
       diagnostics.failure('satellite_process_failed', error);
@@ -39,5 +47,5 @@ if (!args.ok) {
 }
 
 function assertNever(_value: never): never {
-  throw new Error('Unexpected configuration rejection');
+  throw new Error('Unexpected startup rejection');
 }
