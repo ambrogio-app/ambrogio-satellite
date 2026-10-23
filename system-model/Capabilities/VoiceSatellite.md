@@ -12,4 +12,3 @@ La famiglia conversa a voce con Ambrogio da un satellite Linux, attivandolo con 
 #### Metadata
   * type: capability
 ---
-

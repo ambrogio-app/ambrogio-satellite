@@ -33,6 +33,32 @@ describe('configuration file', () => {
       expect(result.value.backend.sessionUrl.href).toBe('wss://ambrogio.example.test/api/session');
     }
   });
+  it('reads changed environment values on the next load of the same module', async () => {
+    const example = new URL('../../../config.example.ts', import.meta.url).pathname;
+    const models = new Set(['hey_jarvis', 'alexa']);
+    for (const name of ['AMBROGIO_MICROPHONE', 'AMBROGIO_SPEAKER', 'AMBROGIO_ATTENUATION_DEVICE']) vi.stubEnv(name, '');
+    vi.stubEnv('AMBROGIO_BACKEND_URL', 'http://first.example.test');
+    vi.stubEnv('AMBROGIO_WAKE_WORD_MODEL', 'hey_jarvis');
+    vi.stubEnv('AMBROGIO_REPLY_TIMEOUT_MS', '15000');
+    const first = await loadSatelliteConfig(example, models);
+    vi.stubEnv('AMBROGIO_BACKEND_URL', 'https://second.example.test/prefix');
+    vi.stubEnv('AMBROGIO_WAKE_WORD_MODEL', 'alexa');
+    vi.stubEnv('AMBROGIO_REPLY_TIMEOUT_MS', '2500');
+    vi.stubEnv('AMBROGIO_MICROPHONE', 'alsa:mic-1');
+    const second = await loadSatelliteConfig(example, models);
+    expect(first.ok && second.ok).toBe(true);
+    if (first.ok && second.ok) {
+      expect(first.value.backend.sessionUrl.href).toBe('ws://first.example.test/api/session');
+      expect(second.value.backend.sessionUrl.href).toBe('wss://second.example.test/prefix/api/session');
+      expect([first.value.wakeWord.model, second.value.wakeWord.model]).toEqual(['hey_jarvis', 'alexa']);
+      expect([first.value.interaction.replyTimeoutMs, second.value.interaction.replyTimeoutMs]).toEqual([15_000, 2_500]);
+      expect([first.value.audio, second.value.audio]).toEqual([{}, { microphone: 'alsa:mic-1' }]);
+    }
+    vi.stubEnv('AMBROGIO_REPLY_TIMEOUT_MS', '0');
+    expect(await loadSatelliteConfig(example, models)).toEqual({ ok: false,
+      error: { kind: 'invalid_configuration', field: 'interaction.replyTimeoutMs' } });
+  });
+
   it('loads a TypeScript configuration with system device defaults', async () => {
     const filename = await temporaryConfig('{"backend":{"baseUrl":"http://localhost:3000"}}');
     const result = await loadSatelliteConfig(filename, new Set(['hey_jarvis']));

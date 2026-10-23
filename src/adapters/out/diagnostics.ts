@@ -55,6 +55,10 @@ export function createDiagnostics(destination: DestinationStream = process.stdou
     wakeDetected(score: number, chunks: number): void {
       logger.info({ event: 'satellite_wake_detected', score: Math.round(score * 1000) / 1000, chunks });
     },
+    /** The orderly shutdown did not finish in time; the process exits right after this line. */
+    shutdownTimeout(timeoutMs: number): void {
+      logger.error({ event: 'satellite_shutdown_timeout', timeoutMs });
+    },
     /** Only the rejection kind and the field name: never values, paths or library messages. */
     configurationRejected(rejection: LoadConfigRejection): void {
       logger.info(rejection.kind === 'invalid_configuration'
