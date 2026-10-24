@@ -20,19 +20,28 @@ const labels = JSON.parse(success(docker(['image', 'inspect', '--format', '{{jso
 assert.equal(labels['org.opencontainers.image.source'], 'https://github.com/ambrogio-app/ambrogio-satellite');
 assert.equal(labels['org.opencontainers.image.licenses'], 'MIT');
 const run = ['run', '--rm', '--network', 'none', '--platform', `linux/${arch}`, '--env', 'ORT_DISABLE_TELEMETRY=1'];
-const startup = docker([...run, image]);
-assert.equal(startup.status, 2, startup.stderr || startup.stdout);
-const lines = startup.stdout.trim().split('\n');
-assert.equal(lines.length, 1);
-assert.equal(JSON.parse(lines[0]).event, 'invalid_configuration');
-assert.equal(startup.stderr, '');
+// The image declares no runtime environment and no configuration value: the deployment supplies them.
+const imageEnv = JSON.parse(success(docker(['image', 'inspect', '--format', '{{json .Config.Env}}', image])));
+assert(!imageEnv.some(entry => entry.startsWith('AMBROGIO_')), 'The image must not set AMBROGIO_* variables');
+function rejected(env, variable, condition) {
+  const startup = docker([...run, ...env.flatMap(entry => ['--env', entry]), image]);
+  assert.equal(startup.status, 2, startup.stderr || startup.stdout);
+  const lines = startup.stdout.trim().split('\n');
+  assert.equal(lines.length, 1);
+  const record = JSON.parse(lines[0]);
+  assert.deepEqual([record.event, record.variable, record.condition], ['invalid_configuration', variable, condition]);
+  assert(!lines[0].includes('secret'));
+  assert.equal(startup.stderr, '');
+}
+rejected([], 'AMBROGIO_ENV', 'missing');
+rejected(['AMBROGIO_ENV=production', 'AMBROGIO_BACKEND_URL=ftp://secret.example.test'], 'AMBROGIO_BACKEND_URL', 'invalid');
 
 success(docker([...run, '--interactive', '--entrypoint', 'node', image, '--input-type=module', '-'], `
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 assert.equal(process.arch, ${JSON.stringify(arch === 'amd64' ? 'x64' : 'arm64')});
-assert.equal(existsSync('/app/config.ts'), false);
-assert.equal(existsSync('/config/satellite.ts'), false);
+assert.equal(existsSync('/app/.env'), false);
+assert.equal(existsSync('/config'), false);
 await import('decibri');
 await import('onnxruntime-node');
 const { errorToneSamples } = await import('./dist/adapters/out/ready-cue.js');
@@ -74,11 +83,11 @@ try {
     '--interactive', '--entrypoint', 'node', image, '--input-type=module', '-'], `
 import assert from 'node:assert/strict';
 const { availableWakeWordIds, wakeWordFiles } = await import('./dist/adapters/out/wake-word-catalog.js');
-const { parseSatelliteConfig } = await import('./dist/adapters/out/configuration.js');
+const { readSatelliteConfig } = await import('./dist/runtime/configuration.js');
 const ids = availableWakeWordIds();
 assert.deepEqual([...ids], ['personalizzato']);
-const config = parseSatelliteConfig({ backend: { baseUrl: 'http://localhost:3000' },
-  wakeWord: { model: 'personalizzato' } }, ids);
+const config = readSatelliteConfig({ AMBROGIO_ENV: 'production', AMBROGIO_BACKEND_URL: 'http://localhost:3000',
+  AMBROGIO_WAKE_WORD_MODEL: 'personalizzato' }, ids);
 assert.equal(config.ok, true);
 const { OnnxWakeWord } = await import('./dist/adapters/out/onnx-wake-word.js');
 const detector = await OnnxWakeWord.open(wakeWordFiles('personalizzato'), {
@@ -90,4 +99,4 @@ try { assert(detector.push(new Float32Array(1280))); await detector.waitUntilIdl
 finally { await detector.close(); }
 `));
 } finally { rmSync(mountedModels, { recursive: true, force: true }); }
-console.log(`Verified ${image}: ${arch}, labels, native imports, models, error tone and safe startup without configuration.`);
+console.log(`Verified ${image}: ${arch}, labels, native imports, models, error tone and safe startup without configuration or with an invalid environment variable.`);

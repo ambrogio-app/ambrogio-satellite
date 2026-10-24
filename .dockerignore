@@ -5,13 +5,11 @@ node_modules
 dist
 system-model
 test
-config.json
-*.local.json
-config.ts
-*.local.ts
+**/*.spec.ts
 *.sqlite
 *.sqlite-*
 *.db
 *.db-*
+.env
 *.env
 *.env.*

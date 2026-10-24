@@ -1,15 +1,8 @@
-import type { DeadlineScheduler, ScheduledDeadline } from './deadline-scheduler.js';
-import type { LocalAttenuation } from './local-attenuation.js';
+import type { VoiceSessionPorts } from './conversation-call.port.js';
+import type { DeadlineScheduler, ScheduledDeadline } from './deadline-scheduler.port.js';
+import type { LocalAttenuation } from './local-attenuation.port.js';
 import { advanceVoiceTurn, initialVoiceTurnState, type VoiceTurnEvent,
   type VoiceTurnState } from '../domain/voice-turn.js';
-
-export interface VoiceSessionPorts {
-  readonly openCall: () => Promise<void>;
-  readonly closeCall: () => Promise<void>;
-  readonly setSpeechEnabled: (enabled: boolean) => void;
-  readonly playReadyCue: () => Promise<void>;
-  readonly reportFailure: (error: unknown) => Promise<void>;
-}
 
 /** External observations accepted by Application, independent of Domain events. */
 export type VoiceSessionEvent =

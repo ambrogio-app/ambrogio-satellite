@@ -1,11 +1,20 @@
 #!/usr/bin/env node
-import { runSatelliteProcess } from './runtime/satellite-process.js';
-import { parseConfigArguments } from './adapters/in/config-arguments.js';
-import { loadSatelliteConfig } from './adapters/out/config-file.js';
-import { availableWakeWordIds } from './adapters/out/wake-word-catalog.js';
-import { diagnostics } from './adapters/out/diagnostics.js';
+import { installFatalPath } from './runtime/fatal-path.js';
 
-const args = parseConfigArguments(process.argv.slice(2));
+// The fatal path comes first: application code is loaded only afterwards, with dynamic imports.
+installFatalPath('Ambrogio satellite stopped after a fatal error.');
+
+const [{ createBaseLogger }, { createDiagnostics }, { parseStartupArguments }, { readSatelliteConfig },
+  { availableWakeWordIds }, { runSatelliteProcess }] = await Promise.all([
+  import('./runtime/logger.js'), import('./adapters/out/diagnostics.js'), import('./adapters/in/startup-arguments.js'),
+  import('./runtime/configuration.js'), import('./adapters/out/wake-word-catalog.js'),
+  import('./runtime/satellite-process.js'),
+]);
+
+// The single base logger of the process, shared by every component through the composition root.
+const diagnostics = createDiagnostics(createBaseLogger());
+
+const args = parseStartupArguments(process.argv.slice(2));
 if (!args.ok) {
   switch (args.error.kind) {
     case 'invalid_arguments':
@@ -16,33 +25,29 @@ if (!args.ok) {
   }
   process.exitCode = 2;
 } else {
-  const config = await loadSatelliteConfig(args.value.filename, availableWakeWordIds());
+  // The configuration is read once, from the process environment, before any resource is built.
+  const config = readSatelliteConfig(process.env, availableWakeWordIds());
   if (!config.ok) {
     switch (config.error.kind) {
       case 'invalid_configuration':
-      case 'configuration_unavailable':
         diagnostics.configurationRejected(config.error);
         break;
       default:
-        assertNever(config.error);
+        assertNever(config.error.kind);
     }
     process.exitCode = 2;
   } else {
     // ONNX Runtime reads this before the first runtime import.
     process.env.ORT_DISABLE_TELEMETRY = '1';
-    try {
-      const { startSatellite } = await import('./composition/satellite.js');
-      await runSatelliteProcess(async signal => {
-        const satellite = await startSatellite(config.value, signal);
-        if (!signal.aborted) diagnostics.info('satellite_ready');
-        return satellite;
-      }, {
-        reportShutdownTimeout: timeoutMs => diagnostics.shutdownTimeout(timeoutMs),
-      });
-    } catch (error) {
-      diagnostics.failure('satellite_process_failed', error);
-      process.exitCode = 1;
-    }
+    const { createSatellite } = await import('./composition/satellite.js');
+    const outcome = await runSatelliteProcess(signal => createSatellite(config.value, diagnostics, signal), {
+      ready: () => diagnostics.info('satellite_ready'),
+      startupFailed: error => diagnostics.startupFailed(error),
+      shutdownFailed: error => diagnostics.failure('satellite_process_failed', error),
+      shutdownTimeout: (timeoutMs, fault) => diagnostics.shutdownTimeout(timeoutMs, fault),
+    });
+    if (outcome.force) process.exit(outcome.exitCode);
+    process.exitCode = outcome.exitCode;
   }
 }
 

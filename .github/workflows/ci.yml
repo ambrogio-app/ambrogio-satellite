@@ -22,6 +22,7 @@ jobs:
     timeout-minutes: 15
     env:
       BRANCH: ${{ github.head_ref || github.ref_name }}
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
       ONNXRUNTIME_NODE_INSTALL: skip
       ORT_DISABLE_TELEMETRY: '1'
     steps:
@@ -54,8 +55,9 @@ jobs:
       - name: Check the model of the workspace
         run: workspace/ambrogio-model/scripts/model-checks --workspace workspace
 
-      - name: Install pnpm
-        run: npm install --global pnpm@12.11.2
+      # Corepack runs, in each folder, the pnpm version of the packageManager field of its package.json.
+      - name: Enable Corepack
+        run: corepack enable
 
       # The integration test starts the side-by-side backend through its public test entry point,
       # which is compiled: install and build the backend as its own CI does.
@@ -70,6 +72,10 @@ jobs:
       - name: Install dependencies
         working-directory: workspace/ambrogio-satellite
         run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies
+        working-directory: workspace/ambrogio-satellite
+        run: pnpm audit --audit-level high
 
       - name: Check TypeScript and core isolation
         working-directory: workspace/ambrogio-satellite
@@ -89,6 +95,10 @@ jobs:
       - name: Run tests
         working-directory: workspace/ambrogio-satellite
         run: pnpm test
+
+      - name: Run compiled process tests
+        working-directory: workspace/ambrogio-satellite
+        run: pnpm test:e2e
 
       - name: Build
         working-directory: workspace/ambrogio-satellite

@@ -1,71 +1,48 @@
-import pino, { type DestinationStream } from 'pino';
-import type { LoadConfigRejection } from './config-file.js';
+import type { Logger } from '../../runtime/logger.js';
+import type { InvalidConfiguration } from '../../runtime/configuration.js';
 
 type FailureEvent = 'satellite_process_failed' | 'satellite_failure' | 'satellite_error_tone_failed'
   | 'satellite_ready_cue_failed';
 type InfoEvent = 'invalid_arguments' | 'satellite_ready' | 'satellite_session_unavailable'
   | 'satellite_voice_unavailable';
-type ErrorView = Readonly<{
-  type: 'Error'; message: string; stack: '[redacted]';
-  cause?: ErrorView; errors?: readonly ErrorView[]; truncated?: true;
-}>;
 
+/** The `err` of a definitive log: the received Error itself, or a new Error whose cause is the value. */
 export function normalizeDiagnosticError(value: unknown): Error {
   return value instanceof Error ? value : new Error('Unexpected satellite failure', { cause: value });
 }
 
-/** Never read arbitrary messages, stacks, toJSON methods or property accessors. */
-function errorView(value: unknown, depth = 0, seen = new Set<object>()): ErrorView {
-  const base = { type: 'Error' as const, message: 'Unexpected satellite failure', stack: '[redacted]' as const };
-  if (depth >= 5) return { ...base, truncated: true };
-  if (typeof value !== 'object' || value === null) return base;
-  if (seen.has(value)) return { ...base, truncated: true };
-  seen.add(value);
-  try {
-    const cause = Object.getOwnPropertyDescriptor(value, 'cause');
-    const errors = value instanceof AggregateError ? Object.getOwnPropertyDescriptor(value, 'errors') : undefined;
-    const children: ErrorView[] = [];
-    if (errors && 'value' in errors && Array.isArray(errors.value)) {
-      for (let i = 0; i < Math.min(errors.value.length, 10); i++) {
-        const child = Object.getOwnPropertyDescriptor(errors.value, String(i));
-        children.push(errorView(child && 'value' in child ? child.value : undefined, depth + 1, seen));
-      }
-    }
-    return { ...base,
-      ...(cause && 'value' in cause ? { cause: errorView(cause.value, depth + 1, seen) } : {}),
-      ...(errors && 'value' in errors && Array.isArray(errors.value)
-        ? { errors: children, ...(errors.value.length > 10 ? { truncated: true as const } : {}) } : {}),
-    };
-  } catch { return base; } // Exotic thrown objects must not break failure handling.
-}
-
-export function createDiagnostics(destination: DestinationStream = process.stdout) {
-  const logger = pino({ base: null, formatters: { level: label => ({ level: label }) },
-    serializers: { err: value => errorView(value) } }, destination);
+/** The diagnostic events of the satellite, emitted through the logger given by the composition root. */
+export function createDiagnostics(log: Logger) {
   return {
     failure(event: FailureEvent, value: unknown): void {
-      logger.error({ event, err: normalizeDiagnosticError(value) }, 'Satellite operation failed');
+      log.error({ event, err: normalizeDiagnosticError(value) }, 'Satellite operation failed');
     },
-    info(event: InfoEvent): void { logger.info({ event }); },
+    /** The definitive log of a failed start; the process boundary also reports it on stderr. */
+    startupFailed(value: unknown): void {
+      log.error({ event: 'satellite_startup_failed', err: normalizeDiagnosticError(value) }, 'Satellite startup failed');
+    },
+    info(event: InfoEvent): void { log.info({ event }); },
     /** Only the operation and the selected reason: never device names or amixer output. */
     attenuationFailed(operation: 'attenuate' | 'restore', reason: 'exit_code' | 'timeout' | 'spawn_failed'): void {
-      logger.warn({ event: 'satellite_attenuation_failed', operation, reason });
+      log.warn({ event: 'satellite_attenuation_failed', operation, reason });
     },
     /** The score of the confirming chunk and the consecutive chunks above the threshold. */
     wakeDetected(score: number, chunks: number): void {
-      logger.info({ event: 'satellite_wake_detected', score: Math.round(score * 1000) / 1000, chunks });
+      log.info({ event: 'satellite_wake_detected', score: Math.round(score * 1000) / 1000, chunks });
     },
-    /** The orderly shutdown did not finish in time; the process exits right after this line. */
-    shutdownTimeout(timeoutMs: number): void {
-      logger.error({ event: 'satellite_shutdown_timeout', timeoutMs });
+    /**
+     * The orderly shutdown did not finish in time; the process exits right after this line. `fault` is the
+     * outcome of the closings already failed, if any.
+     */
+    shutdownTimeout(timeoutMs: number, fault?: unknown): void {
+      log.error(fault === undefined ? { event: 'satellite_shutdown_timeout', timeoutMs }
+        : { event: 'satellite_shutdown_timeout', timeoutMs, err: normalizeDiagnosticError(fault) });
     },
-    /** Only the rejection kind and the field name: never values, paths or library messages. */
-    configurationRejected(rejection: LoadConfigRejection): void {
-      logger.info(rejection.kind === 'invalid_configuration'
-        ? { event: 'invalid_configuration', reason: rejection.kind, field: rejection.field }
-        : { event: 'invalid_configuration', reason: rejection.kind });
+    /** Only the variable name and the violated condition: never values, host names or library messages. */
+    configurationRejected(rejection: InvalidConfiguration): void {
+      log.info({ event: 'invalid_configuration', variable: rejection.variable, condition: rejection.condition });
     },
   };
 }
 
-export const diagnostics = createDiagnostics();
+export type Diagnostics = ReturnType<typeof createDiagnostics>;

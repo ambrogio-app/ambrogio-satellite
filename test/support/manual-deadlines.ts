@@ -1,4 +1,4 @@
-import type { DeadlineScheduler, ScheduledDeadline } from '../../src/application/deadline-scheduler.js';
+import type { DeadlineScheduler, ScheduledDeadline } from '../../src/application/deadline-scheduler.port.js';
 
 export class ManualDeadlines implements DeadlineScheduler {
   private now = 0;

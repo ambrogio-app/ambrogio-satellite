@@ -14,7 +14,9 @@ Questo repository contiene il client satellite vocale di Ambrogio. Le regole com
 
 - Usare soltanto la CLI Reqvire, alla versione scritta in `ambrogio-model/.reqvire-version`, eseguita sulla cartella di lavoro; non si usano server MCP Reqvire. La documentazione ufficiale di Reqvire, <https://reqvire.org/>, è il riferimento per il metodo e per i comandi disponibili nella versione adottata.
 - Quando la CLI non offre l'operazione, modificare direttamente il file Markdown del modello e poi eseguire `format`, `validate` e `lint` sulla cartella di lavoro.
-- Prima di un push eseguire `ambrogio-model/scripts/model-checks` e, per le modifiche significative, `ambrogio-model/scripts/change-impact-composite`, poi `pnpm typecheck`, `pnpm test`, `pnpm test:backend` e `pnpm build` in questo repository; interpretare i risultati. Il collegamento a un test non ne certifica il successo.
+- Prima di un push eseguire `pnpm verify` in questo repository, che ripete in locale i controlli della CI nello stesso ordine: controlli dell'intero modello con `ambrogio-model/scripts/model-checks`, installazione congelata, audit delle dipendenze, preparazione del backend affiancato, `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm test:backend`; per le modifiche significative eseguire anche `ambrogio-model/scripts/change-impact-composite`. Interpretare i risultati: il collegamento a un test non ne certifica il successo.
+- pnpm si usa alla versione di `packageManager` di `package.json`; CI e `Dockerfile` la attivano con Corepack.
+- Le regole di architettura sugli import hanno un nome stabile e stanno in `test/repository/architecture-rules.ts`; un'eccezione si aggiunge soltanto nell'elenco `exceptions`, con il motivo, e nel contratto «Regole di architettura del satellite».
 
 ## Ordine di lavoro
 
@@ -24,4 +26,4 @@ Le prove con microfono, speaker e hardware reali sono verifiche manuali del mode
 
 ## Segreti e dati di installazione
 
-Il repository usa gitleaks secondo le regole di `ambrogio-model/AGENTS.md`: in CI su tutta la storia (`.github/workflows/secret-scan.yml`, richiesto anche dalla pubblicazione delle immagini) e in locale con l'hook `.githooks/pre-commit`, da attivare in ogni clone con `git config core.hooksPath .githooks` e con `gitleaks` nel `PATH`. Non aggirare l'hook con `--no-verify`. Esempi e test usano solo valori segnaposto e nessun dato di una specifica installazione, come nomi di dispositivi audio, nomi host o nomi di stanze.
+Il repository usa gitleaks secondo le regole di `ambrogio-model/AGENTS.md`: in CI su tutta la storia (`.github/workflows/secret-scan.yml`, richiesto anche dalla pubblicazione delle immagini) e in locale con l'hook `.githooks/pre-commit`, da attivare in ogni clone con `git config core.hooksPath .githooks` e con `gitleaks` nel `PATH`. Dopo la scansione l'hook esegue i controlli dell'intero modello con `../ambrogio-model/scripts/model-checks`: `ambrogio-model` deve essere affiancato al repository, altrimenti il commit è bloccato. Non aggirare l'hook con `--no-verify`. Esempi e test usano solo valori segnaposto e nessun dato di una specifica installazione, come nomi di dispositivi audio, nomi host o nomi di stanze.

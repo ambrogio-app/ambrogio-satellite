@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import type { LocalAttenuation } from '../../application/local-attenuation.js';
+import type { LocalAttenuation } from '../../application/local-attenuation.port.js';
 
 const AMIXER_TIMEOUT_MS = 2_000;
 const FULL_LEVEL = 100;

@@ -1,5 +1,5 @@
 import { setTimeout, clearTimeout } from 'node:timers';
-import type { DeadlineScheduler, ScheduledDeadline } from '../../application/deadline-scheduler.js';
+import type { DeadlineScheduler, ScheduledDeadline } from '../../application/deadline-scheduler.port.js';
 
 export class NodeDeadlineScheduler implements DeadlineScheduler {
   schedule(delayMs: number, callback: () => void): ScheduledDeadline {
