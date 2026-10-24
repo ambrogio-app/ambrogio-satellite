@@ -54,7 +54,7 @@ stateDiagram-v2
 - Linux on x86_64 or arm64
 - Node.js 24 or later, with pnpm. Docker is optional
 - ALSA runtime (`libasound.so.2`) and OpenMP (`libgomp.so.1`)
-- `amixer` from `alsa-utils`, only if you use `audio.attenuation` (the Docker image includes it)
+- `amixer` from `alsa-utils`, only if you set `AMBROGIO_ATTENUATION_DEVICE` (the Docker image includes it)
 - A microphone and a speaker that the process can access
 - A running [ambrogio-backend](https://github.com/ambrogio-app/ambrogio-backend) with voice enabled
 
@@ -71,18 +71,16 @@ The wake word models included here are **"Hey Jarvis"**, **"Hey Mycroft"** and *
 
 ## Quick start
 
-The [`config.example.ts`](config.example.ts) module reads the satellite settings from environment variables and exports a default object. `AMBROGIO_BACKEND_URL` is required; other settings have defaults or are optional. Node.js 24 imports the `.ts` module directly, and the satellite validates its values before opening audio or network resources.
+The satellite reads its settings only from environment variables, once at startup, and checks them before it opens any audio or network resource. `AMBROGIO_ENV` (`development`, `test` or `production`) and `AMBROGIO_BACKEND_URL` are required; every other `AMBROGIO_*` variable is optional, and the satellite applies its own default when it is unset or empty. [`.env.example`](.env.example) lists all the variables. If a value is missing or invalid, the satellite logs one `invalid_configuration` line naming the variable, never its value, and exits with code 2.
 
-For Docker Compose, use [`compose.example.yaml`](compose.example.yaml):
+For Docker Compose, use [`compose.example.yaml`](compose.example.yaml), which sets only the two required values:
 
 ```bash
 AMBROGIO_SATELLITE_VERSION=v0.6.0 AMBROGIO_BACKEND_URL=http://ambrogio.example.test:3000 \
   docker compose -f compose.example.yaml up -d
 ```
 
-You can put these values and the optional `AMBROGIO_*` variables in a local `.env` file.
-
-If you leave `audio` empty, the satellite uses the system's default microphone and speaker.
+Add any other variable to its `environment` section to change a default. Without `AMBROGIO_MICROPHONE` and `AMBROGIO_SPEAKER`, the satellite uses the system's default microphone and speaker.
 
 ### Lowering other audio during an interaction
 
@@ -105,14 +103,14 @@ AMBROGIO_ATTENUATION_CONTROL=Music
 AMBROGIO_ATTENUATION_LEVEL=25
 ```
 
-When the wake word is heard, the satellite sets the control to `level` percent before the listening beep, keeps it there for the whole interaction, including follow-up replies, and sets it back to 100% when it returns to waiting for the wake word. It also sets it to 100% at startup and on shutdown. ALSA creates the control the first time something plays through `music`; until then there is nothing to lower. If `amixer` fails, the interaction continues and the satellite logs `satellite_attenuation_failed`.
+When the wake word is heard, the satellite sets the control to `AMBROGIO_ATTENUATION_LEVEL` percent before the listening beep, keeps it there for the whole interaction, including follow-up replies, and sets it back to 100% when it returns to waiting for the wake word. It also sets it to 100% at startup and on shutdown. ALSA creates the control the first time something plays through `music`; until then there is nothing to lower. If `amixer` fails, the interaction continues and the satellite logs `satellite_attenuation_failed`.
 
 **On the host**
 
 ```bash
 pnpm install --frozen-lockfile
 pnpm build
-AMBROGIO_BACKEND_URL=http://ambrogio.example.test:3000 node dist/main.js --config config.example.ts
+AMBROGIO_ENV=production AMBROGIO_BACKEND_URL=http://ambrogio.example.test:3000 node dist/main.js
 ```
 
 **With Docker**
@@ -120,7 +118,7 @@ AMBROGIO_BACKEND_URL=http://ambrogio.example.test:3000 node dist/main.js --confi
 ```bash
 docker build -t ambrogio-satellite .
 docker run --rm --network host --device /dev/snd \
-  -v "$PWD/config.example.ts:/config/satellite.ts:ro" \
+  -e AMBROGIO_ENV=production \
   -e AMBROGIO_BACKEND_URL=http://ambrogio.example.test:3000 \
   ambrogio-satellite
 ```
@@ -133,14 +131,17 @@ Versioned multi-architecture images (amd64 and arm64) are published to `ghcr.io/
 src/domain/        interaction states and rules
 src/application/   use cases and ports
 src/adapters/      audio, wake word, backend connection
-src/composition/   wiring and configuration
+src/composition/   wiring
 models/            wake word and VAD models, with licenses
 system-model/      engineering model (requirements, contracts, verifications)
 ```
 
 ## Development
 
+Copy `.env.example` to `.env` and fill in `AMBROGIO_BACKEND_URL`. `pnpm dev` starts the built satellite with `node --env-file=.env`; variables already set in your shell take precedence over the file. The application never loads `.env` by itself, and `.env` is never committed.
+
 ```bash
+pnpm dev            # the built satellite with the variables of .env
 pnpm test           # fast Vitest selection
 pnpm test:e2e       # the compiled entry point started as a child process
 pnpm typecheck

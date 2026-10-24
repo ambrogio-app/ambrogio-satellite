@@ -36,9 +36,9 @@ test('the unmodified copy compiles', () => {
 }, 60_000);
 
 test('a new configuration rejection is caught by the exhaustive mapping of the entry point', () => {
-  addVariant('src/adapters/out/config-file.ts',
-    'export type LoadConfigRejection = InvalidConfiguration | ConfigurationUnavailable;',
-    "export type LoadConfigRejection = InvalidConfiguration | ConfigurationUnavailable | Readonly<{ kind: 'added_rejection' }>;");
+  addVariant('src/adapters/out/configuration.ts',
+    'export type ConfigurationRejection = InvalidConfiguration;',
+    "export type ConfigurationRejection = InvalidConfiguration | Readonly<{ kind: 'added_rejection' }>;");
   const { status, output } = compile();
   expect(status).not.toBe(0);
   expect(output).toMatch(/^src\/main\.ts\(\d+,\d+\): error TS2345: .*'never'/m);
@@ -46,7 +46,7 @@ test('a new configuration rejection is caught by the exhaustive mapping of the e
 }, 60_000);
 
 test('a new startup argument rejection is caught by the exhaustive mapping of the entry point', () => {
-  addVariant('src/adapters/in/config-arguments.ts',
+  addVariant('src/adapters/in/startup-arguments.ts',
     "export type InvalidArguments = Readonly<{ kind: 'invalid_arguments' }>;",
     "export type InvalidArguments = Readonly<{ kind: 'invalid_arguments' }> | Readonly<{ kind: 'added_rejection' }>;");
   const { status, output } = compile();

@@ -90,14 +90,14 @@ Su Linux x86_64 e arm64, con ciascun modello distribuito (Hey Jarvis, Hey Mycrof
 ### Dimostrazione della configurazione
 
 #### Details
-Sull'host e nel container, con microfono e speaker reali, avviare con un modulo TypeScript selezionato con `--config` che indica `audio.microphone` e `audio.speaker` e verificare tramite Decibri che siano usati i dispositivi richiesti, senza ripiego silenzioso sul predefinito; poi omettere `audio` e verificare l'uso dei dispositivi predefiniti; infine avviare in entrambe le modalità con un modulo invalido. La prova passa se in entrambe le modalità i dispositivi usati sono quelli selezionati o, senza selettori, i predefiniti, e se il modulo invalido impedisce l'avvio operativo con l'errore comprensibile del contratto; fallisce se una selezione esplicita è ignorata o sostituita dal predefinito o se il significato della configurazione differisce fra host e container. Non automatizzabile: la selezione dei dispositivi richiede periferiche audio reali sull'host e nel container; validazione dei campi, valori predefiniti e rifiuti sono coperti dalla «Prova della configurazione del satellite».
+Sull'host e nel container, con microfono e speaker reali, avviare con `AMBROGIO_MICROPHONE` e `AMBROGIO_SPEAKER` impostati e verificare tramite Decibri che siano usati i dispositivi richiesti, senza ripiego silenzioso sul predefinito; poi omettere le due variabili e verificare l'uso dei dispositivi predefiniti; infine avviare in entrambe le modalità con una variabile invalida. La prova passa se in entrambe le modalità i dispositivi usati sono quelli selezionati o, senza selettori, i predefiniti, e se la variabile invalida impedisce l'avvio operativo con l'errore comprensibile del contratto; fallisce se una selezione esplicita è ignorata o sostituita dal predefinito o se il significato della configurazione differisce fra host e container. Non automatizzabile: la selezione dei dispositivi richiede periferiche audio reali sull'host e nel container; validazione dei campi, valori predefiniti e rifiuti sono coperti dalla «Prova della configurazione del satellite».
 
 #### Metadata
   * type: demonstration-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Configurazione TypeScript unica](../Requirements/VoiceSatellite.md#configurazione-typescript-unica)
+  * verify: [Configurazione del satellite dalle variabili d'ambiente](../Requirements/VoiceSatellite.md#configurazione-del-satellite-dalle-variabili-dambiente)
   * verify: [Selezione dei dispositivi audio](../Requirements/VoiceSatellite.md#selezione-dei-dispositivi-audio)
 ---
 
@@ -139,7 +139,7 @@ Su host Linux x86_64 e arm64 dotati di microfono e speaker, installare ed esegui
 ### Dimostrazione della protezione dei dati locali
 
 #### Details
-Durante interazioni riuscite e fallite controllare scritture su disco e log usando audio, testo e credenziali riconoscibili: non devono comparire registrazioni persistenti né contenuti o credenziali nei log. Ispezionare gli artefatti host e container e gli esempi per escludere configurazioni personali; controllare che `.dockerignore` escluda dal contesto di build i moduli e i file JSON di configurazione locali, i file d'ambiente `*.env` e `*.env.*` e `node_modules` a ogni livello, come richiede il contratto «Esecuzione host e container». Non automatizzabile: richiede di osservare le scritture su disco durante interazioni reali con audio e credenziali riconoscibili; l'assenza della configurazione personale nell'immagine è controllata da `scripts/verify-docker-image.mjs`.
+Durante interazioni riuscite e fallite controllare scritture su disco e log usando audio, testo e credenziali riconoscibili: non devono comparire registrazioni persistenti né contenuti o credenziali nei log. Ispezionare gli artefatti host e container e gli esempi per escludere configurazioni personali; controllare che `.dockerignore` escluda dal contesto di build i file d'ambiente `.env`, `*.env` e `*.env.*` e `node_modules` a ogni livello, come richiede il contratto «Esecuzione host e container». Non automatizzabile: richiede di osservare le scritture su disco durante interazioni reali con audio e credenziali riconoscibili; l'assenza della configurazione personale nell'immagine è controllata da `scripts/verify-docker-image.mjs`.
 
 #### Metadata
   * type: demonstration-verification
@@ -179,6 +179,21 @@ Per ogni rinomina controllare import, export pubblici, riferimenti nei test e co
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Nomi dei file secondo il ruolo architetturale nel satellite](../Requirements/VoiceSatellite.md#nomi-dei-file-secondo-il-ruolo-architetturale-nel-satellite)
+---
+
+### Ispezione dei valori predefiniti del satellite
+
+Per ogni variabile del contratto «Configurazione del processo satellite» che ammette l'assenza, individuare nel codice del satellite il punto in cui si applica il valore predefinito, e rileggere il README, `.env.example` e `compose.example.yaml`.
+
+#### Details
+L'ispezione passa se ogni valore predefinito è applicato soltanto dal modulo di configurazione, una volta, come dichiarato dal contratto, e se README ed esempi non impostano né sostituiscono un valore predefinito. Fallisce se un altro modulo, un esempio o il README applica o ripete un valore predefinito. Non automatizzabile: riconoscere un valore predefinito ripetuto in un componente o in un testo, per esempio un intervallo scritto come costante in un adapter, richiede di leggerne il significato.
+
+#### Metadata
+  * type: inspection-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Valori predefiniti del satellite applicati dal modulo di configurazione](../Requirements/VoiceSatellite.md#valori-predefiniti-del-satellite-applicati-dal-modulo-di-configurazione)
 ---
 
 ### Ispezione del bootstrap della configurazione
@@ -412,12 +427,29 @@ La prova passa se il commit privo di segreti riesce dopo un'esecuzione dello scr
   * verify: [Controlli del modello prima del commit del satellite](../Requirements/VoiceSatellite.md#controlli-del-modello-prima-del-commit-del-satellite)
 ---
 
-### Prova del bootstrap della configurazione
+### Prova dei file d'ambiente e degli esempi del satellite
 
-Importare il punto di ingresso `src/main.ts` con un modulo di configurazione invalido e poi con uno valido, sostituendo nella prova la composition root, la diagnostica, Decibri e ONNX Runtime con moduli registrati che annotano il proprio caricamento.
+Confrontare `.env.example` con l'elenco delle variabili lette dal modulo di configurazione; esaminare gli script di `package.json` e il testo del codice di produzione di `src`; avviare Node.js con `--env-file` su un file d'ambiente temporaneo e con una variabile dell'ambiente del processo in conflitto; esaminare `.gitignore`, `.dockerignore` e le variabili impostate da `compose.example.yaml`.
 
 #### Details
-La prova passa se con il modulo invalido il processo registra il rifiuto, imposta il codice di uscita 2 e non carica la composition root, Decibri né ONNX Runtime; e se con il modulo valido la composition root viene caricata soltanto dopo la validazione e riceve la configurazione validata. Fallisce se una risorsa audio, wake word o di rete viene caricata o costruita con una configurazione invalida o prima della validazione.
+La prova passa se `.env.example` elenca esattamente le variabili del modulo, tutte con valore vuoto salvo `AMBROGIO_ENV=development`; se soltanto lo script `dev` usa `node --env-file=.env` e il codice di produzione non carica file d'ambiente; se la variabile del processo prevale su quella del file e le altre variabili del file sono lette; se `.env` è escluso da Git e dal contesto di build mentre `.env.example` resta versionato; e se `compose.example.yaml` imposta soltanto `AMBROGIO_ENV: production` e `AMBROGIO_BACKEND_URL`, senza variabili con valore predefinito, valori di ripiego `:-` né riferimenti a moduli o percorsi di configurazione. Fallisce se un esempio ripete un valore predefinito o se una variabile letta dal modulo manca da `.env.example`.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [environment-files.spec.ts](../../test/repository/environment-files.spec.ts)
+  * verify: [File d'ambiente locale del satellite](../Requirements/VoiceSatellite.md#file-dambiente-locale-del-satellite)
+  * verify: [Valori predefiniti del satellite applicati dal modulo di configurazione](../Requirements/VoiceSatellite.md#valori-predefiniti-del-satellite-applicati-dal-modulo-di-configurazione)
+---
+
+### Prova del bootstrap della configurazione
+
+Importare il punto di ingresso `src/main.ts` con variabili d'ambiente invalide e poi valide, sostituendo nella prova la composition root, la diagnostica, Decibri e ONNX Runtime con moduli registrati che annotano il proprio caricamento.
+
+#### Details
+La prova passa se con le variabili invalide il processo registra il rifiuto, imposta il codice di uscita 2 e non carica la composition root, Decibri né ONNX Runtime; e se con le variabili valide la composition root viene caricata soltanto dopo la validazione e riceve la configurazione validata. Fallisce se una risorsa audio, wake word o di rete viene caricata o costruita con una configurazione invalida o prima della validazione.
 
 #### Metadata
   * type: test-verification
@@ -430,7 +462,7 @@ La prova passa se con il modulo invalido il processo registra il rifiuto, impost
 
 ### Prova del catalogo wake word montato
 
-Preparare una directory di modelli con le risorse comuni openWakeWord e un classificatore compatibile chiamato `personalizzato.onnx`. Montarla in sola lettura su `/app/models/wakeword` nell'immagine satellite, scegliere `wakeWord.model: "personalizzato"` e caricare il classificatore. Provare anche identificatori inesistenti, nomi dei modelli comuni e tentativi di attraversamento della directory.
+Preparare una directory di modelli con le risorse comuni openWakeWord e un classificatore compatibile chiamato `personalizzato.onnx`. Montarla in sola lettura su `/app/models/wakeword` nell'immagine satellite, impostare `AMBROGIO_WAKE_WORD_MODEL=personalizzato` e caricare il classificatore. Provare anche identificatori inesistenti, nomi dei modelli comuni e tentativi di attraversamento della directory.
 
 #### Details
 La prova passa se il modello personalizzato è scoperto e caricato dal mount senza ricostruire l'immagine, le wake word distribuite continuano a funzionare senza mount e i nomi assenti o non sicuri sono rifiutati. Fallisce se il mount è ignorato, la configurazione accetta un percorso fuori directory o un modello comune come classificatore. La prova non dimostra l'accuratezza acustica di un modello personalizzato.
@@ -566,6 +598,24 @@ La prova passa se il tono di errore è PCM16 mono a 16 kHz di 5600 campioni (350
   * verify: [Tono di errore per backend irraggiungibile](../Requirements/VoiceSatellite.md#tono-di-errore-per-backend-irraggiungibile)
 ---
 
+### Prova dell'ambiente di esecuzione del satellite
+
+Leggere con il modulo di configurazione variabili valide senza `AMBROGIO_ENV`, con `AMBROGIO_ENV` vuota, con valori non ammessi come `prod`, `Production` e `staging`, e con ciascuno dei valori `development`, `test` e `production`; avviare il punto di ingresso del processo, sorgente e compilato, senza `AMBROGIO_ENV`.
+
+#### Details
+La prova passa se l'assenza e il valore vuoto sono rifiutati con `condition: "missing"`, i valori non ammessi con `condition: "invalid"`, entrambi con `variable: "AMBROGIO_ENV"` e uscita 2 prima di caricare la composition root, e se i tre ambienti ammessi producono la stessa configurazione con gli stessi valori predefiniti. Fallisce se il satellite si avvia senza ambiente dichiarato o se un valore predefinito cambia con l'ambiente.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [configuration.spec.ts](../../src/adapters/out/configuration.spec.ts)
+  * satisfiedBy: [main.e2e.spec.ts](../../src/main.e2e.spec.ts)
+  * satisfiedBy: [main.spec.ts](../../src/main.spec.ts)
+  * verify: [Ambiente di esecuzione dichiarato del satellite](../Requirements/VoiceSatellite.md#ambiente-di-esecuzione-dichiarato-del-satellite)
+---
+
 ### Prova dell'assenza di import del backend nel satellite
 
 Leggere come testo tutti i file TypeScript di `src`, estrarne gli specificatori con la stessa lettura della «Prova dei confini interni» e risolverli.
@@ -585,7 +635,7 @@ La prova passa se i file di `src` letti non sono vuoti e se ogni specificatore d
 
 ### Prova dell'attenuazione dell'audio locale
 
-Con una porta di attenuazione registrata nei test, avviare il satellite con e senza `audio.attenuation`, riconoscere la wake word e concludere l'interazione dopo la risposta, dopo una replica richiesta dal backend, per inattività, per backend irraggiungibile e per perdita della sessione; arrestare poi il processo. Con un esecutore di processi registrato, provare l'adapter `amixer` con esito riuscito, controllo inesistente, codice di uscita diverso da zero e scadenza del tempo massimo. Validare la configurazione con valori corretti, campi mancanti, `level` fuori da 0-100 e campi non previsti.
+Con una porta di attenuazione registrata nei test, avviare il satellite con e senza le variabili dell'attenuazione, riconoscere la wake word e concludere l'interazione dopo la risposta, dopo una replica richiesta dal backend, per inattività, per backend irraggiungibile e per perdita della sessione; arrestare poi il processo. Con un esecutore di processi registrato, provare l'adapter `amixer` con esito riuscito, controllo inesistente, codice di uscita diverso da zero e scadenza del tempo massimo. Validare la configurazione con valori corretti, una variabile dell'attenuazione mancante mentre le altre sono presenti, spazi iniziali, e `AMBROGIO_ATTENUATION_LEVEL` fuori da 0-100 o non intero.
 
 #### Details
 La prova passa se senza configurazione non avviene alcuna regolazione; se con la configurazione il satellite porta il controllo al 100% all'avvio, al livello configurato alla wake word prima del segnale acustico di disponibilità e di nuovo al 100% al ritorno in attesa della wake word in ogni conclusione, mantenendolo attenuato durante le repliche; se lo porta al 100% durante l'arresto controllato; se l'adapter esegue `amixer -D <device> -q sset <control> <livello>%` senza shell; se il controllo inesistente non produce eventi di guasto mentre gli altri errori e la scadenza producono `satellite_attenuation_failed` senza interrompere l'interazione o l'attesa; e se la configurazione invalida è rifiutata prima dell'avvio operativo.
@@ -636,7 +686,10 @@ Acquisire la riga reale di Pino prodotta dal rilevamento: livello `info`, `event
 
 ### Prova dell'evento di configurazione rifiutata
 
-Acquisire le righe reali di Pino prodotte dal rifiuto della configurazione. Per un file assente o illeggibile: una sola riga `info` con `event: "invalid_configuration"` e `reason: "configuration_unavailable"`, senza `field`. Per modulo TypeScript non importabile, sezione sconosciuta e per ciascun campo invalido (`backend.baseUrl`, `client.id`, `client.name`, `audio.microphone`, `audio.speaker`, `audio.attenuation`, `wakeWord.model`, `wakeWord.threshold`, `wakeWord.patience`, `interaction.replyTimeoutMs`): `reason: "invalid_configuration"` e il `field` atteso, `config` per modulo non importabile o sezione non prevista. Le righe non contengono valori del file, percorsi né `err`, e hanno soltanto le chiavi `level`, `time`, `event`, `reason` ed eventualmente `field`. Compilando il punto di ingresso con `tsc` in una directory temporanea e avviando con Node.js il processo compilato con un file invalido o assente, l'uscita è 2 e lo stdout contiene soltanto la riga attesa.
+Acquisire le righe reali di Pino prodotte dal rifiuto della configurazione per `AMBROGIO_ENV` assente e non ammessa, `AMBROGIO_BACKEND_URL` assente e invalida e per ciascuna altra variabile invalida del contratto «Configurazione del processo satellite», compresa una variabile dell'attenuazione mancante mentre un'altra è presente, usando valori e nome host che contengono un marcatore segreto. Compilare il punto di ingresso con `tsc` in una directory temporanea e avviare con Node.js il processo compilato con un valore invalido, senza `AMBROGIO_ENV` e con un argomento di avvio.
+
+#### Details
+La prova passa se ogni rifiuto produce una sola riga `info` con `event: "invalid_configuration"`, la `variable` attesa e la `condition` attesa, `missing` o `invalid`; se le righe hanno soltanto le chiavi `level`, `time`, `event`, `variable` e `condition` e non contengono il marcatore; e se il processo compilato esce con 2 e lo stdout contiene soltanto la riga attesa, `invalid_arguments` per l'argomento di avvio. Fallisce se una riga riporta un valore, se manca la variabile o se il processo prosegue dopo il rifiuto.
 
 #### Metadata
   * type: test-verification
@@ -667,10 +720,10 @@ La prova passa se l'hook versionato è eseguibile; se il commit con la credenzia
 
 ### Prova dell'identità del satellite nella sessione
 
-Con una sessione controllata, avviare il satellite senza sezione `client`, poi con `client.id` e `client.name`, e osservare `session.hello`. Ripetere con valori vuoti o di tipo diverso.
+Con una sessione controllata, avviare il satellite senza `AMBROGIO_CLIENT_ID` e `AMBROGIO_CLIENT_NAME`, poi con le due variabili, e osservare `session.hello`. Ripetere con valori vuoti e fatti di soli spazi.
 
 #### Details
-La prova passa se senza configurazione `clientId` vale `satellite-<nome host>` e `name` vale il nome host, se i valori configurati li sostituiscono e se valori vuoti o di tipo diverso rendono invalida la configurazione prima dell'avvio operativo. Fallisce se il satellite apre una sessione con un identificativo vuoto o diverso da quello configurato.
+La prova passa se senza configurazione `clientId` vale `satellite-<nome host>` e `name` vale il nome host, se i valori configurati li sostituiscono se valori vuoti equivalgono a variabili assenti e se valori fatti di soli spazi rendono invalida la configurazione prima dell'avvio operativo. Fallisce se il satellite apre una sessione con un identificativo vuoto o diverso da quello configurato.
 
 #### Metadata
   * type: test-verification
@@ -700,7 +753,7 @@ La prova passa se `packageManager` è `pnpm@12.11.2`; se il job `Satellite check
 
 ### Prova della conferma su blocchi consecutivi
 
-Con sessioni ONNX simulate che restituiscono una sequenza controllata di punteggi del classificatore, uno per blocco da 80 ms, e soglia 0,5: con `patience` 2 un solo blocco sopra soglia seguito da uno sotto soglia non produce rilevamenti; due blocchi consecutivi sopra soglia producono un solo rilevamento, sul secondo blocco; due blocchi sopra soglia separati da uno sotto soglia non producono rilevamenti; con `patience` 1 un solo blocco sopra soglia produce un rilevamento. Dopo l'azzeramento della pipeline un blocco sopra soglia non completa un conteggio iniziato prima. Opzioni con `patience` non intero o minore di 1 sono rifiutate all'apertura. La configurazione senza `wakeWord.patience` produce il valore 2, accetta 1 e 10 e rifiuta 0, 11, valori non interi e stringhe con `field: "wakeWord.patience"`; la composition root passa il valore configurato al riconoscitore.
+Con sessioni ONNX simulate che restituiscono una sequenza controllata di punteggi del classificatore, uno per blocco da 80 ms, e soglia 0,5: con `patience` 2 un solo blocco sopra soglia seguito da uno sotto soglia non produce rilevamenti; due blocchi consecutivi sopra soglia producono un solo rilevamento, sul secondo blocco; due blocchi sopra soglia separati da uno sotto soglia non producono rilevamenti; con `patience` 1 un solo blocco sopra soglia produce un rilevamento. Dopo l'azzeramento della pipeline un blocco sopra soglia non completa un conteggio iniziato prima. Opzioni con `patience` non intero o minore di 1 sono rifiutate all'apertura. La configurazione senza `AMBROGIO_WAKE_WORD_PATIENCE` produce il valore 2, accetta 1 e 10 e rifiuta 0, 11 e valori non interi indicando la variabile `AMBROGIO_WAKE_WORD_PATIENCE`; la composition root passa il valore configurato al riconoscitore.
 
 #### Details
 La prova usa punteggi simulati e non misura attivazioni spurie né parole mancate: l'accuratezza del riconoscimento dipende dal modello e dalla soglia scelti da chi installa.
@@ -718,26 +771,23 @@ La prova usa punteggi simulati e non misura attivazioni spurie né parole mancat
 
 ### Prova della configurazione del satellite
 
-Con moduli TypeScript temporanei e con `config.example.ts`, analizzare l'opzione `--config`, caricare e validare configurazioni valide e invalide, cambiando fra due caricamenti le variabili d'ambiente lette dal modulo; avviare il punto di ingresso del processo con un modulo invalido.
+Leggere con il modulo di configurazione insiemi di variabili d'ambiente validi e invalidi; avviare il punto di ingresso del processo senza argomenti con variabili valide e invalide e con un argomento di avvio.
 
 #### Details
-La prova passa se l'avvio richiede un solo percorso indicato con `--config`; se un modulo valido produce `backend.baseUrl`, identità, modello e intervallo locale di inattività configurati; se l'URL base `http:` diventa `ws:` e `https:` diventa `wss:`, conservando l'eventuale prefisso di percorso e aggiungendo una sola volta `api/session`; se senza `client` l'identità vale `satellite-<nome host>` con il nome host e con `client.id` e `client.name` vale quella indicata; se senza `audio` non è indicato alcun selettore e con `audio.microphone` e `audio.speaker` i selettori indicati sono conservati; se il modello predefinito è `hey_jarvis`, un modello distribuito alternativo è accettato, l'intervallo predefinito è di 15000 ms e un valore personalizzato è conservato; se, cambiando le variabili d'ambiente lette dal modulo, il caricamento successivo produce i nuovi valori validati; e se modulo non importabile, campi sconosciuti, URL non HTTP(S), intervallo non positivo, selettore audio vuoto, identità vuota e modello assente dal catalogo disponibile sono rifiutati con il campo atteso e il processo termina con codice 2 senza avvio operativo. Fallisce se una configurazione invalida è accettata, se un valore predefinito differisce dal contratto, se un valore configurato o un cambio delle variabili d'ambiente è ignorato o se il processo prosegue dopo un rifiuto.
+La prova passa se un argomento di avvio, compreso `--config`, è rifiutato prima di leggere la configurazione; se variabili valide producono `AMBROGIO_BACKEND_URL`, identità, dispositivi, attenuazione, modello, soglia, blocchi e intervallo locale di inattività configurati; se l'URL base `http:` diventa `ws:` e `https:` diventa `wss:`, conservando l'eventuale prefisso di percorso e aggiungendo una sola volta `api/session`; se senza variabili facoltative l'identità vale `satellite-<nome host>` con il nome host, nessun selettore audio è indicato, il modello è `hey_jarvis`, la soglia 0,5, i blocchi 2 e l'intervallo di 15000 ms; se una variabile vuota equivale a una variabile assente; e se `AMBROGIO_BACKEND_URL` assente o non HTTP(S), selettori con spazi, identità fatta di soli spazi, modello assente dal catalogo disponibile, soglia, blocchi e intervallo fuori intervallo o non numerici sono rifiutati con la variabile e la condizione attese e il processo termina con codice 2 senza avvio operativo. Fallisce se una configurazione invalida è accettata, se un valore predefinito differisce dal contratto, se un valore configurato è ignorato o se il processo prosegue dopo un rifiuto.
 
 #### Metadata
   * type: test-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [config-arguments.spec.ts](../../src/adapters/in/config-arguments.spec.ts)
+  * satisfiedBy: [startup-arguments.spec.ts](../../src/adapters/in/startup-arguments.spec.ts)
   * satisfiedBy: [backend-url.spec.ts](../../src/adapters/out/backend-url.spec.ts)
-  * satisfiedBy: [config-file.spec.ts](../../src/adapters/out/config-file.spec.ts)
   * satisfiedBy: [configuration.spec.ts](../../src/adapters/out/configuration.spec.ts)
   * satisfiedBy: [main.e2e.spec.ts](../../src/main.e2e.spec.ts)
   * satisfiedBy: [main.spec.ts](../../src/main.spec.ts)
-  * verify: [Configurazione TypeScript unica](../Requirements/VoiceSatellite.md#configurazione-typescript-unica)
+  * verify: [Configurazione del satellite dalle variabili d'ambiente](../Requirements/VoiceSatellite.md#configurazione-del-satellite-dalle-variabili-dambiente)
   * verify: [Rifiuto della configurazione invalida](../Requirements/VoiceSatellite.md#rifiuto-della-configurazione-invalida)
-  * verify: [Selezione del file di configurazione](../Requirements/VoiceSatellite.md#selezione-del-file-di-configurazione)
-  * verify: [Valori di configurazione da ambiente](../Requirements/VoiceSatellite.md#valori-di-configurazione-da-ambiente)
 ---
 
 ### Prova della configurazione del workflow CI
@@ -883,7 +933,7 @@ Con una porta controllata verificare scadenza della risposta e della replica ai 
 
 ### Prova software delle immagini del satellite
 
-Su ciascuna immagine verificare architettura, import delle dipendenze native Decibri e ONNX, caricamento e inferenza silenziosa dei modelli wake word distribuiti, caricamento Silero e generazione del tono di errore. Eseguire il processo senza configurazione: uscita 2 e JSON informativo, nessun avvio audio. Verificare assenza della configurazione personale e le etichette dell'immagine: `org.opencontainers.image.source` con l'URL del repository e `org.opencontainers.image.licenses` con `MIT`. Le prove devono funzionare senza rete né periferiche e fallire se manca un artefatto necessario; non sostituiscono le prove audio reali.
+Su ciascuna immagine verificare architettura, import delle dipendenze native Decibri e ONNX, caricamento e inferenza silenziosa dei modelli wake word distribuiti, caricamento Silero e generazione del tono di errore. Eseguire il processo senza variabili `AMBROGIO_*` e poi con `AMBROGIO_ENV=production` e un `AMBROGIO_BACKEND_URL` invalido: uscita 2 e una sola riga JSON informativa con la variabile rifiutata, nessun avvio audio. Verificare che l'immagine non imposti variabili `AMBROGIO_*` e non contenga file di configurazione o d'ambiente, e le etichette dell'immagine: `org.opencontainers.image.source` con l'URL del repository e `org.opencontainers.image.licenses` con `MIT`. Le prove devono funzionare senza rete né periferiche e fallire se manca un artefatto necessario; non sostituiscono le prove audio reali.
 
 #### Metadata
   * type: test-verification

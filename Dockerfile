@@ -17,9 +17,8 @@ LABEL org.opencontainers.image.source="https://github.com/ambrogio-app/ambrogio-
       org.opencontainers.image.licenses="MIT"
 RUN apt-get update && apt-get install -y --no-install-recommends libasound2 libgomp1 alsa-utils \
   && rm -rf /var/lib/apt/lists/*
-RUN mkdir -p /config
 COPY --from=build /app/package.json ./
 COPY --from=build /app/node_modules/ node_modules/
 COPY --from=build /app/dist/ dist/
 COPY models/ models/
-CMD ["node", "dist/main.js", "--config", "/config/satellite.ts"]
+CMD ["node", "dist/main.js"]

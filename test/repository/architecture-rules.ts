@@ -162,14 +162,7 @@ export type RuleName = keyof typeof rules;
 export const ruleNames = Object.keys(rules) as RuleName[];
 
 /** Accepted violations, each recorded with its reason in «Regole di architettura del satellite». */
-export const exceptions: readonly ArchitectureException[] = [
-  {
-    rule: 'no-backend-imports',
-    from: 'src/adapters/out/config-file.ts',
-    specifier: '<computed>',
-    reason: 'The configuration loader imports the configuration module of the installation, chosen at start-up; it is not backend code.',
-  },
-];
+export const exceptions: readonly ArchitectureException[] = [];
 
 const excepted = (violation: Violation, list: readonly ArchitectureException[]) => list.some(exception =>
   exception.rule === violation.rule && exception.from === violation.from && exception.specifier === violation.specifier);

@@ -1,5 +1,5 @@
 import pino, { type DestinationStream } from 'pino';
-import type { LoadConfigRejection } from './config-file.js';
+import type { InvalidConfiguration } from './configuration.js';
 
 type FailureEvent = 'satellite_process_failed' | 'satellite_failure' | 'satellite_error_tone_failed'
   | 'satellite_ready_cue_failed';
@@ -59,11 +59,9 @@ export function createDiagnostics(destination: DestinationStream = process.stdou
     shutdownTimeout(timeoutMs: number): void {
       logger.error({ event: 'satellite_shutdown_timeout', timeoutMs });
     },
-    /** Only the rejection kind and the field name: never values, paths or library messages. */
-    configurationRejected(rejection: LoadConfigRejection): void {
-      logger.info(rejection.kind === 'invalid_configuration'
-        ? { event: 'invalid_configuration', reason: rejection.kind, field: rejection.field }
-        : { event: 'invalid_configuration', reason: rejection.kind });
+    /** Only the variable name and the violated condition: never values, host names or library messages. */
+    configurationRejected(rejection: InvalidConfiguration): void {
+      logger.info({ event: 'invalid_configuration', variable: rejection.variable, condition: rejection.condition });
     },
   };
 }

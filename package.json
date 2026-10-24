@@ -13,6 +13,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
+    "dev": "node --env-file=.env dist/main.js",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.core.json",
     "test": "vitest run --project fast",
     "test:e2e": "vitest run --project e2e",

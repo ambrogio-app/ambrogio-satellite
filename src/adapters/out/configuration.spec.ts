@@ -1,57 +1,86 @@
 import { describe, expect, it } from 'vitest';
-import { parseBackendBaseUrl, parseReplyTimeoutMs, parseSatelliteConfig } from './configuration.js';
+import { readSatelliteConfig, type ConfigurationVariable } from './configuration.js';
 
 const distributedModels = new Set(['alexa', 'hey_jarvis', 'hey_mycroft']);
+const base = { AMBROGIO_ENV: 'production', AMBROGIO_BACKEND_URL: 'http://localhost:3000' };
 
-describe('backend base URL', () => {
-  it('derives the WebSocket endpoint while preserving a proxy prefix', () => {
-    const result = parseBackendBaseUrl('https://example.org/ambrogio/');
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.sessionUrl.href).toBe('wss://example.org/ambrogio/api/session');
+const rejection = (variable: ConfigurationVariable, condition: 'missing' | 'invalid') =>
+  ({ ok: false, error: { kind: 'invalid_configuration', variable, condition } });
+
+describe('runtime environment', () => {
+  it.each(['development', 'test', 'production'])('accepts %s', environment => {
+    expect(readSatelliteConfig({ ...base, AMBROGIO_ENV: environment }, distributedModels, 'host').ok).toBe(true);
   });
 
-  it.each(['ws://example.org', 'https://name:secret@example.org',
-    'https://example.org/?token=value', 'https://example.org/#voice', ' example.org '])
-  ('rejects non-base or credential-bearing URL %s', value => {
-    expect(parseBackendBaseUrl(value)).toEqual({ ok: false,
-      error: { kind: 'invalid_configuration', field: 'backend.baseUrl' } });
+  it('is required, without a default', () => {
+    expect(readSatelliteConfig({ AMBROGIO_BACKEND_URL: 'http://localhost:3000' }, distributedModels))
+      .toEqual(rejection('AMBROGIO_ENV', 'missing'));
+    expect(readSatelliteConfig({ ...base, AMBROGIO_ENV: '' }, distributedModels))
+      .toEqual(rejection('AMBROGIO_ENV', 'missing'));
+  });
+
+  it.each(['prod', 'Production', 'staging'])('rejects %s', environment => {
+    expect(readSatelliteConfig({ ...base, AMBROGIO_ENV: environment }, distributedModels))
+      .toEqual(rejection('AMBROGIO_ENV', 'invalid'));
+  });
+
+  it('gives the same defaults in every environment', () => {
+    const results = ['development', 'test', 'production'].map(environment =>
+      readSatelliteConfig({ ...base, AMBROGIO_ENV: environment }, distributedModels, 'host'));
+    expect(results[0]).toEqual(results[1]);
+    expect(results[1]).toEqual(results[2]);
   });
 });
 
-describe('reply timeout', () => {
-  it('uses the documented default and accepts a positive integer', () => {
-    expect(parseReplyTimeoutMs(undefined)).toEqual({ ok: true, value: 15_000 });
-    expect(parseReplyTimeoutMs(2_500)).toEqual({ ok: true, value: 2_500 });
+describe('backend base URL', () => {
+  it('derives the WebSocket endpoint while preserving a proxy prefix', () => {
+    const result = readSatelliteConfig({ ...base, AMBROGIO_BACKEND_URL: 'https://example.org/ambrogio/' },
+      distributedModels);
+    expect(result.ok && result.value.backend.sessionUrl.href).toBe('wss://example.org/ambrogio/api/session');
   });
 
-  it.each([0, -1, 1.5, Infinity, '15000', null])('rejects %s', value => {
-    expect(parseReplyTimeoutMs(value)).toEqual({ ok: false,
-      error: { kind: 'invalid_configuration', field: 'interaction.replyTimeoutMs' } });
+  it('is required in every environment', () => {
+    for (const environment of ['development', 'test', 'production']) {
+      expect(readSatelliteConfig({ AMBROGIO_ENV: environment }, distributedModels))
+        .toEqual(rejection('AMBROGIO_BACKEND_URL', 'missing'));
+    }
+  });
+
+  it.each(['ws://example.org', 'https://name:secret@example.org',
+    'https://example.org/?token=value', 'https://example.org/#voice', ' example.org ', 'not a url'])
+  ('rejects non-base or credential-bearing URL %s', value => {
+    expect(readSatelliteConfig({ ...base, AMBROGIO_BACKEND_URL: value }, distributedModels))
+      .toEqual(rejection('AMBROGIO_BACKEND_URL', 'invalid'));
   });
 });
 
 describe('satellite configuration', () => {
-  it('uses system audio defaults and local interaction defaults', () => {
-    const result = parseSatelliteConfig({ backend: { baseUrl: 'http://localhost:3000' } }, distributedModels, 'cucina');
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.value.client).toEqual({ clientId: 'satellite-cucina', name: 'cucina' });
-      expect(result.value.audio).toEqual({});
-      expect(result.value.wakeWord.model).toBe('hey_jarvis');
-      expect(result.value.wakeWord.threshold).toBe(0.5);
-      expect(result.value.wakeWord.patience).toBe(2);
-      expect(result.value.interaction.replyTimeoutMs).toBe(15_000);
-      expect(result.value.backend.sessionUrl.href).toBe('ws://localhost:3000/api/session');
-    }
+  it('applies the defaults it owns and leaves the audio devices to the system', () => {
+    const result = readSatelliteConfig(base, distributedModels, 'host-a');
+    expect(result).toEqual({ ok: true, value: {
+      backend: { baseUrl: new URL('http://localhost:3000'), sessionUrl: new URL('ws://localhost:3000/api/session') },
+      client: { clientId: 'satellite-host-a', name: 'host-a' },
+      audio: {},
+      wakeWord: { model: 'hey_jarvis', threshold: 0.5, patience: 2 },
+      interaction: { replyTimeoutMs: 15_000 },
+    } });
+  });
+
+  it('treats empty variables as absent', () => {
+    const result = readSatelliteConfig({ ...base, AMBROGIO_CLIENT_ID: '', AMBROGIO_MICROPHONE: '',
+      AMBROGIO_WAKE_WORD_MODEL: '', AMBROGIO_REPLY_TIMEOUT_MS: '', AMBROGIO_ATTENUATION_DEVICE: '' },
+    distributedModels, 'host-a');
+    expect(result.ok && result.value.client.clientId).toBe('satellite-host-a');
+    expect(result.ok && result.value.audio).toEqual({});
+    expect(result.ok && result.value.wakeWord.model).toBe('hey_jarvis');
+    expect(result.ok && result.value.interaction.replyTimeoutMs).toBe(15_000);
   });
 
   it.each(['alexa', 'hey_mycroft'])('preserves explicit audio devices, %s model and timeout', model => {
-    const result = parseSatelliteConfig({
-      backend: { baseUrl: 'https://example.org/ambrogio' },
-      audio: { microphone: 'alsa:mic-1', speaker: 'USB Speaker' },
-      wakeWord: { model, threshold: 0.7, patience: 3 },
-      interaction: { replyTimeoutMs: 2_500 },
-    }, distributedModels);
+    const result = readSatelliteConfig({ ...base, AMBROGIO_BACKEND_URL: 'https://example.org/ambrogio',
+      AMBROGIO_MICROPHONE: 'alsa:mic-1', AMBROGIO_SPEAKER: 'USB Speaker', AMBROGIO_WAKE_WORD_MODEL: model,
+      AMBROGIO_WAKE_WORD_THRESHOLD: '0.7', AMBROGIO_WAKE_WORD_PATIENCE: '3', AMBROGIO_REPLY_TIMEOUT_MS: '2500' },
+    distributedModels);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.audio).toEqual({ microphone: 'alsa:mic-1', speaker: 'USB Speaker' });
@@ -62,103 +91,80 @@ describe('satellite configuration', () => {
   });
 
   it('uses an explicit client identity', () => {
-    const result = parseSatelliteConfig({ backend: { baseUrl: 'http://localhost:3000' },
-      client: { id: 'satellite-cucina-01', name: 'Cucina' } }, distributedModels, 'host');
-    expect(result.ok && result.value.client).toEqual({ clientId: 'satellite-cucina-01', name: 'Cucina' });
-    const partial = parseSatelliteConfig({ backend: { baseUrl: 'http://localhost:3000' },
-      client: { name: 'Studio' } }, distributedModels, 'host');
+    const result = readSatelliteConfig({ ...base, AMBROGIO_CLIENT_ID: 'satellite-01', AMBROGIO_CLIENT_NAME: 'Studio' },
+      distributedModels, 'host');
+    expect(result.ok && result.value.client).toEqual({ clientId: 'satellite-01', name: 'Studio' });
+    const partial = readSatelliteConfig({ ...base, AMBROGIO_CLIENT_NAME: 'Studio' }, distributedModels, 'host');
     expect(partial.ok && partial.value.client).toEqual({ clientId: 'satellite-host', name: 'Studio' });
   });
 
-  it.each([
-    [{ id: '' }, 'client.id'],
-    [{ id: '   ' }, 'client.id'],
-    [{ id: 7 }, 'client.id'],
-    [{ name: '' }, 'client.name'],
-    [{ name: ' \t' }, 'client.name'],
-    [{ name: null }, 'client.name'],
-    [{ id: 'a', extra: true }, 'client.id'],
-    ['cucina', 'client.id'],
-  ] as const)('rejects an invalid client identity %j', (client, field) => {
-    expect(parseSatelliteConfig({ backend: { baseUrl: 'http://localhost:3000' }, client },
-      distributedModels, 'host')).toEqual({ ok: false, error: { kind: 'invalid_configuration', field } });
-  });
-
   it('accepts an available custom wake word model', () => {
-    const result = parseSatelliteConfig({
-      backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { model: 'personalizzato' },
-    }, new Set([...distributedModels, 'personalizzato']));
-    expect(result.ok && result.value.wakeWord.model).toBe('personalizzato');
+    const result = readSatelliteConfig({ ...base, AMBROGIO_WAKE_WORD_MODEL: 'custom' },
+      new Set([...distributedModels, 'custom']));
+    expect(result.ok && result.value.wakeWord.model).toBe('custom');
   });
 
   it('rejects an unsafe identifier even if a catalog reports it available', () => {
-    expect(parseSatelliteConfig({
-      backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { model: '../outside' },
-    }, new Set(['../outside']))).toEqual({ ok: false,
-      error: { kind: 'invalid_configuration', field: 'wakeWord.model' } });
+    expect(readSatelliteConfig({ ...base, AMBROGIO_WAKE_WORD_MODEL: '../outside' }, new Set(['../outside'])))
+      .toEqual(rejection('AMBROGIO_WAKE_WORD_MODEL', 'invalid'));
   });
 
-  it.each([1, 10])('accepts %i consecutive wake word chunks', patience => {
-    const result = parseSatelliteConfig({ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { patience } },
-      distributedModels);
-    expect(result.ok && result.value.wakeWord.patience).toBe(patience);
+  it.each(['1', '10'])('accepts %s consecutive wake word chunks', patience => {
+    const result = readSatelliteConfig({ ...base, AMBROGIO_WAKE_WORD_PATIENCE: patience }, distributedModels);
+    expect(result.ok && result.value.wakeWord.patience).toBe(Number(patience));
   });
 
   it.each([
-    [{ backend: { baseUrl: 'http://localhost:3000' }, audio: { microphone: '' } }, 'audio.microphone'],
-    [{ backend: { baseUrl: 'http://localhost:3000' }, audio: { speaker: 42 } }, 'audio.speaker'],
-    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { model: 'hey_alexa' } }, 'wakeWord.model'],
-    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { model: '../outside' } }, 'wakeWord.model'],
-    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { model: 'melspectrogram' } }, 'wakeWord.model'],
-    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { model: null } }, 'wakeWord.model'],
-    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { threshold: 0 } }, 'wakeWord.threshold'],
-    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { threshold: 1.2 } }, 'wakeWord.threshold'],
-    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { threshold: '0.7' } }, 'wakeWord.threshold'],
-    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { patience: 0 } }, 'wakeWord.patience'],
-    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { patience: 11 } }, 'wakeWord.patience'],
-    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { patience: 1.5 } }, 'wakeWord.patience'],
-    [{ backend: { baseUrl: 'http://localhost:3000' }, wakeWord: { patience: '2' } }, 'wakeWord.patience'],
-    [{ backend: { baseUrl: 'http://localhost:3000' }, interaction: { replyTimeoutMs: 0 } }, 'interaction.replyTimeoutMs'],
-    [{ backend: { baseUrl: 'http://localhost:3000' }, extra: true }, 'config'],
-  ] as const)('rejects invalid or unavailable settings', (input, field) => {
-    expect(parseSatelliteConfig(input, distributedModels)).toEqual({ ok: false,
-      error: { kind: 'invalid_configuration', field } });
+    ['AMBROGIO_CLIENT_ID', '   '],
+    ['AMBROGIO_CLIENT_NAME', ' \t'],
+    ['AMBROGIO_MICROPHONE', ' alsa:mic'],
+    ['AMBROGIO_SPEAKER', 'speaker '],
+    ['AMBROGIO_WAKE_WORD_MODEL', 'hey_alexa'],
+    ['AMBROGIO_WAKE_WORD_MODEL', '../outside'],
+    ['AMBROGIO_WAKE_WORD_MODEL', 'melspectrogram'],
+    ['AMBROGIO_WAKE_WORD_THRESHOLD', '0'],
+    ['AMBROGIO_WAKE_WORD_THRESHOLD', '1.2'],
+    ['AMBROGIO_WAKE_WORD_THRESHOLD', 'high'],
+    ['AMBROGIO_WAKE_WORD_THRESHOLD', '-0.5'],
+    ['AMBROGIO_WAKE_WORD_PATIENCE', '0'],
+    ['AMBROGIO_WAKE_WORD_PATIENCE', '11'],
+    ['AMBROGIO_WAKE_WORD_PATIENCE', '1.5'],
+    ['AMBROGIO_REPLY_TIMEOUT_MS', '0'],
+    ['AMBROGIO_REPLY_TIMEOUT_MS', '-1'],
+    ['AMBROGIO_REPLY_TIMEOUT_MS', '1.5'],
+    ['AMBROGIO_REPLY_TIMEOUT_MS', '15s'],
+  ] as const)('rejects %s=%j naming only the variable', (variable, value) => {
+    expect(readSatelliteConfig({ ...base, [variable]: value }, distributedModels, 'host'))
+      .toEqual(rejection(variable, 'invalid'));
   });
 });
 
 describe('local attenuation configuration', () => {
-  const base = { backend: { baseUrl: 'http://localhost:3000' } };
+  const full = { AMBROGIO_ATTENUATION_DEVICE: 'hw:CARD=Example', AMBROGIO_ATTENUATION_CONTROL: 'Music' };
 
-  it('is absent when the audio section does not name a control', () => {
-    const result = parseSatelliteConfig(base, distributedModels, 'host');
+  it('is absent when no attenuation variable is set', () => {
+    const result = readSatelliteConfig(base, distributedModels, 'host');
     expect(result.ok && result.value.audio.attenuation).toBe(undefined);
   });
 
-  it.each([0, 25, 100])('accepts a control with level %i', level => {
-    const result = parseSatelliteConfig({ ...base,
-      audio: { speaker: 'alsa:shared', attenuation: { device: 'hw:CARD=Example', control: 'Music', level } } },
-    distributedModels, 'host');
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.value.audio).toEqual({ speaker: 'alsa:shared',
-        attenuation: { device: 'hw:CARD=Example', control: 'Music', level } });
-    }
+  it.each(['0', '25', '100'])('accepts a control with level %s', level => {
+    const result = readSatelliteConfig({ ...base, ...full, AMBROGIO_SPEAKER: 'alsa:shared',
+      AMBROGIO_ATTENUATION_LEVEL: level }, distributedModels, 'host');
+    expect(result.ok && result.value.audio).toEqual({ speaker: 'alsa:shared',
+      attenuation: { device: 'hw:CARD=Example', control: 'Music', level: Number(level) } });
   });
 
   it.each([
-    { control: 'Music', level: 25 },
-    { device: 'hw:CARD=Example', level: 25 },
-    { device: 'hw:CARD=Example', control: 'Music' },
-    { device: '', control: 'Music', level: 25 },
-    { device: 'hw:CARD=Example', control: ' Music', level: 25 },
-    { device: 'hw:CARD=Example', control: 'Music', level: -1 },
-    { device: 'hw:CARD=Example', control: 'Music', level: 101 },
-    { device: 'hw:CARD=Example', control: 'Music', level: 12.5 },
-    { device: 'hw:CARD=Example', control: 'Music', level: '25' },
-    { device: 'hw:CARD=Example', control: 'Music', level: 25, mode: 'db' },
-    'hw:CARD=Example',
-  ])('rejects %j', attenuation => {
-    expect(parseSatelliteConfig({ ...base, audio: { attenuation } }, distributedModels, 'host')).toEqual({
-      ok: false, error: { kind: 'invalid_configuration', field: 'audio.attenuation' } });
+    [{ AMBROGIO_ATTENUATION_CONTROL: 'Music', AMBROGIO_ATTENUATION_LEVEL: '25' }, 'AMBROGIO_ATTENUATION_DEVICE', 'missing'],
+    [{ AMBROGIO_ATTENUATION_DEVICE: 'hw:CARD=Example', AMBROGIO_ATTENUATION_LEVEL: '25' }, 'AMBROGIO_ATTENUATION_CONTROL', 'missing'],
+    [full, 'AMBROGIO_ATTENUATION_LEVEL', 'missing'],
+    [{ ...full, AMBROGIO_ATTENUATION_DEVICE: ' hw:0', AMBROGIO_ATTENUATION_LEVEL: '25' }, 'AMBROGIO_ATTENUATION_DEVICE', 'invalid'],
+    [{ ...full, AMBROGIO_ATTENUATION_CONTROL: ' Music', AMBROGIO_ATTENUATION_LEVEL: '25' }, 'AMBROGIO_ATTENUATION_CONTROL', 'invalid'],
+    [{ ...full, AMBROGIO_ATTENUATION_LEVEL: '-1' }, 'AMBROGIO_ATTENUATION_LEVEL', 'invalid'],
+    [{ ...full, AMBROGIO_ATTENUATION_LEVEL: '101' }, 'AMBROGIO_ATTENUATION_LEVEL', 'invalid'],
+    [{ ...full, AMBROGIO_ATTENUATION_LEVEL: '12.5' }, 'AMBROGIO_ATTENUATION_LEVEL', 'invalid'],
+  ] as const)('rejects %j', (variables, variable, condition) => {
+    expect(readSatelliteConfig({ ...base, ...variables }, distributedModels, 'host'))
+      .toEqual(rejection(variable, condition));
   });
 });

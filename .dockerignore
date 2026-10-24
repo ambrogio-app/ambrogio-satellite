@@ -6,13 +6,10 @@ dist
 system-model
 test
 **/*.spec.ts
-config.json
-*.local.json
-config.ts
-*.local.ts
 *.sqlite
 *.sqlite-*
 *.db
 *.db-*
+.env
 *.env
 *.env.*

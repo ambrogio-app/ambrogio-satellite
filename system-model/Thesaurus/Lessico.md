@@ -36,7 +36,7 @@ Insieme dei modelli di wake word supportati e distribuiti dal progetto, fra i qu
 
 ### Configurazione del satellite
 
-Dati scelti dall'installatore per individuare il backend, i dispositivi audio e il modello di wake word usati dal processo satellite.
+Dati scelti dall'installatore, come variabili d'ambiente del processo, per individuare il backend, i dispositivi audio e il modello di wake word usati dal processo satellite.
 
 #### Metadata
   * type: concept

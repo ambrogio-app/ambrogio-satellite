@@ -1,8 +1,5 @@
 import { expect, test } from 'vitest';
-import { mkdtemp, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { loadSatelliteConfig } from './config-file.js';
+import { readSatelliteConfig } from './configuration.js';
 import { createDiagnostics, normalizeDiagnosticError } from './diagnostics.js';
 
 function capture() {
@@ -60,15 +57,12 @@ test('expected startup outcomes are informative and have no err or input data', 
   }
 });
 
-const validConfig = { backend: { baseUrl: 'http://ambrogio.test:3000' } };
+const valid = { AMBROGIO_ENV: 'production', AMBROGIO_BACKEND_URL: 'http://ambrogio.test:3000' };
 const models = new Set(['hey_jarvis']);
 
-async function rejectionRecord(content?: string) {
-  const directory = await mkdtemp(join(tmpdir(), 'satellite-config-'));
-  const filename = join(directory, 'secret-path.ts');
-  if (content !== undefined) await writeFile(filename, `export default ${content};\n`);
-  const loaded = await loadSatelliteConfig(filename, models);
-  if (loaded.ok) throw new Error('expected a rejected configuration');
+function rejectionRecord(environment: Readonly<Record<string, string>>) {
+  const loaded = readSatelliteConfig(environment, models, 'secret-host');
+  if (loaded.ok || loaded.error.kind !== 'invalid_configuration') throw new Error('expected a rejected configuration');
   const { log, lines, records } = capture();
   log.configurationRejected(loaded.error);
   expect(lines).toHaveLength(1);
@@ -76,31 +70,25 @@ async function rejectionRecord(content?: string) {
   return records()[0];
 }
 
-test('an unavailable configuration file is reported with its reason only', async () => {
-  const record = await rejectionRecord();
-  expect(record).toMatchObject({ level: 'info', event: 'invalid_configuration', reason: 'configuration_unavailable' });
-  expect(Object.keys(record).sort()).toEqual(['event', 'level', 'reason', 'time']);
-});
-
 test.each([
-  ['a module that cannot be imported', '{ secret', 'config'],
-  ['an unknown section', JSON.stringify({ ...validConfig, secret: {} }), 'config'],
-  ['backend.baseUrl', JSON.stringify({ backend: { baseUrl: 'ftp://secret.test' } }), 'backend.baseUrl'],
-  ['client.id', JSON.stringify({ ...validConfig, client: { id: ' ' } }), 'client.id'],
-  ['client.name', JSON.stringify({ ...validConfig, client: { name: '' } }), 'client.name'],
-  ['audio.microphone', JSON.stringify({ ...validConfig, audio: { microphone: ' secret' } }), 'audio.microphone'],
-  ['audio.speaker', JSON.stringify({ ...validConfig, audio: { speaker: '' } }), 'audio.speaker'],
-  ['audio.attenuation', JSON.stringify({ ...validConfig, audio: { attenuation: { device: 'secret', control: 'Music', level: 101 } } }),
-    'audio.attenuation'],
-  ['wakeWord.model', JSON.stringify({ ...validConfig, wakeWord: { model: 'secret_word' } }), 'wakeWord.model'],
-  ['wakeWord.threshold', JSON.stringify({ ...validConfig, wakeWord: { threshold: 2 } }), 'wakeWord.threshold'],
-  ['wakeWord.patience', JSON.stringify({ ...validConfig, wakeWord: { patience: 0 } }), 'wakeWord.patience'],
-  ['interaction.replyTimeoutMs', JSON.stringify({ ...validConfig, interaction: { replyTimeoutMs: -1 } }),
-    'interaction.replyTimeoutMs'],
-])('an invalid configuration names the rejected field: %s', async (_case, content, field) => {
-  const record = await rejectionRecord(content);
-  expect(record).toMatchObject({ level: 'info', event: 'invalid_configuration', reason: 'invalid_configuration', field });
-  expect(Object.keys(record).sort()).toEqual(['event', 'field', 'level', 'reason', 'time']);
+  [{ AMBROGIO_BACKEND_URL: 'http://secret.test' }, 'AMBROGIO_ENV', 'missing'],
+  [{ ...valid, AMBROGIO_ENV: 'secret' }, 'AMBROGIO_ENV', 'invalid'],
+  [{ AMBROGIO_ENV: 'test' }, 'AMBROGIO_BACKEND_URL', 'missing'],
+  [{ ...valid, AMBROGIO_BACKEND_URL: 'ftp://secret.test' }, 'AMBROGIO_BACKEND_URL', 'invalid'],
+  [{ ...valid, AMBROGIO_CLIENT_ID: ' ' }, 'AMBROGIO_CLIENT_ID', 'invalid'],
+  [{ ...valid, AMBROGIO_CLIENT_NAME: ' ' }, 'AMBROGIO_CLIENT_NAME', 'invalid'],
+  [{ ...valid, AMBROGIO_MICROPHONE: ' secret' }, 'AMBROGIO_MICROPHONE', 'invalid'],
+  [{ ...valid, AMBROGIO_SPEAKER: 'secret ' }, 'AMBROGIO_SPEAKER', 'invalid'],
+  [{ ...valid, AMBROGIO_ATTENUATION_DEVICE: 'secret' }, 'AMBROGIO_ATTENUATION_CONTROL', 'missing'],
+  [{ ...valid, AMBROGIO_ATTENUATION_DEVICE: 'secret', AMBROGIO_ATTENUATION_CONTROL: 'Music',
+    AMBROGIO_ATTENUATION_LEVEL: '101' }, 'AMBROGIO_ATTENUATION_LEVEL', 'invalid'],
+  [{ ...valid, AMBROGIO_WAKE_WORD_MODEL: 'secret_word' }, 'AMBROGIO_WAKE_WORD_MODEL', 'invalid'],
+  [{ ...valid, AMBROGIO_WAKE_WORD_THRESHOLD: '2' }, 'AMBROGIO_WAKE_WORD_THRESHOLD', 'invalid'],
+  [{ ...valid, AMBROGIO_WAKE_WORD_PATIENCE: '0' }, 'AMBROGIO_WAKE_WORD_PATIENCE', 'invalid'],
+  [{ ...valid, AMBROGIO_REPLY_TIMEOUT_MS: '-1' }, 'AMBROGIO_REPLY_TIMEOUT_MS', 'invalid'],
+])('a rejected configuration names only the variable and the condition: %j', (environment, variable, condition) => {
+  const record = rejectionRecord(environment);
+  expect(record).toEqual({ level: 'info', time: expect.any(Number), event: 'invalid_configuration', variable, condition });
 });
 
 test('a wake word detection logs only its rounded score and consecutive chunks', () => {

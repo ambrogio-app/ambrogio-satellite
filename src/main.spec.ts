@@ -1,6 +1,3 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 // Modules that build audio, wake word or network resources record their loading.
@@ -23,45 +20,46 @@ vi.mock('./adapters/out/diagnostics.js', () => ({ diagnostics: {
 } }));
 
 const argv = process.argv;
-let directory: string;
 
-beforeEach(async () => {
-  directory = await mkdtemp(join(tmpdir(), 'ambrogio-satellite-bootstrap-'));
+beforeEach(() => {
   f.loaded.length = 0;
   vi.resetModules();
   vi.clearAllMocks();
 });
-afterEach(async () => {
+afterEach(() => {
   process.argv = argv;
   process.exitCode = undefined;
   vi.unstubAllEnvs();
-  await rm(directory, { recursive: true, force: true });
 });
 
-async function runMain(config: unknown): Promise<void> {
-  const filename = join(directory, 'satellite.ts');
-  await writeFile(filename, `export default ${JSON.stringify(config)};\n`);
-  process.argv = [argv[0]!, 'main.js', '--config', filename];
+/** Start the entry point with exactly these configuration variables in the process environment. */
+async function runMain(environment: Readonly<Record<string, string>>): Promise<void> {
+  for (const name of Object.keys(process.env)) if (name.startsWith('AMBROGIO_')) vi.stubEnv(name, undefined);
+  for (const [name, value] of Object.entries(environment)) vi.stubEnv(name, value);
+  process.argv = [argv[0]!, 'main.js'];
   await import('./main.js');
 }
 
 test.each([
-  [{ backend: { baseUrl: 'ftp://backend.example.test' } }, 'backend.baseUrl'],
-  [{ backend: { baseUrl: 'http://backend.example.test' }, wakeWord: { model: 'missing_word' } }, 'wakeWord.model'],
-  [{ backend: { baseUrl: 'http://backend.example.test' }, unknown: {} }, 'config'],
-])('an invalid configuration exits with 2 before any resource is loaded (%j)', async (config, field) => {
-  await runMain(config);
+  [{ AMBROGIO_BACKEND_URL: 'http://backend.example.test' }, 'AMBROGIO_ENV', 'missing'],
+  [{ AMBROGIO_ENV: 'staging', AMBROGIO_BACKEND_URL: 'http://backend.example.test' }, 'AMBROGIO_ENV', 'invalid'],
+  [{ AMBROGIO_ENV: 'production', AMBROGIO_BACKEND_URL: 'ftp://backend.example.test' }, 'AMBROGIO_BACKEND_URL', 'invalid'],
+  [{ AMBROGIO_ENV: 'production', AMBROGIO_BACKEND_URL: 'http://backend.example.test',
+    AMBROGIO_WAKE_WORD_MODEL: 'missing_word' }, 'AMBROGIO_WAKE_WORD_MODEL', 'invalid'],
+])('an invalid configuration exits with 2 before any resource is loaded (%j)', async (environment, variable, condition) => {
+  await runMain(environment);
   expect(process.exitCode).toBe(2);
-  expect(f.configurationRejected).toHaveBeenCalledExactlyOnceWith({ kind: 'invalid_configuration', field });
+  expect(f.configurationRejected).toHaveBeenCalledExactlyOnceWith({ kind: 'invalid_configuration', variable, condition });
   expect(f.loaded).toEqual([]);
   expect(f.start).not.toHaveBeenCalled();
 });
 
-test('missing startup arguments exit with 2 before the configuration is read', async () => {
-  process.argv = [argv[0]!, 'main.js'];
+test('a startup argument exits with 2 before the configuration is read', async () => {
+  process.argv = [argv[0]!, 'main.js', '--config', '/config/satellite.ts'];
   await import('./main.js');
   expect(process.exitCode).toBe(2);
   expect(f.info).toHaveBeenCalledExactlyOnceWith('invalid_arguments');
+  expect(f.configurationRejected).not.toHaveBeenCalled();
   expect(f.loaded).toEqual([]);
 });
 
@@ -69,7 +67,8 @@ test('a valid configuration reaches the composition root only after validation',
   vi.stubEnv('ORT_DISABLE_TELEMETRY', '');
   const failure = new Error('no devices in the test');
   f.start.mockRejectedValue(failure);
-  await runMain({ backend: { baseUrl: 'https://backend.example.test/prefix' }, client: { id: 'satellite-test', name: 'Test' } });
+  await runMain({ AMBROGIO_ENV: 'production', AMBROGIO_BACKEND_URL: 'https://backend.example.test/prefix',
+    AMBROGIO_CLIENT_ID: 'satellite-test', AMBROGIO_CLIENT_NAME: 'Test' });
   expect(f.configurationRejected).not.toHaveBeenCalled();
   expect(f.loaded).toEqual(['composition']);
   expect(f.start).toHaveBeenCalledOnce();

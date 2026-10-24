@@ -1,5 +1,25 @@
 # Elements
 
+### Ambiente di esecuzione dichiarato del satellite
+
+Il satellite deve impedire l'avvio operativo quando `AMBROGIO_ENV` manca, è vuota o non vale `development`, `test` o `production`, e deve applicare i valori predefiniti della propria configurazione in modo identico nei tre ambienti, senza valori predefiniti di solo sviluppo.
+
+#### Details
+Origine: baseline Reqvire «Declared runtime environment», adottata.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Profilo dell'ambiente di esecuzione e del file d'ambiente locale](../../../ambrogio-model/system-model/Contracts/HomelabInstallation.md#profilo-dellambiente-di-esecuzione-e-del-file-dambiente-locale)
+  * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
+
+#### Relations
+  * derivedFrom: [Ambiente di esecuzione dichiarato](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#ambiente-di-esecuzione-dichiarato)
+  * satisfiedBy: [configuration.ts](../../src/adapters/out/configuration.ts)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
+---
+
 ### Arresto immediato del processo satellite
 
 Quando riceve SIGINT o SIGTERM, il satellite deve impedire nuove attivazioni e interrompere l'interazione e la riproduzione correnti senza attendere la risposta completa.
@@ -239,9 +259,14 @@ Quando il punteggio di riconoscimento della wake word raggiunge la soglia config
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
-### Configurazione TypeScript unica
+### Configurazione del satellite dalle variabili d'ambiente
 
-Il satellite deve caricare da un modulo TypeScript la configurazione del backend, dell'identità del client, dei dispositivi audio, della wake word e dell'intervallo locale di inattività, usando gli stessi significati sull'host e nel container.
+Il satellite deve leggere una sola volta all'avvio, dalle variabili d'ambiente del processo e tramite il proprio modulo di configurazione compreso nella build, la configurazione del backend, dell'identità del client, dei dispositivi audio, dell'attenuazione locale, della wake word e dell'intervallo locale di inattività, e deve validarla con lo schema del satellite prima dell'avvio operativo, con lo stesso significato sull'host e nel container; il satellite non deve accettare argomenti di avvio né moduli di configurazione forniti da chi installa.
+
+#### Details
+Il satellite ha un solo componente configurabile, il processo satellite, e quindi un solo modulo di configurazione.
+
+Origine: baseline Reqvire «Configuration module per component reading environment variables», adottata; «One-time configuration load at startup», adottata.
 
 #### Concept References
   * [Configurazione del satellite](../Thesaurus/Lessico.md#configurazione-del-satellite)
@@ -252,15 +277,18 @@ Il satellite deve caricare da un modulo TypeScript la configurazione del backend
   * type: requirement
 
 #### Contract References
+  * [Profilo dell'ambiente di esecuzione e del file d'ambiente locale](../../../ambrogio-model/system-model/Contracts/HomelabInstallation.md#profilo-dellambiente-di-esecuzione-e-del-file-dambiente-locale)
   * [Adapter audio con Decibri](../Contracts/VoiceSatellite.md#adapter-audio-con-decibri)
   * [Attenuazione locale con softvol e amixer](../Contracts/VoiceSatellite.md#attenuazione-locale-con-softvol-e-amixer)
   * [Catalogo e selezione dei modelli](../Contracts/VoiceSatellite.md#catalogo-e-selezione-dei-modelli)
   * [Identità del satellite nella sessione](../Contracts/VoiceSatellite.md#identità-del-satellite-nella-sessione)
 
 #### Relations
-  * satisfiedBy: [config-file.ts](../../src/adapters/out/config-file.ts)
+  * derivedFrom: [Modulo di configurazione per componente dalle variabili d'ambiente](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#modulo-di-configurazione-per-componente-dalle-variabili-dambiente)
+  * satisfiedBy: [startup-arguments.ts](../../src/adapters/in/startup-arguments.ts)
   * satisfiedBy: [configuration.ts](../../src/adapters/out/configuration.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * satisfiedBy: [main.ts](../../src/main.ts)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
 ### Confini degli import nei test
@@ -462,7 +490,7 @@ Il satellite deve escludere configurazioni personali e credenziali dagli artefat
   * satisfiedBy: [.dockerignore](../../.dockerignore)
   * satisfiedBy: [.gitignore](../../.gitignore)
   * satisfiedBy: [Dockerfile](../../Dockerfile)
-  * satisfiedBy: [config.example.ts](../../config.example.ts)
+  * satisfiedBy: [compose.example.yaml](../../compose.example.yaml)
   * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
@@ -505,6 +533,29 @@ Quando emette un log tecnico, il satellite deve includere un nome event stabile 
   * derivedFrom: [Log tecnici JSON con Pino](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#log-tecnici-json-con-pino)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
+---
+
+### File d'ambiente locale del satellite
+
+Lo sviluppo del satellite deve caricare il file `.env` soltanto con il comando `pnpm dev`, che avvia il processo con `node --env-file=.env`, il codice del satellite non deve leggere file d'ambiente, il repository deve fornire `.env.example` con ogni variabile letta dal modulo di configurazione e i soli valori approvati, e `.env` deve restare escluso da Git e dall'immagine container.
+
+#### Details
+Origine: baseline Reqvire «Explicit loading of local environment files», adottata.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Profilo dell'ambiente di esecuzione e del file d'ambiente locale](../../../ambrogio-model/system-model/Contracts/HomelabInstallation.md#profilo-dellambiente-di-esecuzione-e-del-file-dambiente-locale)
+  * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
+
+#### Relations
+  * derivedFrom: [Caricamento esplicito del file d'ambiente locale](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#caricamento-esplicito-del-file-dambiente-locale)
+  * satisfiedBy: [.dockerignore](../../.dockerignore)
+  * satisfiedBy: [.env.example](../../.env.example)
+  * satisfiedBy: [.gitignore](../../.gitignore)
+  * satisfiedBy: [package.json](../../package.json)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
 ### Forma TypeScript dei contratti Application nel satellite
@@ -584,7 +635,7 @@ Origine: baseline Reqvire «Single ordered shutdown», adattata: le risorse indi
 
 ### Identificazione del satellite nella sessione
 
-Quando apre la sessione conversazionale con il backend, il satellite deve presentarsi con un identificativo di client stabile e un nome leggibile dalla famiglia, configurabili nel modulo TypeScript e con valori predefiniti ricavati dal nome host.
+Quando apre la sessione conversazionale con il backend, il satellite deve presentarsi con un identificativo di client stabile e un nome leggibile dalla famiglia, configurabili con le variabili d'ambiente del satellite e con valori predefiniti ricavati dal nome host.
 
 #### Metadata
   * type: requirement
@@ -1057,7 +1108,7 @@ Ogni volta che sta per aprire il microfono per un turno della persona, il satell
 
 ### Selezione dei dispositivi audio
 
-Quando la configurazione indica `audio.microphone` o `audio.speaker`, il satellite deve acquisire l'audio dal microfono selezionato e riprodurlo sullo speaker selezionato; in assenza del selettore deve usare il dispositivo predefinito del sistema, e se il dispositivo selezionato non è disponibile deve segnalarne il guasto senza sostituirlo con il dispositivo predefinito.
+Quando la configurazione indica `AMBROGIO_MICROPHONE` o `AMBROGIO_SPEAKER`, il satellite deve acquisire l'audio dal microfono selezionato e riprodurlo sullo speaker selezionato; in assenza del selettore deve usare il dispositivo predefinito del sistema, e se il dispositivo selezionato non è disponibile deve segnalarne il guasto senza sostituirlo con il dispositivo predefinito.
 
 #### Concept References
   * [Dispositivo audio](../Thesaurus/Lessico.md#dispositivo-audio)
@@ -1069,21 +1120,6 @@ Quando la configurazione indica `audio.microphone` o `audio.speaker`, il satelli
 #### Relations
   * satisfiedBy: [decibri-audio.ts](../../src/adapters/out/decibri-audio.ts)
   * satisfiedBy: [microphone-input.ts](../../src/adapters/out/microphone-input.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
----
-
-### Selezione del file di configurazione
-
-Il satellite deve leggere la configurazione dal percorso indicato con un’opzione di avvio.
-
-#### Metadata
-  * type: requirement
-
-#### Contract References
-  * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
-
-#### Relations
-  * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -1319,9 +1355,12 @@ Origine: baseline Reqvire «One-time configuration load at startup», adottata; 
   * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
-### Valori di configurazione da ambiente
+### Valori predefiniti del satellite applicati dal modulo di configurazione
 
-Il satellite deve consentire al modulo TypeScript di configurazione di ricavare tutti i valori dalle variabili d'ambiente del processo, mantenendo la validazione prima dell'avvio operativo.
+Il satellite deve applicare i valori predefiniti della propria configurazione soltanto nel modulo di configurazione, una sola volta per ciascuna variabile, e `.env.example`, `compose.example.yaml` e il README non devono ripeterli né sostituirli con valori propri.
+
+#### Details
+Origine: baseline Reqvire «Defaults applied by their owner», adattata: come nel requisito comune, il proprietario dei valori predefiniti della configurazione è il modulo di configurazione e gli esempi non li ripetono.
 
 #### Metadata
   * type: requirement
@@ -1330,9 +1369,10 @@ Il satellite deve consentire al modulo TypeScript di configurazione di ricavare 
   * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
 
 #### Relations
-  * satisfiedBy: [config.example.ts](../../config.example.ts)
-  * satisfiedBy: [config-file.ts](../../src/adapters/out/config-file.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * derivedFrom: [Valori predefiniti applicati dal proprietario](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#valori-predefiniti-applicati-dal-proprietario)
+  * satisfiedBy: [compose.example.yaml](../../compose.example.yaml)
+  * satisfiedBy: [configuration.ts](../../src/adapters/out/configuration.ts)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
 ### Vitest come runner del satellite

@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import { runSatelliteProcess } from './runtime/satellite-process.js';
-import { parseConfigArguments } from './adapters/in/config-arguments.js';
-import { loadSatelliteConfig } from './adapters/out/config-file.js';
+import { parseStartupArguments } from './adapters/in/startup-arguments.js';
+import { readSatelliteConfig } from './adapters/out/configuration.js';
 import { availableWakeWordIds } from './adapters/out/wake-word-catalog.js';
 import { diagnostics } from './adapters/out/diagnostics.js';
 
-const args = parseConfigArguments(process.argv.slice(2));
+const args = parseStartupArguments(process.argv.slice(2));
 if (!args.ok) {
   switch (args.error.kind) {
     case 'invalid_arguments':
@@ -16,15 +16,15 @@ if (!args.ok) {
   }
   process.exitCode = 2;
 } else {
-  const config = await loadSatelliteConfig(args.value.filename, availableWakeWordIds());
+  // The configuration is read once, from the process environment, before any resource is built.
+  const config = readSatelliteConfig(process.env, availableWakeWordIds());
   if (!config.ok) {
     switch (config.error.kind) {
       case 'invalid_configuration':
-      case 'configuration_unavailable':
         diagnostics.configurationRejected(config.error);
         break;
       default:
-        assertNever(config.error);
+        assertNever(config.error.kind);
     }
     process.exitCode = 2;
   } else {
