@@ -481,6 +481,24 @@ La prova passa se `.env.example` elenca esattamente le variabili del modulo, tut
   * verify: [Valori predefiniti del satellite applicati dal modulo di configurazione](../Requirements/VoiceSatellite.md#valori-predefiniti-del-satellite-applicati-dal-modulo-di-configurazione)
 ---
 
+### Prova dei modelli openWakeWord registrati
+
+Calcolare l'impronta SHA-256 di ogni file ONNX di `models/wakeword/` e confrontarla con la tabella della fonte «Modelli openWakeWord distribuiti» e con quella di `models/wakeword/README.md`. Caricare ogni classificatore distribuito con i file comuni nella pipeline ONNX del satellite ed elaborare blocchi di silenzio.
+
+#### Details
+La prova passa se i file distribuiti, la fonte e la nota di provenienza elencano gli stessi cinque file con le stesse impronte, e se ogni classificatore si carica ed elabora il silenzio senza guasti e senza rilevamenti. Fallisce se un file o un'impronta cambia in una sola delle tre, così che una sostituzione dei modelli richieda la modifica esplicita dell'elemento `source`, o se un modello non si carica.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [wake-word-catalog.onnx.spec.ts](../../src/adapters/out/wake-word-catalog.onnx.spec.ts)
+  * satisfiedBy: [wake-word-models-source.spec.ts](../../test/repository/wake-word-models-source.spec.ts)
+  * verify: [Catalogo distribuito delle wake word](../Requirements/VoiceSatellite.md#catalogo-distribuito-delle-wake-word)
+  * verify: [Condizioni di distribuzione dei modelli wake word](../Requirements/VoiceSatellite.md#condizioni-di-distribuzione-dei-modelli-wake-word)
+---
+
 ### Prova del bootstrap della configurazione
 
 Importare il punto di ingresso `src/main.ts` con variabili d'ambiente invalide e poi valide, sostituendo nella prova la composition root, la diagnostica, Decibri e ONNX Runtime con moduli registrati che annotano il proprio caricamento.

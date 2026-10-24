@@ -1,3 +1,4 @@
+// Verification: Prova dei modelli openWakeWord registrati
 import { describe, expect, it } from 'vitest';
 
 describe('distributed ONNX wake word models', () => {
