@@ -16,7 +16,7 @@ Questo repository contiene il client satellite vocale di Ambrogio. Le regole com
 - Quando la CLI non offre l'operazione, modificare direttamente il file Markdown del modello e poi eseguire `format`, `validate` e `lint` sulla cartella di lavoro.
 - Prima di un push eseguire `pnpm verify` in questo repository, che ripete in locale i controlli della CI nello stesso ordine: controlli dell'intero modello con `ambrogio-model/scripts/model-checks`, installazione congelata, audit delle dipendenze, preparazione del backend affiancato, `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm test:backend`; per le modifiche significative eseguire anche `ambrogio-model/scripts/change-impact-composite`. Interpretare i risultati: il collegamento a un test non ne certifica il successo.
 - pnpm si usa alla versione di `packageManager` di `package.json`; CI e `Dockerfile` la attivano con Corepack.
-- Le regole di architettura sugli import hanno un nome stabile e stanno in `test/architecture/architecture-rules.ts`; un'eccezione si aggiunge soltanto nell'elenco `exceptions`, con il motivo, e nel contratto «Regole di architettura del satellite».
+- Le regole di architettura sugli import hanno un nome stabile e stanno in `test/repository/architecture-rules.ts`; un'eccezione si aggiunge soltanto nell'elenco `exceptions`, con il motivo, e nel contratto «Regole di architettura del satellite».
 
 ## Ordine di lavoro
 

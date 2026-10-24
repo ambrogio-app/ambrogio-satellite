@@ -154,7 +154,7 @@ Durante interazioni riuscite e fallite controllare scritture su disco e log usan
 ### Dimostrazione della segmentazione vocale
 
 #### Details
-Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare il modello Silero ONNX incluso in Decibri 5.8.0, verificando hash e licenza. Con le soglie del contratto, 0,18 e 0,11, `minSpeechFrames` 4 e `redemptionFrames` 20, provare una richiesta continua dopo la wake word, una replica breve come «sì» e una frase con una pausa interna. Accertare che ogni turno ammesso produca un solo `input.start` alla conferma del parlato, la riserva e i frame PCM16 mono a 16 kHz e un solo `input.end`, senza perdere la replica breve né spezzare la frase alla pausa; un rumore breve non confermato non deve aprire una richiesta. Durante la riproduzione della risposta non devono partire nuovi turni. Registrare tempi di delimitazione e consumo di CPU su entrambe le architetture. Non automatizzabile: la delimitazione di repliche brevi e frasi con pause dipende da parlato reale, e il consumo di CPU va misurato sull'hardware di ciascuna architettura; le soglie con probabilità simulate sono coperte da `silero-vad.test.ts`.
+Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare il modello Silero ONNX incluso in Decibri 5.8.0, verificando hash e licenza. Con le soglie del contratto, 0,18 e 0,11, `minSpeechFrames` 4 e `redemptionFrames` 20, provare una richiesta continua dopo la wake word, una replica breve come «sì» e una frase con una pausa interna. Accertare che ogni turno ammesso produca un solo `input.start` alla conferma del parlato, la riserva e i frame PCM16 mono a 16 kHz e un solo `input.end`, senza perdere la replica breve né spezzare la frase alla pausa; un rumore breve non confermato non deve aprire una richiesta. Durante la riproduzione della risposta non devono partire nuovi turni. Registrare tempi di delimitazione e consumo di CPU su entrambe le architetture. Non automatizzabile: la delimitazione di repliche brevi e frasi con pause dipende da parlato reale, e il consumo di CPU va misurato sull'hardware di ciascuna architettura; le soglie con probabilità simulate sono coperte da `silero-vad.spec.ts`.
 
 #### Metadata
   * type: demonstration-verification
@@ -167,11 +167,11 @@ Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare il model
 ### Ispezione dei nomi secondo le responsabilità nel satellite
 
 #### Details
-Partire dall'elenco completo dei file di produzione, dalle porte Application e dai punti di ingresso; non limitare la ricerca ai nomi che contengono già `.adapter` o `.use-case`. Per ciascun componente interessato registrare percorso, responsabilità, eventuale porta implementata o caso d'uso invocato, classificazione e nome atteso.
+Partire dall'elenco completo dei file di produzione, dalle porte Application e dai punti di ingresso; non limitare la ricerca ai nomi che contengono già `.adapter`, `.port` o `.use-case`. Per ciascun componente interessato registrare percorso, responsabilità, eventuale porta dichiarata o implementata o caso d'uso invocato, classificazione e nome atteso.
 
-L'ispezione passa se tutti i casi d'uso hanno il suffisso `.use-case.ts`, tutti gli adapter di ingresso e di uscita hanno il suffisso `.adapter.ts` e i file di supporto non sono classificati come adapter soltanto per la cartella che li contiene. Considerare anche le implementazioni strutturali di porte a oggetto o callable; non affidarsi al solo `implements`. I ruoli ambigui devono essere risolti con motivazione documentata. L'ispezione fallisce se manca un suffisso richiesto o se un suffisso descrive un ruolo non realizzato.
+L'ispezione passa se tutti i casi d'uso hanno il suffisso `.use-case.ts`, tutti i file che dichiarano una porta Application hanno il suffisso `.port.ts`, tutti gli adapter di ingresso e di uscita hanno il suffisso `.adapter.ts` e i file di supporto non sono classificati come adapter soltanto per la cartella che li contiene. Considerare anche le implementazioni strutturali di porte a oggetto o callable; non affidarsi al solo `implements`. I ruoli ambigui devono essere risolti con motivazione documentata. L'ispezione fallisce se manca un suffisso richiesto o se un suffisso descrive un ruolo non realizzato.
 
-Per ogni rinomina controllare import, export pubblici, riferimenti nei test e collegamenti Reqvire. La compilazione e i test pertinenti devono continuare a passare. Non automatizzabile: classificare un file come caso d'uso, adapter o supporto richiede di leggerne la responsabilità; il nome da solo non la determina. La presenza di una relazione `satisfiedBy` e il successo di `validate` o `lint` non sostituiscono questa ispezione.
+Per ogni rinomina controllare import, export pubblici, riferimenti nei test e collegamenti Reqvire. La compilazione e i test pertinenti devono continuare a passare. Non automatizzabile: classificare un file come caso d'uso, porta, adapter o supporto richiede di leggerne la responsabilità; il nome da solo non la determina. La presenza di una relazione `satisfiedBy` e il successo di `validate` o `lint` non sostituiscono questa ispezione.
 
 #### Metadata
   * type: inspection-verification
@@ -347,11 +347,11 @@ La prova passa se la copia non modificata compila senza errori e ciascuna varian
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [diagnostics.test.ts](../../test/adapters/out/diagnostics.test.ts)
-  * satisfiedBy: [local-tones.test.ts](../../test/adapters/out/local-tones.test.ts)
-  * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
-  * satisfiedBy: [import-boundaries.test.ts](../../test/architecture/import-boundaries.test.ts)
-  * satisfiedBy: [rejection-mapping.test.ts](../../test/architecture/rejection-mapping.test.ts)
+  * satisfiedBy: [conversation-call.adapter.error-tone.spec.ts](../../src/adapters/out/conversation-call.adapter.error-tone.spec.ts)
+  * satisfiedBy: [diagnostics.spec.ts](../../src/adapters/out/diagnostics.spec.ts)
+  * satisfiedBy: [voice-session.use-case.spec.ts](../../src/application/voice-session.use-case.spec.ts)
+  * satisfiedBy: [import-boundaries.spec.ts](../../test/repository/import-boundaries.spec.ts)
+  * satisfiedBy: [rejection-mapping.spec.ts](../../test/repository/rejection-mapping.spec.ts)
   * verify: [Assenza di logger nei layer interni](../Requirements/VoiceSatellite.md#assenza-di-logger-nei-layer-interni)
   * verify: [Conservazione della causa dei guasti](../Requirements/VoiceSatellite.md#conservazione-della-causa-dei-guasti)
   * verify: [Gestione esaustiva dei rifiuti previsti](../Requirements/VoiceSatellite.md#gestione-esaustiva-dei-rifiuti-previsti)
@@ -371,8 +371,8 @@ La prova passa se gli eventi tardivi non interrompono l'acquisizione del microfo
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [conversation-events.test.ts](../../test/adapters/in/conversation-events.test.ts)
-  * satisfiedBy: [conversation-channel.test.ts](../../test/adapters/out/conversation-channel.test.ts)
+  * satisfiedBy: [conversation-events.adapter.spec.ts](../../src/adapters/in/conversation-events.adapter.spec.ts)
+  * satisfiedBy: [conversation-channel.spec.ts](../../src/adapters/out/conversation-channel.spec.ts)
   * verify: [Riapertura sicura dopo la chiusura vocale](../Requirements/VoiceSatellite.md#riapertura-sicura-dopo-la-chiusura-vocale)
 ---
 
@@ -388,8 +388,8 @@ La prova passa se i file Domain importano soltanto Domain; se i file Application
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [architecture-rules.ts](../../test/architecture/architecture-rules.ts)
-  * satisfiedBy: [import-boundaries.test.ts](../../test/architecture/import-boundaries.test.ts)
+  * satisfiedBy: [architecture-rules.ts](../../test/repository/architecture-rules.ts)
+  * satisfiedBy: [import-boundaries.spec.ts](../../test/repository/import-boundaries.spec.ts)
   * verify: [Assemblaggio delle risorse nella composition root](../Requirements/VoiceSatellite.md#assemblaggio-delle-risorse-nella-composition-root)
   * verify: [Confini degli import nei test](../Requirements/VoiceSatellite.md#confini-degli-import-nei-test)
   * verify: [Distribuzione mirata della configurazione](../Requirements/VoiceSatellite.md#distribuzione-mirata-della-configurazione)
@@ -408,7 +408,7 @@ La prova passa se il commit privo di segreti riesce dopo un'esecuzione dello scr
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [pre-commit-hook.test.ts](../../test/repository/pre-commit-hook.test.ts)
+  * satisfiedBy: [pre-commit-hook.spec.ts](../../test/repository/pre-commit-hook.spec.ts)
   * verify: [Controlli del modello prima del commit del satellite](../Requirements/VoiceSatellite.md#controlli-del-modello-prima-del-commit-del-satellite)
 ---
 
@@ -424,7 +424,7 @@ La prova passa se con il modulo invalido il processo registra il rifiuto, impost
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [process-bootstrap.test.ts](../../test/runtime/process-bootstrap.test.ts)
+  * satisfiedBy: [main.spec.ts](../../src/main.spec.ts)
   * verify: [Validazione prima della costruzione delle risorse](../Requirements/VoiceSatellite.md#validazione-prima-della-costruzione-delle-risorse)
 ---
 
@@ -441,7 +441,7 @@ La prova passa se il modello personalizzato è scoperto e caricato dal mount sen
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [verify-docker-image.mjs](../../scripts/verify-docker-image.mjs)
-  * satisfiedBy: [wake-word-catalog.test.ts](../../test/adapters/out/wake-word-catalog.test.ts)
+  * satisfiedBy: [wake-word-catalog.spec.ts](../../src/adapters/out/wake-word-catalog.spec.ts)
   * verify: [Selezione della wake word configurata](../Requirements/VoiceSatellite.md#selezione-della-wake-word-configurata)
 ---
 
@@ -459,12 +459,12 @@ La prova passa se ogni condizione precedente è rispettata; se, alla scadenza di
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [decibri-audio.test.ts](../../test/adapters/out/decibri-audio.test.ts)
-  * satisfiedBy: [diagnostics.test.ts](../../test/adapters/out/diagnostics.test.ts)
-  * satisfiedBy: [onnx-lifecycle.test.ts](../../test/adapters/out/onnx-lifecycle.test.ts)
-  * satisfiedBy: [silero-vad.test.ts](../../test/adapters/out/silero-vad.test.ts)
-  * satisfiedBy: [satellite-lifecycle.test.ts](../../test/composition/satellite-lifecycle.test.ts)
-  * satisfiedBy: [satellite-process.test.ts](../../test/runtime/satellite-process.test.ts)
+  * satisfiedBy: [decibri-audio.spec.ts](../../src/adapters/out/decibri-audio.spec.ts)
+  * satisfiedBy: [diagnostics.spec.ts](../../src/adapters/out/diagnostics.spec.ts)
+  * satisfiedBy: [onnx-wake-word.lifecycle.spec.ts](../../src/adapters/out/onnx-wake-word.lifecycle.spec.ts)
+  * satisfiedBy: [silero-vad.spec.ts](../../src/adapters/out/silero-vad.spec.ts)
+  * satisfiedBy: [satellite.spec.ts](../../src/composition/satellite.spec.ts)
+  * satisfiedBy: [satellite-process.spec.ts](../../src/runtime/satellite-process.spec.ts)
   * verify: [Arresto immediato del processo satellite](../Requirements/VoiceSatellite.md#arresto-immediato-del-processo-satellite)
   * verify: [Idempotenza dell'arresto del satellite](../Requirements/VoiceSatellite.md#idempotenza-dellarresto-del-satellite)
   * verify: [Rilascio completo delle risorse del satellite](../Requirements/VoiceSatellite.md#rilascio-completo-delle-risorse-del-satellite)
@@ -476,14 +476,14 @@ La prova passa se ogni condizione precedente è rispettata; se, alla scadenza di
 Leggere lo script `verify` di `package.json` e i passi del job `Satellite checks` di `.github/workflows/ci.yml`, e ricavare dai passi la sequenza attesa.
 
 #### Details
-La prova passa se `verify` è esattamente `../ambrogio-model/scripts/model-checks`, seguito dai comandi `pnpm` del job in `workspace/ambrogio-satellite` per l'installazione congelata e l'audit, dalla preparazione del backend in `../ambrogio-backend` con i comandi del job in `workspace/ambrogio-backend`, e dagli altri comandi `pnpm` del job nello stesso ordine, `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm test:backend`, tutti uniti da `&&`. Fallisce se un comando della CI manca, è in un altro ordine o non interrompe la sequenza quando fallisce.
+La prova passa se `verify` è esattamente `../ambrogio-model/scripts/model-checks`, seguito dai comandi `pnpm` del job in `workspace/ambrogio-satellite` per l'installazione congelata e l'audit, dalla preparazione del backend in `../ambrogio-backend` con i comandi del job in `workspace/ambrogio-backend`, e dagli altri comandi `pnpm` del job nello stesso ordine, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build` e `pnpm test:backend`, tutti uniti da `&&`. Fallisce se un comando della CI manca, è in un altro ordine o non interrompe la sequenza quando fallisce.
 
 #### Metadata
   * type: test-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [workflows.test.ts](../../test/repository/workflows.test.ts)
+  * satisfiedBy: [workflows.spec.ts](../../test/repository/workflows.spec.ts)
   * verify: [Comando di verifica completo del satellite](../Requirements/VoiceSatellite.md#comando-di-verifica-completo-del-satellite)
 ---
 
@@ -497,7 +497,7 @@ Controllare proiezioni osservabili durante attesa, apertura, registrazione, risp
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
+  * satisfiedBy: [voice-session.use-case.spec.ts](../../src/application/voice-session.use-case.spec.ts)
   * verify: [Contratti Application indipendenti dal Domain](../Requirements/VoiceSatellite.md#contratti-application-indipendenti-dal-domain)
 ---
 
@@ -513,8 +513,25 @@ La prova passa se il passo che pubblica le immagini, dopo aver creato il manifes
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [workflows.test.ts](../../test/repository/workflows.test.ts)
+  * satisfiedBy: [workflows.spec.ts](../../test/repository/workflows.spec.ts)
   * verify: [Pubblicazione delle immagini Docker del satellite](../Requirements/VoiceSatellite.md#pubblicazione-delle-immagini-docker-del-satellite)
+---
+
+### Prova del runner Vitest del satellite
+
+Esaminare `vitest.config.ts` e gli script `test` e `test:e2e` del `package.json`; avviarli e acquisire il report dei test eseguiti da ciascuno.
+
+#### Details
+La prova passa se gli script eseguono con Vitest rispettivamente i progetti `fast` ed `e2e` di «Suite di test del satellite», ciascuno produce un report dei test avviati, nessun file di test compare in entrambi i report e la somma dei file eseguiti è pari al numero dei file `*.spec.ts` del repository. Fallisce se la suite usa un runner diverso, se uno script non può essere avviato tramite Vitest, se un file gira in entrambe le selezioni o se un file di test non appartiene a nessuna.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [package.json](../../package.json)
+  * satisfiedBy: [vitest.config.ts](../../vitest.config.ts)
+  * verify: [Vitest come runner del satellite](../Requirements/VoiceSatellite.md#vitest-come-runner-del-satellite)
 ---
 
 ### Prova del tono di errore per voce non disponibile
@@ -529,7 +546,7 @@ La prova passa se il satellite non tenta di pronunciare il testo, registra `sate
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [response-playback.test.ts](../../test/adapters/out/response-playback.test.ts)
+  * satisfiedBy: [response-playback.spec.ts](../../src/adapters/out/response-playback.spec.ts)
   * verify: [Tono di errore per voce non disponibile](../Requirements/VoiceSatellite.md#tono-di-errore-per-voce-non-disponibile)
 ---
 
@@ -545,7 +562,7 @@ La prova passa se il tono di errore è PCM16 mono a 16 kHz di 5600 campioni (350
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [local-tones.test.ts](../../test/adapters/out/local-tones.test.ts)
+  * satisfiedBy: [conversation-call.adapter.error-tone.spec.ts](../../src/adapters/out/conversation-call.adapter.error-tone.spec.ts)
   * verify: [Tono di errore per backend irraggiungibile](../Requirements/VoiceSatellite.md#tono-di-errore-per-backend-irraggiungibile)
 ---
 
@@ -561,8 +578,8 @@ La prova passa se i file di `src` letti non sono vuoti e se ogni specificatore d
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [architecture-rules.ts](../../test/architecture/architecture-rules.ts)
-  * satisfiedBy: [backend-imports.test.ts](../../test/architecture/backend-imports.test.ts)
+  * satisfiedBy: [architecture-rules.ts](../../test/repository/architecture-rules.ts)
+  * satisfiedBy: [backend-imports.spec.ts](../../test/repository/backend-imports.spec.ts)
   * verify: [Uso delle sole interfacce pubbliche del backend nel satellite](../Requirements/VoiceSatellite.md#uso-delle-sole-interfacce-pubbliche-del-backend-nel-satellite)
 ---
 
@@ -578,9 +595,9 @@ La prova passa se senza configurazione non avviene alcuna regolazione; se con la
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [amixer-attenuation.test.ts](../../test/adapters/out/amixer-attenuation.test.ts)
-  * satisfiedBy: [configuration.test.ts](../../test/adapters/out/configuration.test.ts)
-  * satisfiedBy: [voice-session-attenuation.test.ts](../../test/application/voice-session-attenuation.test.ts)
+  * satisfiedBy: [amixer-attenuation.adapter.spec.ts](../../src/adapters/out/amixer-attenuation.adapter.spec.ts)
+  * satisfiedBy: [configuration.spec.ts](../../src/adapters/out/configuration.spec.ts)
+  * satisfiedBy: [voice-session.use-case.attenuation.spec.ts](../../src/application/voice-session.use-case.attenuation.spec.ts)
   * verify: [Attenuazione dell'audio locale durante l'interazione](../Requirements/VoiceSatellite.md#attenuazione-dellaudio-locale-durante-linterazione)
   * verify: [Interazione indipendente dall'attenuazione](../Requirements/VoiceSatellite.md#interazione-indipendente-dallattenuazione)
   * verify: [Ripristino dell'attenuazione all'avvio e all'arresto](../Requirements/VoiceSatellite.md#ripristino-dellattenuazione-allavvio-e-allarresto)
@@ -598,7 +615,7 @@ La prova passa se il job `Satellite checks` esegue `pnpm audit --audit-level hig
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [workflows.test.ts](../../test/repository/workflows.test.ts)
+  * satisfiedBy: [workflows.spec.ts](../../test/repository/workflows.spec.ts)
   * verify: [Audit delle dipendenze nella CI del satellite](../Requirements/VoiceSatellite.md#audit-delle-dipendenze-nella-ci-del-satellite)
 ---
 
@@ -611,9 +628,9 @@ Acquisire la riga reale di Pino prodotta dal rilevamento: livello `info`, `event
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [diagnostics.test.ts](../../test/adapters/out/diagnostics.test.ts)
-  * satisfiedBy: [onnx-lifecycle.test.ts](../../test/adapters/out/onnx-lifecycle.test.ts)
-  * satisfiedBy: [satellite-lifecycle.test.ts](../../test/composition/satellite-lifecycle.test.ts)
+  * satisfiedBy: [diagnostics.spec.ts](../../src/adapters/out/diagnostics.spec.ts)
+  * satisfiedBy: [onnx-wake-word.lifecycle.spec.ts](../../src/adapters/out/onnx-wake-word.lifecycle.spec.ts)
+  * satisfiedBy: [satellite.spec.ts](../../src/composition/satellite.spec.ts)
   * verify: [Registrazione delle attivazioni locali](../Requirements/VoiceSatellite.md#registrazione-delle-attivazioni-locali)
 ---
 
@@ -626,8 +643,9 @@ Acquisire le righe reali di Pino prodotte dal rifiuto della configurazione. Per 
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [diagnostics.test.ts](../../test/adapters/out/diagnostics.test.ts)
-  * satisfiedBy: [process-bootstrap.test.ts](../../test/runtime/process-bootstrap.test.ts)
+  * satisfiedBy: [diagnostics.spec.ts](../../src/adapters/out/diagnostics.spec.ts)
+  * satisfiedBy: [main.e2e.spec.ts](../../src/main.e2e.spec.ts)
+  * satisfiedBy: [main.spec.ts](../../src/main.spec.ts)
   * verify: [Rifiuto della configurazione invalida](../Requirements/VoiceSatellite.md#rifiuto-della-configurazione-invalida)
 ---
 
@@ -643,7 +661,7 @@ La prova passa se l'hook versionato è eseguibile; se il commit con la credenzia
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [pre-commit-hook.test.ts](../../test/repository/pre-commit-hook.test.ts)
+  * satisfiedBy: [pre-commit-hook.spec.ts](../../test/repository/pre-commit-hook.spec.ts)
   * verify: [Controllo dei segreti prima del commit locale](../Requirements/VoiceSatellite.md#controllo-dei-segreti-prima-del-commit-locale)
 ---
 
@@ -659,8 +677,8 @@ La prova passa se senza configurazione `clientId` vale `satellite-<nome host>` e
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [configuration.test.ts](../../test/adapters/out/configuration.test.ts)
-  * satisfiedBy: [conversation-channel.test.ts](../../test/adapters/out/conversation-channel.test.ts)
+  * satisfiedBy: [configuration.spec.ts](../../src/adapters/out/configuration.spec.ts)
+  * satisfiedBy: [conversation-channel.spec.ts](../../src/adapters/out/conversation-channel.spec.ts)
   * verify: [Identificazione del satellite nella sessione](../Requirements/VoiceSatellite.md#identificazione-del-satellite-nella-sessione)
 ---
 
@@ -676,7 +694,7 @@ La prova passa se `packageManager` è `pnpm@12.11.2`; se il job `Satellite check
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [workflows.test.ts](../../test/repository/workflows.test.ts)
+  * satisfiedBy: [workflows.spec.ts](../../test/repository/workflows.spec.ts)
   * verify: [Installazione delle dipendenze del satellite con pnpm e Corepack](../Requirements/VoiceSatellite.md#installazione-delle-dipendenze-del-satellite-con-pnpm-e-corepack)
 ---
 
@@ -692,9 +710,9 @@ La prova usa punteggi simulati e non misura attivazioni spurie né parole mancat
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [configuration.test.ts](../../test/adapters/out/configuration.test.ts)
-  * satisfiedBy: [onnx-lifecycle.test.ts](../../test/adapters/out/onnx-lifecycle.test.ts)
-  * satisfiedBy: [satellite-lifecycle.test.ts](../../test/composition/satellite-lifecycle.test.ts)
+  * satisfiedBy: [configuration.spec.ts](../../src/adapters/out/configuration.spec.ts)
+  * satisfiedBy: [onnx-wake-word.lifecycle.spec.ts](../../src/adapters/out/onnx-wake-word.lifecycle.spec.ts)
+  * satisfiedBy: [satellite.spec.ts](../../src/composition/satellite.spec.ts)
   * verify: [Conferma della wake word su blocchi consecutivi](../Requirements/VoiceSatellite.md#conferma-della-wake-word-su-blocchi-consecutivi)
 ---
 
@@ -710,11 +728,12 @@ La prova passa se l'avvio richiede un solo percorso indicato con `--config`; se 
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [config-arguments.test.ts](../../test/adapters/in/config-arguments.test.ts)
-  * satisfiedBy: [backend-url.test.ts](../../test/adapters/out/backend-url.test.ts)
-  * satisfiedBy: [config-file.test.ts](../../test/adapters/out/config-file.test.ts)
-  * satisfiedBy: [configuration.test.ts](../../test/adapters/out/configuration.test.ts)
-  * satisfiedBy: [process-bootstrap.test.ts](../../test/runtime/process-bootstrap.test.ts)
+  * satisfiedBy: [config-arguments.spec.ts](../../src/adapters/in/config-arguments.spec.ts)
+  * satisfiedBy: [backend-url.spec.ts](../../src/adapters/out/backend-url.spec.ts)
+  * satisfiedBy: [config-file.spec.ts](../../src/adapters/out/config-file.spec.ts)
+  * satisfiedBy: [configuration.spec.ts](../../src/adapters/out/configuration.spec.ts)
+  * satisfiedBy: [main.e2e.spec.ts](../../src/main.e2e.spec.ts)
+  * satisfiedBy: [main.spec.ts](../../src/main.spec.ts)
   * verify: [Configurazione TypeScript unica](../Requirements/VoiceSatellite.md#configurazione-typescript-unica)
   * verify: [Rifiuto della configurazione invalida](../Requirements/VoiceSatellite.md#rifiuto-della-configurazione-invalida)
   * verify: [Selezione del file di configurazione](../Requirements/VoiceSatellite.md#selezione-del-file-di-configurazione)
@@ -726,14 +745,14 @@ La prova passa se l'avvio richiede un solo percorso indicato con `--config`; se 
 Leggere come testo `.github/workflows/ci.yml` e confrontarlo con il contratto «Profilo CI del satellite», con il contratto «Checkout affiancato dello spazio di lavoro» di `ambrogio-model` e con `.github/workflows/secret-scan.yml`.
 
 #### Details
-La prova passa se il workflow si attiva su `pull_request`, sui `push` al solo branch `main`, su `workflow_dispatch` e su `workflow_call`, senza filtri `paths` o `paths-ignore`; se il job `Satellite checks` usa `ubuntu-24.04`, Node.js `24` e `BRANCH: ${{ github.head_ref || github.ref_name }}`; se esegue il checkout del repository con `path: workspace/ambrogio-satellite` e `fetch-depth: 0`, scarica `ambrogio-model` in `workspace/ambrogio-model` sul branch `BRANCH` se esiste e altrimenti su `main`, ed esegue nell'ordine `workspace/ambrogio-model/scripts/checkout-workspace workspace "$BRANCH"` e `workspace/ambrogio-model/scripts/model-checks --workspace workspace`, senza un numero di versione di Reqvire nel workflow; se dichiara `COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'`, esegue `corepack enable` con `packageManager` uguale a `pnpm@12.11.2` nel `package.json` del satellite ed esegue in `workspace/ambrogio-backend` `pnpm install --frozen-lockfile` e `pnpm build`; se i passi del satellite girano in `workspace/ambrogio-satellite` con `pnpm install --frozen-lockfile`, `ONNXRUNTIME_NODE_INSTALL: skip` e `ORT_DISABLE_TELEMETRY: '1'`, seguito da `pnpm audit --audit-level high`; se installa gitleaks con la versione e lo SHA-256 di `.github/workflows/secret-scan.yml`, dallo stesso archivio della release ufficiale, ed esegue `sha256sum --check --strict` prima dell'estrazione; se esegue nell'ordine `pnpm audit --audit-level high`, `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm test:backend`, con l'installazione di gitleaks prima di `pnpm test`; e se nessun workflow o passo usa `continue-on-error`. Fallisce se manca un controllo, se l'ordine differisce, se un attivatore manca o è filtrato per percorso, se la versione o l'impronta di gitleaks differiscono dalla scansione dei segreti o se un passo fallito non fa fallire il job.
+La prova passa se il workflow si attiva su `pull_request`, sui `push` al solo branch `main`, su `workflow_dispatch` e su `workflow_call`, senza filtri `paths` o `paths-ignore`; se il job `Satellite checks` usa `ubuntu-24.04`, Node.js `24` e `BRANCH: ${{ github.head_ref || github.ref_name }}`; se esegue il checkout del repository con `path: workspace/ambrogio-satellite` e `fetch-depth: 0`, scarica `ambrogio-model` in `workspace/ambrogio-model` sul branch `BRANCH` se esiste e altrimenti su `main`, ed esegue nell'ordine `workspace/ambrogio-model/scripts/checkout-workspace workspace "$BRANCH"` e `workspace/ambrogio-model/scripts/model-checks --workspace workspace`, senza un numero di versione di Reqvire nel workflow; se dichiara `COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'`, esegue `corepack enable` con `packageManager` uguale a `pnpm@12.11.2` nel `package.json` del satellite ed esegue in `workspace/ambrogio-backend` `pnpm install --frozen-lockfile` e `pnpm build`; se i passi del satellite girano in `workspace/ambrogio-satellite` con `pnpm install --frozen-lockfile`, `ONNXRUNTIME_NODE_INSTALL: skip` e `ORT_DISABLE_TELEMETRY: '1'`, seguito da `pnpm audit --audit-level high`; se installa gitleaks con la versione e lo SHA-256 di `.github/workflows/secret-scan.yml`, dallo stesso archivio della release ufficiale, ed esegue `sha256sum --check --strict` prima dell'estrazione; se esegue nell'ordine `pnpm audit --audit-level high`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build` e `pnpm test:backend`, con l'installazione di gitleaks prima di `pnpm test`; e se nessun workflow o passo usa `continue-on-error`. Fallisce se manca un controllo, se l'ordine differisce, se un attivatore manca o è filtrato per percorso, se la versione o l'impronta di gitleaks differiscono dalla scansione dei segreti o se un passo fallito non fa fallire il job.
 
 #### Metadata
   * type: test-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [workflows.test.ts](../../test/repository/workflows.test.ts)
+  * satisfiedBy: [workflows.spec.ts](../../test/repository/workflows.spec.ts)
   * verify: [Controlli CI delle modifiche del satellite](../Requirements/VoiceSatellite.md#controlli-ci-delle-modifiche-del-satellite)
 ---
 
@@ -749,7 +768,7 @@ La prova passa se la scansione si attiva su `push` senza filtri di branch o perc
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [workflows.test.ts](../../test/repository/workflows.test.ts)
+  * satisfiedBy: [workflows.spec.ts](../../test/repository/workflows.spec.ts)
   * verify: [Scansione dei segreti nella storia del repository](../Requirements/VoiceSatellite.md#scansione-dei-segreti-nella-storia-del-repository)
   * verify: [Scansione dei segreti prima della pubblicazione](../Requirements/VoiceSatellite.md#scansione-dei-segreti-prima-della-pubblicazione)
 ---
@@ -763,8 +782,8 @@ Acquisire le righe reali di Pino: JSON, event stabili, nessun dato sensibile da 
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [diagnostics.test.ts](../../test/adapters/out/diagnostics.test.ts)
-  * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
+  * satisfiedBy: [diagnostics.spec.ts](../../src/adapters/out/diagnostics.spec.ts)
+  * satisfiedBy: [voice-session.use-case.spec.ts](../../src/application/voice-session.use-case.spec.ts)
   * verify: [Conservazione della causa dei guasti](../Requirements/VoiceSatellite.md#conservazione-della-causa-dei-guasti)
   * verify: [Eventi diagnostici stabili](../Requirements/VoiceSatellite.md#eventi-diagnostici-stabili)
   * verify: [Log tecnici JSON su stdout](../Requirements/VoiceSatellite.md#log-tecnici-json-su-stdout)
@@ -786,9 +805,9 @@ La prova passa se senza selettore l'apertura non indica alcun dispositivo, così
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [decibri-audio.test.ts](../../test/adapters/out/decibri-audio.test.ts)
-  * satisfiedBy: [response-playback.test.ts](../../test/adapters/out/response-playback.test.ts)
-  * satisfiedBy: [satellite-lifecycle.test.ts](../../test/composition/satellite-lifecycle.test.ts)
+  * satisfiedBy: [decibri-audio.spec.ts](../../src/adapters/out/decibri-audio.spec.ts)
+  * satisfiedBy: [response-playback.spec.ts](../../src/adapters/out/response-playback.spec.ts)
+  * satisfiedBy: [satellite.spec.ts](../../src/composition/satellite.spec.ts)
   * verify: [Selezione dei dispositivi audio](../Requirements/VoiceSatellite.md#selezione-dei-dispositivi-audio)
 ---
 
@@ -805,7 +824,7 @@ La prova passa se all'avvio esiste una sola sessione pronta, se ogni attivazione
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [verify-backend.mjs](../../scripts/verify-backend.mjs)
-  * satisfiedBy: [conversation-channel.test.ts](../../test/adapters/out/conversation-channel.test.ts)
+  * satisfiedBy: [conversation-channel.spec.ts](../../src/adapters/out/conversation-channel.spec.ts)
   * verify: [Invio soltanto su sessione pronta](../Requirements/VoiceSatellite.md#invio-soltanto-su-sessione-pronta)
   * verify: [Nuova conversazione a ogni attivazione](../Requirements/VoiceSatellite.md#nuova-conversazione-a-ogni-attivazione)
   * verify: [Sessione conversazionale persistente](../Requirements/VoiceSatellite.md#sessione-conversazionale-persistente)
@@ -824,13 +843,13 @@ La prova passa se ogni `uses:` di un'azione esterna indica uno SHA di 40 caratte
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [workflows.test.ts](../../test/repository/workflows.test.ts)
+  * satisfiedBy: [workflows.spec.ts](../../test/repository/workflows.spec.ts)
   * verify: [Privilegi e durata limitati dei workflow GitHub Actions](../Requirements/VoiceSatellite.md#privilegi-e-durata-limitati-dei-workflow-github-actions)
 ---
 
 ### Prova delle regole di architettura centrali del satellite
 
-Eseguire ogni regola di `test/architecture/architecture-rules.ts` sui file TypeScript di `src` e `test` che Git vede, poi sulla fixture negativa di ciascuna regola; leggere l'elenco delle eccezioni e applicarne una a una fixture con due violazioni della stessa regola.
+Eseguire ogni regola di `test/repository/architecture-rules.ts` sui file TypeScript di `src` e `test` che Git vede, poi sulla fixture negativa di ciascuna regola; leggere l'elenco delle eccezioni e applicarne una a una fixture con due violazioni della stessa regola.
 
 #### Details
 La prova passa se l'analisi legge anche gli import di soli tipi e risolve ogni import relativo in un file analizzato, non riporta violazioni non eccettuate nel repository, ogni fixture negativa fallisce soltanto con il nome della propria regola, ogni eccezione nomina una regola esistente, un file, un import e un motivo e corrisponde a una sola violazione reale, e un'eccezione elimina soltanto la propria violazione. Fallisce se una regola non riporta la violazione della propria fixture, se una violazione è riportata con un altro nome, se un'eccezione non corrisponde a una violazione o ne elimina altre.
@@ -840,8 +859,8 @@ La prova passa se l'analisi legge anche gli import di soli tipi e risolve ogni i
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [architecture-rules.ts](../../test/architecture/architecture-rules.ts)
-  * satisfiedBy: [import-boundaries.test.ts](../../test/architecture/import-boundaries.test.ts)
+  * satisfiedBy: [architecture-rules.ts](../../test/repository/architecture-rules.ts)
+  * satisfiedBy: [import-boundaries.spec.ts](../../test/repository/import-boundaries.spec.ts)
   * verify: [Regole di architettura centrali del satellite](../Requirements/VoiceSatellite.md#regole-di-architettura-centrali-del-satellite)
 ---
 
@@ -855,8 +874,8 @@ Con una porta controllata verificare scadenza della risposta e della replica ai 
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [node-deadline-scheduler.test.ts](../../test/adapters/out/node-deadline-scheduler.test.ts)
-  * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
+  * satisfiedBy: [node-deadline-scheduler.adapter.spec.ts](../../src/adapters/out/node-deadline-scheduler.adapter.spec.ts)
+  * satisfiedBy: [voice-session.use-case.spec.ts](../../src/application/voice-session.use-case.spec.ts)
   * satisfiedBy: [tsconfig.core.json](../../tsconfig.core.json)
   * verify: [Indipendenza tecnica di Domain e Application nel satellite](../Requirements/VoiceSatellite.md#indipendenza-tecnica-di-domain-e-application-nel-satellite)
   * verify: [Programmazione delle scadenze tramite porta Application](../Requirements/VoiceSatellite.md#programmazione-delle-scadenze-tramite-porta-application)
@@ -885,7 +904,7 @@ Alla wake word, la prova Domain e Application accerta che il tono parta quando l
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
+  * satisfiedBy: [voice-session.use-case.spec.ts](../../src/application/voice-session.use-case.spec.ts)
   * verify: [Segnale acustico di disponibilità](../Requirements/VoiceSatellite.md#segnale-acustico-di-disponibilità)
 ---
 

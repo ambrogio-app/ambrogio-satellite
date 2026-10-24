@@ -96,6 +96,10 @@ jobs:
         working-directory: workspace/ambrogio-satellite
         run: pnpm test
 
+      - name: Run compiled process tests
+        working-directory: workspace/ambrogio-satellite
+        run: pnpm test:e2e
+
       - name: Build
         working-directory: workspace/ambrogio-satellite
         run: pnpm build

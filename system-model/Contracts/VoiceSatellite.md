@@ -221,7 +221,7 @@ La composition root fornisce l'adapter Node.js; nei test Application una impleme
 
 ### Profilo CI del satellite
 
-GitHub Actions esegue il job stabile `Satellite checks` del workflow `.github/workflows/ci.yml` su ogni pull request, sui push a main, su richiesta manuale e quando un altro workflow lo richiama come workflow riutilizzabile, senza filtri sui percorsi, con la variabile `BRANCH` uguale a `github.head_ref` per una pull request e altrimenti a `github.ref_name`. Runner Linux Ubuntu 24.04 x86_64 e Node.js 24. Il job esegue il checkout del repository in `workspace/ambrogio-satellite` con `fetch-depth: 0`, scarica `ambrogio-model` in `workspace/ambrogio-model` sul branch `BRANCH` se esiste sul remoto e altrimenti su `main`, ed esegue `workspace/ambrogio-model/scripts/checkout-workspace workspace "$BRANCH"` secondo «Checkout affiancato dello spazio di lavoro», poi `workspace/ambrogio-model/scripts/model-checks --workspace workspace` secondo «Controlli del modello dello spazio di lavoro», con la versione di Reqvire di «Risoluzione della versione di Reqvire». Il job dichiara nel proprio ambiente `COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'` ed esegue poi `corepack enable` secondo «Profilo di installazione con pnpm e Corepack», e prepara il backend affiancato in `workspace/ambrogio-backend` con `pnpm install --frozen-lockfile` e `pnpm build`, alla versione di pnpm dichiarata dal backend. I passi successivi girano in `workspace/ambrogio-satellite`: installazione con lockfile congelato, senza scaricare i binari di ONNX Runtime durante l'installazione e con la telemetria di ONNX Runtime disattivata; `pnpm audit --audit-level high` secondo «Audit delle dipendenze con pnpm»; pnpm typecheck (compreso tsconfig.core.json); installazione di gitleaks; pnpm test; pnpm build; `pnpm test:backend`, la prova di integrazione con il backend affiancato compilato nel job, che avvia il backend soltanto tramite «Ingresso di prova del server conversazionale» e stampa il commit del backend usato. Il job installa la versione di gitleaks del «Profilo di scansione dei segreti con gitleaks» di `ambrogio-model` con lo stesso archivio della release ufficiale e la stessa impronta SHA-256, verificata prima dell'estrazione, perché la suite esegue l'hook pre-commit; se l'impronta non corrisponde il job fallisce. Nessuna credenziale personale è richiesta; permessi, tempo massimo e azioni fissate seguono il contratto «Protezioni dei workflow GitHub Actions». Le prove audio con periferiche e la compatibilità arm64 restano verifiche separate prima del rilascio.
+GitHub Actions esegue il job stabile `Satellite checks` del workflow `.github/workflows/ci.yml` su ogni pull request, sui push a main, su richiesta manuale e quando un altro workflow lo richiama come workflow riutilizzabile, senza filtri sui percorsi, con la variabile `BRANCH` uguale a `github.head_ref` per una pull request e altrimenti a `github.ref_name`. Runner Linux Ubuntu 24.04 x86_64 e Node.js 24. Il job esegue il checkout del repository in `workspace/ambrogio-satellite` con `fetch-depth: 0`, scarica `ambrogio-model` in `workspace/ambrogio-model` sul branch `BRANCH` se esiste sul remoto e altrimenti su `main`, ed esegue `workspace/ambrogio-model/scripts/checkout-workspace workspace "$BRANCH"` secondo «Checkout affiancato dello spazio di lavoro», poi `workspace/ambrogio-model/scripts/model-checks --workspace workspace` secondo «Controlli del modello dello spazio di lavoro», con la versione di Reqvire di «Risoluzione della versione di Reqvire». Il job dichiara nel proprio ambiente `COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'` ed esegue poi `corepack enable` secondo «Profilo di installazione con pnpm e Corepack», e prepara il backend affiancato in `workspace/ambrogio-backend` con `pnpm install --frozen-lockfile` e `pnpm build`, alla versione di pnpm dichiarata dal backend. I passi successivi girano in `workspace/ambrogio-satellite`: installazione con lockfile congelato, senza scaricare i binari di ONNX Runtime durante l'installazione e con la telemetria di ONNX Runtime disattivata; `pnpm audit --audit-level high` secondo «Audit delle dipendenze con pnpm»; pnpm typecheck (compreso tsconfig.core.json); installazione di gitleaks; pnpm test; `pnpm test:e2e`; pnpm build; `pnpm test:backend`, la prova di integrazione con il backend affiancato compilato nel job, che avvia il backend soltanto tramite «Ingresso di prova del server conversazionale» e stampa il commit del backend usato. Il job installa la versione di gitleaks del «Profilo di scansione dei segreti con gitleaks» di `ambrogio-model` con lo stesso archivio della release ufficiale e la stessa impronta SHA-256, verificata prima dell'estrazione, perché la suite esegue l'hook pre-commit; se l'impronta non corrisponde il job fallisce. Nessuna credenziale personale è richiesta; permessi, tempo massimo e azioni fissate seguono il contratto «Protezioni dei workflow GitHub Actions». Le prove audio con periferiche e la compatibilità arm64 restano verifiche separate prima del rilascio.
 
 #### Metadata
   * type: specification
@@ -335,12 +335,14 @@ Soltanto dopo la riproduzione completa e un `turn.completed` con `expectsReply: 
 
 ### Regole di architettura del satellite
 
-La fonte centrale delle regole è `test/architecture/architecture-rules.ts`: ogni regola ha il nome stabile indicato qui, analizza tutti i file TypeScript di `src` e `test` che Git vede, tracciati oppure nuovi e non ignorati, con ogni import letto dal testo, compresi gli import di soli tipi, e riporta ogni violazione con il proprio nome. La suite Vitest fallisce se l'analisi del repository riporta una violazione non eccettuata e se la fixture negativa di una regola non fallisce con il nome di quella regola.
+La fonte centrale delle regole è `test/repository/architecture-rules.ts`: ogni regola ha il nome stabile indicato qui, analizza tutti i file TypeScript di `src` e `test` che Git vede, tracciati oppure nuovi e non ignorati, con ogni import letto dal testo, compresi gli import di soli tipi, e riporta ogni violazione con il proprio nome. La suite Vitest fallisce se l'analisi del repository riporta una violazione non eccettuata e se la fixture negativa di una regola non fallisce con il nome di quella regola.
 
-- `production-layer-classification`: ogni file di `src` appartiene a Domain, Application, adapter inbound o outbound, composition root, runtime o è `src/main.ts`; serve «Separazione Domain Application e adapter».
-- `core-layer-imports`: Domain importa soltanto Domain, Application soltanto Application e Domain, senza moduli esterni né moduli `node:`; serve «Separazione Domain Application e adapter» e «Distribuzione mirata della configurazione».
-- `composition-root-assembly`: soltanto la composition root importa come valore i file `*.use-case.ts` e `*.adapter.ts`; serve «Assemblaggio delle risorse nella composition root».
-- `layer-test-imports`: fra il codice di produzione, i test Domain importano soltanto Domain, i test Application soltanto Application e Domain, i test inbound soltanto l'adapter inbound con il nome del test e Application, i test outbound soltanto adapter outbound, Application e Domain; serve «Confini degli import nei test».
+Sono file di produzione i file di `src` che non terminano con `.spec.ts`; i file `*.spec.ts` di `src` sono test e prendono il layer del file che verificano, accanto al quale risiedono secondo «Suite di test con Vitest».
+
+- `production-layer-classification`: ogni file di `src` appartiene a Domain, Application, adapter inbound o outbound, composition root, runtime o è `src/main.ts`, oppure è un test `*.spec.ts` accanto a uno di quei file; serve «Separazione Domain Application e adapter».
+- `core-layer-imports`: il codice di produzione Domain importa soltanto Domain, quello Application soltanto Application e Domain, senza moduli esterni né moduli `node:`; serve «Separazione Domain Application e adapter» e «Distribuzione mirata della configurazione».
+- `composition-root-assembly`: fra il codice di produzione, soltanto la composition root importa come valore i file `*.use-case.ts` e `*.adapter.ts`; serve «Assemblaggio delle risorse nella composition root».
+- `layer-test-imports`: ogni file di test di `src` e `test` si chiama `*.spec.ts`, e ogni test di `src` ha accanto il file che verifica; fra il codice di produzione, i test accanto a un file Domain importano soltanto Domain, quelli accanto a un file Application soltanto Application e Domain, quelli accanto a un adapter inbound soltanto l'adapter che verificano e Application, quelli accanto a un adapter outbound soltanto adapter outbound, Application e Domain; serve «Confini degli import nei test».
 - `no-backend-imports`: ogni import del codice di produzione si risolve dentro `src`, in un modulo Node.js o in una dipendenza di esecuzione del satellite; serve «Uso delle sole interfacce pubbliche del backend nel satellite».
 
 Un'eccezione è una voce dell'elenco `exceptions` del modulo centrale con il nome della regola, il file, lo specificatore dell'import ammesso e il motivo, e corrisponde a una voce di questo elenco:
@@ -356,7 +358,7 @@ Un'eccezione è una voce dell'elenco `exceptions` del modulo centrale con il nom
 
 ### Regole di importazione dei test
 
-Ai test del satellite si applicano le regole di import per layer del requisito comune «Import del codice di produzione nei test per layer», anche per i soli tipi. Le prove di integrazione della composition root e del confine di processo attraversano i layer e restano escluse da quelle regole. Nei test Application le porte permettono di simulare audio, riconoscimento e backend senza dispositivi reali. Il progetto usa Vitest per i test.
+Ai test del satellite si applicano le regole di import per layer del requisito comune «Import del codice di produzione nei test per layer», anche per i soli tipi; il layer di un test è quello del file accanto al quale risiede e che verifica. Le prove di integrazione della composition root e del confine di processo attraversano i layer e restano escluse da quelle regole. Nei test Application le porte permettono di simulare audio, riconoscimento e backend senza dispositivi reali. Il progetto usa Vitest per i test.
 
 #### Metadata
   * type: constraint
@@ -444,6 +446,23 @@ L'apertura dell'ascolto segue una sola regola, sia dopo la wake word sia dopo un
 
 #### Relations
   * define: [Segnale acustico di disponibilità](../Requirements/VoiceSatellite.md#segnale-acustico-di-disponibilità)
+---
+
+### Suite di test del satellite
+
+Il satellite applica «Suite di test con Vitest» con questi valori.
+
+Il satellite è una sola unità: i suoi test risiedono in `src/` accanto ai file che verificano. Le cartelle `test/` dedicate sono `test/support/`, con il server di sessione simulato e le scadenze manuali condivisi dai test, e `test/repository/`, con i test dell'intero repository: regole di architettura con le loro fixture negative e il campione dell'estrazione degli import, assenza di codice del backend, mappatura esaustiva dei rifiuti del punto d'ingresso, workflow e hook pre-commit.
+
+La selezione `e2e` contiene `src/main.e2e.spec.ts`, che compila il satellite in una cartella temporanea e ne avvia il punto d'ingresso compilato con Node.js in un processo figlio. Il satellite non ha file `*.integration.spec.ts` e non dichiara lo script `test:integration`.
+
+Gli script sono `test`, `vitest run --project fast`, e `test:e2e`, `vitest run --project e2e`. `tsconfig.json`, usato da `pnpm typecheck`, comprende `src/**/*.ts`, `test/**/*.ts` e `vitest.config.ts`; `tsconfig.core.json` e `tsconfig.build.json` escludono `src/**/*.spec.ts`, e `.dockerignore` esclude `**/*.spec.ts` e `test`.
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Vitest come runner del satellite](../Requirements/VoiceSatellite.md#vitest-come-runner-del-satellite)
 ---
 
 ### Tono locale di errore

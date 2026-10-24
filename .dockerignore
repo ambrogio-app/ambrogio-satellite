@@ -5,6 +5,7 @@ node_modules
 dist
 system-model
 test
+**/*.spec.ts
 config.json
 *.local.json
 config.ts

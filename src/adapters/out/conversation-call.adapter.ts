@@ -1,4 +1,4 @@
-import type { VoiceSessionPorts } from '../../application/voice-session.use-case.js';
+import type { VoiceSessionPorts } from '../../application/conversation-call.port.js';
 import type { ConversationChannel } from './conversation-channel.js';
 import { playPcm16 } from './decibri-audio.js';
 import { diagnostics } from './diagnostics.js';

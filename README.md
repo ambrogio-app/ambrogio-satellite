@@ -141,10 +141,14 @@ system-model/      engineering model (requirements, contracts, verifications)
 ## Development
 
 ```bash
-pnpm test           # Vitest suite
+pnpm test           # fast Vitest selection
+pnpm test:e2e       # the compiled entry point started as a child process
 pnpm typecheck
 pnpm test:backend   # protocol test against the ambrogio-backend checkout next to this repository
+pnpm verify         # every check of the CI, in the same order
 ```
+
+Tests sit next to the file they verify as `*.spec.ts`; tests that start the compiled satellite end with `*.e2e.spec.ts`. Shared test helpers live in `test/support/`, and the tests of the whole repository in `test/repository/`.
 
 `pnpm test:backend` uses the backend in `../ambrogio-backend`, or in the folder named by `AMBROGIO_BACKEND_REPO`. Build the backend first (`pnpm install --frozen-lockfile && pnpm build` in its folder): the test starts it only through its public test entry point, `apps/server/dist/runtime/test-server.js`, and prints the backend commit it used.
 

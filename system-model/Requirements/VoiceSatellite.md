@@ -98,7 +98,7 @@ L'interazione comprende le repliche richieste dal backend: l'attenuazione resta 
   * type: requirement
 
 #### Relations
-  * satisfiedBy: [local-attenuation.ts](../../src/application/local-attenuation.ts)
+  * satisfiedBy: [local-attenuation.port.ts](../../src/application/local-attenuation.port.ts)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -187,7 +187,7 @@ Il satellite deve mettere a disposizione modelli di wake word distribuiti e supp
 Il satellite deve offrire il comando `pnpm verify`, che esegue in locale i controlli del job `Satellite checks` secondo «Comando di verifica completo con pnpm» e termina con esito non riuscito al primo controllo fallito.
 
 #### Details
-I comandi successivi all'installazione e all'audit, nell'ordine del job della CI, sono `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm test:backend`; prima di essi `pnpm verify` prepara il backend affiancato con `pnpm install --frozen-lockfile` e `pnpm build` in `../ambrogio-backend`.
+I comandi successivi all'installazione e all'audit, nell'ordine del job della CI, sono `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build` e `pnpm test:backend`; prima di essi `pnpm verify` prepara il backend affiancato con `pnpm install --frozen-lockfile` e `pnpm build` in `../ambrogio-backend`.
 
 #### Metadata
   * type: requirement
@@ -272,8 +272,8 @@ I test del satellite devono rispettare le regole comuni di import per layer seco
 
 #### Relations
   * derivedFrom: [Import del codice di produzione nei test per layer](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#import-del-codice-di-produzione-nei-test-per-layer)
-  * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
-  * satisfiedBy: [voice-turn.test.ts](../../test/domain/voice-turn.test.ts)
+  * satisfiedBy: [voice-session.use-case.spec.ts](../../src/application/voice-session.use-case.spec.ts)
+  * satisfiedBy: [voice-turn.spec.ts](../../src/domain/voice-turn.spec.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
@@ -322,7 +322,7 @@ Quando gli adapter interagiscono con i casi d'uso del satellite, devono usare da
 
 ### Controlli CI delle modifiche del satellite
 
-Quando una modifica viene inviata al branch main o proposta tramite pull request, quando la CI viene avviata manualmente e quando un altro workflow la richiama, la CI del satellite deve eseguire, dopo il checkout affiancato dei repository del modello, i controlli dell'intero modello, l'installazione congelata delle dipendenze con pnpm attivato da Corepack, l'audit delle dipendenze, il controllo TypeScript completo e dei layer interni, la suite Vitest, la prova di integrazione con il backend affiancato e la build, segnalando il fallimento se uno dei controlli fallisce.
+Quando una modifica viene inviata al branch main o proposta tramite pull request, quando la CI viene avviata manualmente e quando un altro workflow la richiama, la CI del satellite deve eseguire, dopo il checkout affiancato dei repository del modello, i controlli dell'intero modello, l'installazione congelata delle dipendenze con pnpm attivato da Corepack, l'audit delle dipendenze, il controllo TypeScript completo e dei layer interni, la suite Vitest nella selezione veloce e in quella dei processi compilati, la prova di integrazione con il backend affiancato e la build, segnalando il fallimento se uno dei controlli fallisce.
 
 #### Metadata
   * type: requirement
@@ -517,7 +517,7 @@ Quando Application del satellite dichiara una porta a oggetto, deve dichiararne 
 #### Relations
   * definedBy: [Convenzione TypeScript di porte e dati](../Contracts/VoiceSatellite.md#convenzione-typescript-di-porte-e-dati)
   * derivedFrom: [Forma TypeScript dei contratti Application](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#forma-typescript-dei-contratti-application)
-  * satisfiedBy: [deadline-scheduler.ts](../../src/application/deadline-scheduler.ts)
+  * satisfiedBy: [deadline-scheduler.port.ts](../../src/application/deadline-scheduler.port.ts)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
@@ -690,19 +690,20 @@ Il satellite deve emettere ogni evento diagnostico tecnico su stdout.
 
 ### Nomi dei file secondo il ruolo architetturale nel satellite
 
-I file di produzione del satellite devono seguire la «Convenzione dei nomi di casi d'uso e adapter» di `ambrogio-model`.
+I file di produzione del satellite devono seguire la «Convenzione dei nomi di casi d'uso, porte e adapter» di `ambrogio-model`.
 
 #### Details
-Per esempio, un caso d'uso che avvia una conversazione vocale si chiama `start-voice-conversation.use-case.ts`.
+Per esempio, un caso d'uso che avvia una conversazione vocale si chiama `start-voice-conversation.use-case.ts` e la porta delle scadenze richiesta dai casi d'uso `deadline-scheduler.port.ts`.
 
 #### Metadata
   * type: requirement
 
 #### Contract References
-  * [Convenzione dei nomi di casi d'uso e adapter](../../../ambrogio-model/system-model/Contracts/CodeArchitecture.md#convenzione-dei-nomi-di-casi-duso-e-adapter)
+  * [Convenzione dei nomi di casi d'uso, porte e adapter](../../../ambrogio-model/system-model/Contracts/CodeArchitecture.md#convenzione-dei-nomi-di-casi-duso-porte-e-adapter)
 
 #### Relations
   * derivedFrom: [Nomi dei file secondo il ruolo architetturale](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#nomi-dei-file-secondo-il-ruolo-architetturale)
+  * satisfiedBy: [deadline-scheduler.port.ts](../../src/application/deadline-scheduler.port.ts)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
@@ -798,7 +799,7 @@ Quando programma o annulla una scadenza dell'interazione vocale, Application dev
   * definedBy: [Porta di programmazione delle scadenze](../Contracts/VoiceSatellite.md#porta-di-programmazione-delle-scadenze)
   * derivedFrom: [Capacità dell'ambiente fornite dalla composition root](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#capacità-dellambiente-fornite-dalla-composition-root)
   * satisfiedBy: [node-deadline-scheduler.adapter.ts](../../src/adapters/out/node-deadline-scheduler.adapter.ts)
-  * satisfiedBy: [deadline-scheduler.ts](../../src/application/deadline-scheduler.ts)
+  * satisfiedBy: [deadline-scheduler.port.ts](../../src/application/deadline-scheduler.port.ts)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
@@ -847,7 +848,7 @@ Il satellite deve controllare a ogni esecuzione della suite di test le proprie r
 
 #### Relations
   * derivedFrom: [Regole di architettura centrali e bloccanti](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#regole-di-architettura-centrali-e-bloccanti)
-  * satisfiedBy: [architecture-rules.ts](../../test/architecture/architecture-rules.ts)
+  * satisfiedBy: [architecture-rules.ts](../../test/repository/architecture-rules.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
@@ -1332,4 +1333,21 @@ Il satellite deve consentire al modulo TypeScript di configurazione di ricavare 
   * satisfiedBy: [config.example.ts](../../config.example.ts)
   * satisfiedBy: [config-file.ts](../../src/adapters/out/config-file.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Vitest come runner del satellite
+
+Quando la suite automatica del satellite esegue le verifiche del codice e del repository, deve usare Vitest come unico runner con i test accanto al codice e le selezioni del contratto «Suite di test del satellite».
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Suite di test con Vitest](../../../ambrogio-model/system-model/Contracts/CodeArchitecture.md#suite-di-test-con-vitest)
+
+#### Relations
+  * derivedFrom: [Suite di test con Vitest accanto al codice](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#suite-di-test-con-vitest-accanto-al-codice)
+  * satisfiedBy: [package.json](../../package.json)
+  * satisfiedBy: [vitest.config.ts](../../vitest.config.ts)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
