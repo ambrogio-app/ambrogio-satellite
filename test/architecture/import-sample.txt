@@ -19,3 +19,4 @@ const url = 'https://example.test/not-a-comment'; // trailing comment with impor
 const literal = await import('./dynamic.js');
 const computed = await import(`${url}?revision=1`);
 const text = "import { quoted } from 'inside-a-string'";
+const required = require.resolve('./required.js');

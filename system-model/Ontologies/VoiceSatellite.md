@@ -2,29 +2,30 @@
 
 ### Ontologia del satellite vocale
 
-Schema strutturale autonomo del sistema satellite. Il backend è un sistema esterno: qui si rappresenta il suo ruolo al confine vocale, senza importare la sua ontologia o la sua storia conversazionale.
+Schema strutturale del sistema satellite. Il backend è un altro componente del prodotto: qui si rappresenta soltanto il suo ruolo al confine vocale, senza la sua struttura interna né la sua storia conversazionale. Le classi che corrispondono a termini condivisi del prodotto si mappano sui concetti del «Lessico Ambrogio» di `ambrogio-model`; le altre sui concetti del «Lessico del satellite vocale».
 
-Domande a cui il grafo deve poter rispondere: quale configurazione e quali dispositivi usa il satellite? Quale modello distribuito può essere selezionato? Quale attivazione apre un'interazione con il backend? Quali turni e risposte appartengono alla stessa interazione? Quale risposta segnala che attende una replica? Dove si trova la riserva audio temporanea?
+Domande a cui il grafo deve poter rispondere: quale configurazione e quali dispositivi usa il satellite? Quali modelli distribuiti sono selezionabili? Quale attivazione apre un'interazione con il backend? Quali turni e risposte appartengono alla stessa interazione? Quale risposta segnala che attende una replica? Dove si trova la riserva audio temporanea?
 
 #### Ontology
 ```turtle
 @prefix sat: <https://github.com/ambrogio-app/ambrogio-satellite/ontology/voice-satellite#> .
 @prefix concept: <https://github.com/ambrogio-app/ambrogio-satellite/concepts#> .
+@prefix ambrogio: <https://github.com/ambrogio-app/ambrogio-model/concepts#> .
 @prefix reqvire: <https://www.reqvire.org/ontology#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 <https://github.com/ambrogio-app/ambrogio-satellite/ontology/voice-satellite> a owl:Ontology ;
-  rdfs:comment "Vocabolario strutturale autonomo del satellite vocale Ambrogio." .
+  rdfs:comment "Vocabolario strutturale del satellite vocale Ambrogio, mappato sul lessico condiviso del prodotto e sul lessico del satellite." .
 
 sat:VoiceSatellite a owl:Class ;
   rdfs:comment "Sistema di interesse che acquisisce e riproduce audio, riconosce la wake word in locale e dialoga con il backend." ;
-  reqvire:mapsToConcept concept:SatelliteVocale .
+  reqvire:mapsToConcept ambrogio:SatelliteVocale .
 
 sat:VoiceBackend a owl:Class ;
-  rdfs:comment "Sistema esterno responsabile del canale vocale e dell'esito conversazionale." ;
-  reqvire:mapsToConcept concept:BackendVocale .
+  rdfs:comment "Backend di Ambrogio, responsabile del canale vocale e dell'esito conversazionale." ;
+  reqvire:mapsToConcept ambrogio:Backend .
 
 sat:AudioDevice a owl:Class ;
   rdfs:comment "Periferica audio usata dal satellite." ;
@@ -59,16 +60,16 @@ sat:AudioBuffer a owl:Class ;
   reqvire:mapsToConcept concept:RiservaAudio .
 
 sat:VoiceInteraction a owl:Class ;
-  rdfs:comment "Sessione temporanea tra satellite e backend che può contenere più turni." ;
-  reqvire:mapsToConcept concept:InterazioneVocale .
+  rdfs:comment "Sessione temporanea tra satellite e backend che comprende uno o più turni." ;
+  reqvire:mapsToConcept ambrogio:InterazioneVocale .
 
 sat:VoiceTurn a owl:Class ;
   rdfs:comment "Richiesta pronunciata durante un'interazione vocale." ;
-  reqvire:mapsToConcept concept:TurnoVocale .
+  reqvire:mapsToConcept ambrogio:TurnoVocale .
 
 sat:SpokenResponse a owl:Class ;
   rdfs:comment "Risposta vocale del backend riprodotta dal satellite per un turno." ;
-  reqvire:mapsToConcept concept:RispostaParlata .
+  reqvire:mapsToConcept ambrogio:RispostaParlata .
 
 sat:hasConfiguration a owl:ObjectProperty ;
   rdfs:domain sat:VoiceSatellite ;
@@ -118,7 +119,7 @@ sat:expectsReply a owl:DatatypeProperty ;
   rdfs:domain sat:SpokenResponse ;
   rdfs:range xsd:boolean ;
   rdfs:comment "Valore comunicato dal backend che indica se la risposta attende un ulteriore turno nella stessa interazione." ;
-  reqvire:mapsToConcept concept:IndicazioneDiReplicaAttesa .
+  reqvire:mapsToConcept ambrogio:IndicazioneDiReplicaAttesa .
 
 sat:theSatellite a owl:NamedIndividual, sat:VoiceSatellite ;
   rdfs:comment "Il sistema di interesse descritto da questo repository." .

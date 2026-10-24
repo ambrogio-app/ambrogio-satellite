@@ -4,6 +4,9 @@
 
 Quando riceve SIGINT o SIGTERM, il satellite deve impedire nuove attivazioni e interrompere l'interazione e la riproduzione correnti senza attendere la risposta completa.
 
+#### Details
+Origine: baseline Reqvire «Interruption of active operations on shutdown», adottata; «New work refused on shutdown», adottata.
+
 #### Metadata
   * type: requirement
 
@@ -40,24 +43,32 @@ Mentre attende una nuova interazione, il satellite deve acquisire continuamente 
 
 Il satellite deve assemblare le porte e le risorse tecniche nella composition root del processo.
 
+#### Details
+Origine: baseline Reqvire «Explicit wiring without service locator», adottata.
+
 #### Metadata
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Capacità dell'ambiente fornite dalla composition root](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#capacità-dellambiente-fornite-dalla-composition-root)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Assenza di logger nei layer interni
 
 Domain e casi d’uso Application del satellite devono restare indipendenti dal logger.
 
+#### Details
+Origine: baseline Reqvire «Diagnostics of unexpected failures in technical components», adottata.
+
 #### Metadata
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Domain e casi d'uso senza logger](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#domain-e-casi-duso-senza-logger)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Assenza di registrazioni audio persistenti
@@ -80,7 +91,7 @@ Dove la configurazione indica un controllo di attenuazione, quando riconosce la 
 L'interazione comprende le repliche richieste dal backend: l'attenuazione resta attiva finché il satellite non torna in attesa della wake word, dopo la risposta, per inattività, dopo un fallimento o per la perdita della sessione durante l'interazione. Il controllo attenua soltanto gli altri flussi audio locali che lo attraversano, come un player musicale; la voce del satellite non lo attraversa.
 
 #### Concept References
-  * [Interazione vocale](../Thesaurus/Lessico.md#interazione-vocale)
+  * [Interazione vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#interazione-vocale)
   * [Dispositivo audio](../Thesaurus/Lessico.md#dispositivo-audio)
 
 #### Metadata
@@ -96,14 +107,19 @@ L'interazione comprende le repliche richieste dal backend: l'attenuazione resta 
 
 Mentre riproduce la risposta di Ambrogio, il satellite deve impedire interruzioni vocali e nuovi turni, e deve considerare conclusa la risposta soltanto quando ha ricevuto l'esito del turno e ha riprodotto tutti i campioni delle trasmissioni del turno chiuse da `output.end`. La riapertura della replica o il ritorno alla wake word avvengono soltanto dopo questa conclusione. Se l'esito non arriva entro 60 secondi dalla fine della richiesta, il satellite conclude l'interazione con il recupero locale.
 
+#### Details
+Origine: baseline Reqvire «Time limit with cancellation of remote work», adottata.
+
 #### Metadata
   * type: requirement
 
 #### Contract References
+  * [Esiti del turno nel protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#esiti-del-turno-nel-protocollo-ambrogio-v1)
   * [Adapter audio con Decibri](../Contracts/VoiceSatellite.md#adapter-audio-con-decibri)
   * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
 
 #### Relations
+  * derivedFrom: [Riconoscimento dell'esito riuscito del turno da parte del client](../../../ambrogio-backend/system-model/Requirements/ConversationProtocol.md#riconoscimento-dellesito-riuscito-del-turno-da-parte-del-client)
   * satisfiedBy: [conversation-events.adapter.ts](../../src/adapters/in/conversation-events.adapter.ts)
   * satisfiedBy: [response-playback.ts](../../src/adapters/out/response-playback.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
@@ -115,14 +131,15 @@ Quando riconosce la wake word mentre attende una nuova interazione, il satellite
 
 #### Concept References
   * [Attivazione locale](../Thesaurus/Lessico.md#attivazione-locale)
-  * [Interazione vocale](../Thesaurus/Lessico.md#interazione-vocale)
-  * [Backend vocale](../Thesaurus/Lessico.md#backend-vocale)
+  * [Interazione vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#interazione-vocale)
+  * [Backend](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#backend)
 
 #### Metadata
   * type: requirement
 
 #### Contract References
-  * [Contratto vocale backend di riferimento](../Contracts/VoiceSatellite.md#contratto-vocale-backend-di-riferimento)
+  * [Sessione del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#sessione-del-protocollo-ambrogio-v1)
+  * [Trasmissione in ingresso del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#trasmissione-in-ingresso-del-protocollo-ambrogio-v1)
   * [Trasporto conversazionale ambrogio.v1](../Contracts/VoiceSatellite.md#trasporto-conversazionale-ambrogiov1)
 
 #### Relations
@@ -142,18 +159,6 @@ Il satellite deve mettere a disposizione modelli di wake word distribuiti e supp
   * type: requirement
 
 #### Relations
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
----
-
-### Compatibilità con il canale vocale backend
-
-Il satellite deve scambiare audio ed eventi con il backend secondo una revisione esplicita del protocollo conversazionale pubblico `ambrogio.v1` registrata nel proprio modello.
-
-#### Metadata
-  * type: requirement
-
-#### Relations
-  * satisfiedBy: [ambrogio-session.ts](../../src/adapters/out/ambrogio-session.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -220,15 +225,16 @@ Il satellite deve caricare da un modulo TypeScript la configurazione del backend
 
 ### Confini degli import nei test
 
-I test del satellite devono rispettare i confini di importazione del layer verificato, anche per gli import di soli tipi.
+I test del satellite devono rispettare le regole comuni di import per layer secondo le esclusioni del contratto «Regole di importazione dei test».
 
 #### Metadata
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Import del codice di produzione nei test per layer](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#import-del-codice-di-produzione-nei-test-per-layer)
   * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
   * satisfiedBy: [voice-turn.test.ts](../../test/domain/voice-turn.test.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Conservazione della causa dei guasti
@@ -239,8 +245,9 @@ Quando aggiunge contesto a un guasto inatteso, il satellite deve conservare l’
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Guasti inattesi propagati come eccezioni](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#guasti-inattesi-propagati-come-eccezioni)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Conservazione della richiesta continua
@@ -249,7 +256,7 @@ Quando la famiglia pronuncia la wake word e la richiesta senza pausa, il satelli
 
 #### Concept References
   * [Riserva audio](../Thesaurus/Lessico.md#riserva-audio)
-  * [Turno vocale](../Thesaurus/Lessico.md#turno-vocale)
+  * [Turno vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#turno-vocale)
 
 #### Metadata
   * type: requirement
@@ -268,84 +275,62 @@ Quando gli adapter interagiscono con i casi d'uso del satellite, devono usare da
 
 #### Relations
   * definedBy: [Contratto osservabile della sessione vocale](../Contracts/VoiceSatellite.md#contratto-osservabile-della-sessione-vocale)
+  * derivedFrom: [Contratti Application nei termini del componente](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#contratti-application-nei-termini-del-componente)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Controlli CI delle modifiche del satellite
 
-Quando una modifica viene inviata al branch main o proposta tramite pull request, quando la CI viene avviata manualmente e quando un altro workflow la richiama, la CI del satellite deve eseguire validazione e lint Reqvire, controllo TypeScript completo e dei layer interni, suite Vitest e build, segnalando il fallimento se uno dei controlli fallisce.
+Quando una modifica viene inviata al branch main o proposta tramite pull request, quando la CI viene avviata manualmente e quando un altro workflow la richiama, la CI del satellite deve eseguire, dopo il checkout affiancato dei repository del modello, i controlli dell'intero modello, il controllo TypeScript completo e dei layer interni, la suite Vitest, la prova di integrazione con il backend affiancato e la build, segnalando il fallimento se uno dei controlli fallisce.
 
 #### Metadata
   * type: requirement
 
 #### Contract References
-  * [Profilo della scansione dei segreti con gitleaks](../Contracts/VoiceSatellite.md#profilo-della-scansione-dei-segreti-con-gitleaks)
+  * [Ingresso di prova del server conversazionale](../../../ambrogio-backend/system-model/Contracts/ServerFoundation.md#ingresso-di-prova-del-server-conversazionale)
+  * [Checkout affiancato dello spazio di lavoro](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#checkout-affiancato-dello-spazio-di-lavoro)
+  * [Controlli del modello dello spazio di lavoro](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#controlli-del-modello-dello-spazio-di-lavoro)
+  * [Profilo di scansione dei segreti con gitleaks](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#profilo-di-scansione-dei-segreti-con-gitleaks)
+  * [Risoluzione della versione di Reqvire](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#risoluzione-della-versione-di-reqvire)
+  * [Profilo della scansione dei segreti del satellite](../Contracts/VoiceSatellite.md#profilo-della-scansione-dei-segreti-del-satellite)
   * [Protezioni dei workflow GitHub Actions](../Contracts/VoiceSatellite.md#protezioni-dei-workflow-github-actions)
-  * [Script di integrità del modello](../Contracts/VoiceSatellite.md#script-di-integrità-del-modello)
 
 #### Relations
+  * derivedFrom: [Controlli CI dei repository di Ambrogio](../../../ambrogio-model/system-model/Requirements/ModelDrivenDevelopment.md#controlli-ci-dei-repository-di-ambrogio)
   * satisfiedBy: [ci.yml](../../.github/workflows/ci.yml)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Sviluppo governato dal modello](../../../ambrogio-model/system-model/Capabilities/Engineering.md#sviluppo-governato-dal-modello)
 ---
 
-### Controlli obbligatori prima del merge
+### Controlli obbligatori prima del merge del satellite
 
-Quando una modifica viene integrata nel branch principale, il repository GitHub deve accettarla soltanto tramite una pull request i cui controlli della CI e scansione dei segreti sono superati, e deve rifiutare il push diretto, la riscrittura forzata e la cancellazione del branch principale.
-
-#### Details
-La regola vale per chiunque, amministratori compresi: ogni modifica passa da un branch e da una pull request, così che CI e scansione dei segreti precedano sempre l'integrazione.
+Quando una modifica viene integrata nel branch principale del repository del satellite, il ruleset del repository deve richiedere i controlli `Satellite checks` e `Secret scan`.
 
 #### Metadata
   * type: requirement
 
-#### Relations
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
----
-
-### Controllo automatico dell'integrità del modello
-
-Quando la CI del repository esegue la validazione e il lint del modello Reqvire, deve eseguire anche lo script di integrità del modello e deve fallire se lo script segnala una violazione o non riesce a eseguire.
-
-#### Details
-Il controllo copre le regole di integrità verificabili sul testo e sui file; `validate` e `lint` di Reqvire non le controllano.
-
-#### Metadata
-  * type: requirement
+#### Contract References
+  * [Ruleset del branch principale](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#ruleset-del-branch-principale)
 
 #### Relations
-  * satisfiedBy: [ci.yml](../../.github/workflows/ci.yml)
-  * satisfiedBy: [check-model.mjs](../../scripts/check-model.mjs)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * derivedFrom: [Controlli obbligatori prima del merge](../../../ambrogio-model/system-model/Requirements/ModelDrivenDevelopment.md#controlli-obbligatori-prima-del-merge)
+  * specify: [Sviluppo governato dal modello](../../../ambrogio-model/system-model/Capabilities/Engineering.md#sviluppo-governato-dal-modello)
 ---
 
 ### Controllo dei segreti prima del commit locale
 
-Quando si crea un commit in un clone che ha abilitato l'hook versionato del repository, il repository deve bloccare il commit se le modifiche in staging contengono segreti oppure se lo strumento di scansione non è disponibile.
-
-#### Metadata
-  * type: requirement
-
-#### Relations
-  * satisfiedBy: [pre-commit](../../.githooks/pre-commit)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
----
-
-### Decisioni sostituite rimosse nella stessa modifica
-
-Quando una decisione ne sostituisce un'altra, la modifica che registra la nuova decisione deve aggiornare o rimuovere ogni requisito, contratto e verifica che afferma la decisione sostituita, e i testi di requisiti, contratti e verifiche non devono riportare date, storia delle decisioni o esiti di esecuzioni.
-
-#### Details
-Il modello descrive gli obblighi validi oggi e come verificarli; la storia è conservata da Git. Decisioni datate accumulate nei contratti convivono con elementi che affermano ancora le decisioni sostituite. Gli esiti dei test sono dati dalla CI; l'esito di una verifica manuale si registra nel messaggio del commit o nella pull request che la esegue, non nel modello.
+Quando si crea un commit in un clone del satellite che ha abilitato l'hook versionato del repository, l'hook `.githooks/pre-commit` del satellite deve applicare il controllo comune dei segreti prima del commit secondo il contratto «Hook pre-commit dei segreti con gitleaks».
 
 #### Metadata
   * type: requirement
 
 #### Contract References
-  * [Script di integrità del modello](../Contracts/VoiceSatellite.md#script-di-integrità-del-modello)
+  * [Profilo di scansione dei segreti con gitleaks](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#profilo-di-scansione-dei-segreti-con-gitleaks)
 
 #### Relations
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * derivedFrom: [Controllo dei segreti prima del commit](../../../ambrogio-model/system-model/Requirements/ModelDrivenDevelopment.md#controllo-dei-segreti-prima-del-commit)
+  * satisfiedBy: [pre-commit](../../.githooks/pre-commit)
+  * specify: [Sviluppo governato dal modello](../../../ambrogio-model/system-model/Capabilities/Engineering.md#sviluppo-governato-dal-modello)
 ---
 
 ### Delimitazione locale dei turni vocali
@@ -354,7 +339,7 @@ Durante un'interazione vocale attiva, il satellite deve riconoscere localmente l
 
 #### Concept References
   * [Rilevamento dell'attività vocale](../Thesaurus/Lessico.md#rilevamento-dellattività-vocale)
-  * [Turno vocale](../Thesaurus/Lessico.md#turno-vocale)
+  * [Turno vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#turno-vocale)
 
 #### Metadata
   * type: requirement
@@ -367,23 +352,12 @@ Durante un'interazione vocale attiva, il satellite deve riconoscere localmente l
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
-### Dipendenze fra contratti dichiarate come riferimenti
-
-Quando il contenuto di un contratto dipende da un contratto posseduto da un altro requisito, il requisito proprietario del contratto dipendente deve dichiarare una Contract Reference al contratto da cui dipende, e il contratto dipendente non deve ripetere il contenuto di quel contratto.
-
-#### Details
-Le Contract References propagano l'analisi di impatto: una modifica del contratto riferito segnala il contratto dipendente per la revisione. Un contratto che ripete un fatto posseduto da un altro requisito resta invariato quando quel fatto cambia, e il modello finisce per contraddirsi senza che l'analisi di impatto lo segnali.
-
-#### Metadata
-  * type: requirement
-
-#### Relations
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
----
-
 ### Distribuzione Docker facoltativa
 
 Il satellite deve offrire una distribuzione Docker facoltativa per Linux x86_64 e arm64 che esegua la stessa applicazione con lo stesso contratto di configurazione dell’esecuzione diretta.
+
+#### Details
+Origine: baseline Reqvire «Server distributed as a container image», adottata.
 
 #### Metadata
   * type: requirement
@@ -408,8 +382,9 @@ La composition root del satellite deve fornire a ciascun componente soltanto i v
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Validazione della configurazione prima delle risorse](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#validazione-della-configurazione-prima-delle-risorse)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
 ### Esclusione delle configurazioni personali dagli artefatti
@@ -423,16 +398,17 @@ Il satellite deve escludere configurazioni personali e credenziali dagli artefat
   * [Esecuzione host e container](../Contracts/VoiceSatellite.md#esecuzione-host-e-container)
 
 #### Relations
+  * derivedFrom: [Configurazioni effettive escluse dagli artefatti](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#configurazioni-effettive-escluse-dagli-artefatti)
   * satisfiedBy: [.dockerignore](../../.dockerignore)
   * satisfiedBy: [.gitignore](../../.gitignore)
   * satisfiedBy: [Dockerfile](../../Dockerfile)
   * satisfiedBy: [config.example.ts](../../config.example.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
 ### Esecuzione diretta sul sistema host
 
-Il satellite deve poter essere installato ed eseguito direttamente sul sistema host con runtime, dipendenze e modelli necessari, senza richiedere Docker.
+Il satellite deve essere installabile ed eseguibile direttamente sul sistema host con runtime, dipendenze e modelli necessari, senza richiedere Docker.
 
 #### Metadata
   * type: requirement
@@ -445,7 +421,7 @@ Il satellite deve poter essere installato ed eseguito direttamente sul sistema h
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
-### Esiti previsti come valori tipizzati
+### Esiti previsti come valori tipizzati nel satellite
 
 Quando Domain, Application o una porta prevedono un esito negativo nel proprio contratto, il satellite deve rappresentarlo come valore tipizzato distinguibile dal successo.
 
@@ -453,8 +429,9 @@ Quando Domain, Application o una porta prevedono un esito negativo nel proprio c
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Esiti previsti come valori tipizzati](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#esiti-previsti-come-valori-tipizzati)
   * satisfiedBy: [configuration.ts](../../src/adapters/out/configuration.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Eventi diagnostici stabili
@@ -465,68 +442,40 @@ Quando emette un log tecnico, il satellite deve includere un nome event stabile 
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Log tecnici JSON con Pino](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#log-tecnici-json-con-pino)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
-### File di governo collegati al modello
+### Forma TypeScript dei contratti Application nel satellite
 
-Ogni workflow di CI, hook Git, file di build del container, esempio Compose, file di esclusione, configurazione del gestore di pacchetti, del compilatore o del runner di test e script del repository deve essere riferito da almeno un requisito o una verifica del modello.
-
-#### Details
-Un file che codifica decisioni ingegneristiche senza un collegamento al modello cambia senza che alcun obbligo lo segnali, e le decisioni presenti solo nei file divergono fra file simili, per esempio fra i workflow di controllo e quello di pubblicazione.
-
-#### Metadata
-  * type: requirement
-
-#### Contract References
-  * [Script di integrità del modello](../Contracts/VoiceSatellite.md#script-di-integrità-del-modello)
-
-#### Relations
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
----
-
-### Forma TypeScript dei contratti Application
-
-Quando Application del satellite dichiara una porta a oggetto con operazioni nominate, deve usare interface; quando dichiara dati, unioni o contratti callable, deve usare type.
+Quando Application del satellite dichiara una porta a oggetto, deve dichiararne le operazioni come proprietà callable `readonly`.
 
 #### Metadata
   * type: requirement
 
 #### Relations
   * definedBy: [Convenzione TypeScript di porte e dati](../Contracts/VoiceSatellite.md#convenzione-typescript-di-porte-e-dati)
+  * derivedFrom: [Forma TypeScript dei contratti Application](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#forma-typescript-dei-contratti-application)
   * satisfiedBy: [deadline-scheduler.ts](../../src/application/deadline-scheduler.ts)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
----
-
-### Formulazione normativa degli obblighi
-
-Gli enunciati dei requisiti e i testi dei contratti devono esprimere gli obblighi con «deve» o «devono» e non devono usare `può`, `possono`, `potrebbe`, `potrebbero`, `dovrebbe`, `dovrebbero` o `eventualmente`; un'opzione lasciata a una parte deve essere espressa nominando la parte che sceglie.
-
-#### Details
-Il testo in code span, i messaggi citati e i nomi di elementi tra «» non sono formulazione dell'obbligo. Le sezioni Details dei requisiti sono indicazioni e non vengono controllate. Una formula permissiva rende ambiguo se il comportamento è obbligatorio, facoltativo o scelto da qualcuno, e il codice e il modello finiscono per darne letture diverse.
-
-#### Metadata
-  * type: requirement
-
-#### Contract References
-  * [Script di integrità del modello](../Contracts/VoiceSatellite.md#script-di-integrità-del-modello)
-
-#### Relations
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Gestione dei guasti inattesi
 
 Quando si verifica un guasto inatteso, il satellite deve propagarlo come eccezione fino al confine tecnico responsabile della gestione e della diagnostica.
 
+#### Details
+Origine: baseline Reqvire «Diagnostics of unexpected failures in technical components», adottata.
+
 #### Metadata
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Guasti inattesi propagati come eccezioni](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#guasti-inattesi-propagati-come-eccezioni)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Gestione dei log affidata al deployment
@@ -537,8 +486,9 @@ Quando l’installazione richiede conservazione, rotazione o inoltro dei log tec
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Log affidati al deployment](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#log-affidati-al-deployment)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Gestione esaustiva dei rifiuti previsti
@@ -549,13 +499,17 @@ I chiamanti delle porte e dei casi d’uso devono gestire esplicitamente tutte l
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Gestione esplicita dei rifiuti previsti](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#gestione-esplicita-dei-rifiuti-previsti)
   * satisfiedBy: [main.ts](../../src/main.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Idempotenza dell'arresto del satellite
 
 Quando riceve richieste ripetute o concorrenti di arresto, il satellite deve condividere la stessa operazione di arresto senza duplicare il rilascio delle risorse native.
+
+#### Details
+Origine: baseline Reqvire «Single ordered shutdown», adattata: le risorse indipendenti si chiudono in parallelo invece che in ordine inverso di acquisizione.
 
 #### Metadata
   * type: requirement
@@ -581,17 +535,18 @@ Quando apre la sessione conversazionale con il backend, il satellite deve presen
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
-### Indipendenza tecnica di Domain e Application
+### Indipendenza tecnica di Domain e Application nel satellite
 
-Domain e Application del satellite devono usare soltanto API standard ECMAScript indipendenti dall'ambiente, senza dipendere da API Node.js o da librerie tecniche, anche tramite import di soli tipi.
+Il controllo TypeScript del satellite deve compilare Domain e Application con la sola libreria standard ECMAScript e senza tipi dell'ambiente, così che un import di API Node.js, anche di soli tipi, faccia fallire il controllo.
 
 #### Metadata
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Indipendenza tecnica di Domain e Application](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#indipendenza-tecnica-di-domain-e-application)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * satisfiedBy: [tsconfig.core.json](../../tsconfig.core.json)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Interazione indipendente dall'attenuazione
@@ -626,47 +581,50 @@ Il satellite deve inviare messaggi e frame audio soltanto su una sessione conver
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Istruzioni per gli agenti del satellite
+
+Le istruzioni per gli agenti del repository del satellite devono applicare al lavoro nel repository le regole di processo di `ambrogio-model`, rimandando a `ambrogio-model/AGENTS.md` per le regole comuni e aggiungendo soltanto le indicazioni proprie del repository.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * derivedFrom: [Ordine di lavoro guidato dal modello](../../../ambrogio-model/system-model/Requirements/ModelDrivenDevelopment.md#ordine-di-lavoro-guidato-dal-modello)
+  * satisfiedBy: [AGENTS.md](../../AGENTS.md)
+  * specify: [Sviluppo governato dal modello](../../../ambrogio-model/system-model/Capabilities/Engineering.md#sviluppo-governato-dal-modello)
+---
+
 ### Log tecnici JSON su stdout
 
-Il satellite deve emettere ogni evento diagnostico tecnico come una singola riga JSON su stdout.
+Il satellite deve emettere ogni evento diagnostico tecnico su stdout.
 
 #### Metadata
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Log tecnici JSON con Pino](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#log-tecnici-json-con-pino)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * satisfiedBy: [main.ts](../../src/main.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
-### Modello autonomo del satellite
+### Nomi dei file secondo il ruolo architetturale nel satellite
 
-Il satellite deve mantenere codice, modello Reqvire, lessico dei concetti e ontologia strutturale nel proprio repository autonomo, in modo che i termini e le relazioni del dominio siano comprensibili senza consultare il modello del backend; deve registrare la dipendenza dal contratto pubblico posseduto dal backend.
+I file di produzione del satellite devono seguire la «Convenzione dei nomi di casi d'uso e adapter» di `ambrogio-model`.
 
-#### Concept References
-  * [Satellite vocale](../Thesaurus/Lessico.md#satellite-vocale)
-  * [Backend vocale](../Thesaurus/Lessico.md#backend-vocale)
+#### Details
+Per esempio, un caso d'uso che avvia una conversazione vocale si chiama `start-voice-conversation.use-case.ts`.
 
 #### Metadata
   * type: requirement
 
-#### Relations
-  * satisfiedBy: [AGENTS.md](../../AGENTS.md)
-  * satisfiedBy: [README.md](../../README.md)
-  * satisfiedBy: [package.json](../../package.json)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
----
-
-### Nomi dei file secondo il ruolo architetturale
-
-I file del codice di produzione devono seguire una convenzione esplicita e uniforme che renda riconoscibili i casi d'uso e gli adapter secondo la responsabilità effettivamente realizzata.
-
-#### Metadata
-  * type: requirement
+#### Contract References
+  * [Convenzione dei nomi di casi d'uso e adapter](../../../ambrogio-model/system-model/Contracts/CodeArchitecture.md#convenzione-dei-nomi-di-casi-duso-e-adapter)
 
 #### Relations
+  * derivedFrom: [Nomi dei file secondo il ruolo architetturale](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#nomi-dei-file-secondo-il-ruolo-architetturale)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Nuova attivazione dopo il fallimento
@@ -689,8 +647,8 @@ Quando la famiglia attiva nuovamente il satellite dopo un fallimento per backend
 Quando la famiglia attiva il satellite con la wake word, il satellite deve iniziare una nuova conversazione; quando la famiglia risponde senza wake word a una risposta che attende replica, deve continuare la conversazione del turno precedente.
 
 #### Concept References
-  * [Interazione vocale](../Thesaurus/Lessico.md#interazione-vocale)
-  * [Indicazione di replica attesa](../Thesaurus/Lessico.md#indicazione-di-replica-attesa)
+  * [Interazione vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#interazione-vocale)
+  * [Indicazione di replica attesa](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#indicazione-di-replica-attesa)
 
 #### Metadata
   * type: requirement
@@ -705,34 +663,36 @@ Quando la famiglia attiva il satellite con la wake word, il satellite deve inizi
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
-### Perimetro iniziale dei segnali di osservabilità
+### Perimetro iniziale dei segnali di osservabilità del satellite
 
-Nella prima versione, il satellite deve usare i log tecnici strutturati come segnali di osservabilità, senza introdurre sistemi applicativi separati di metriche, tracing distribuito o audit degli eventi.
+Nella prima versione, il satellite deve limitare i propri segnali di osservabilità ai log tecnici JSON, senza identificativi di correlazione propri.
 
 #### Metadata
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Perimetro iniziale dei segnali di osservabilità](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#perimetro-iniziale-dei-segnali-di-osservabilità)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Privilegi e durata limitati dei workflow GitHub Actions
 
-I workflow GitHub Actions del repository devono eseguire le azioni esterne fissate per commit, non conservare le credenziali del checkout, terminare ogni job entro un tempo massimo dichiarato e concedere ai job soltanto i permessi necessari, con la scrittura dei pacchetti riservata al job che pubblica le immagini.
-
-#### Details
-Un'azione indicata per tag cambia contenuto senza modifiche al repository; una credenziale conservata nel checkout resta disponibile ai passi successivi; un job senza tempo massimo occupa il runner fino al limite della piattaforma.
+I workflow GitHub Actions del satellite devono applicare il profilo comune dei workflow con i tempi massimi, le azioni aggiuntive e le protezioni della pubblicazione propri del satellite.
 
 #### Metadata
   * type: requirement
 
+#### Contract References
+  * [Profilo comune dei workflow GitHub Actions](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#profilo-comune-dei-workflow-github-actions)
+
 #### Relations
+  * derivedFrom: [Workflow GitHub Actions con privilegi e durata limitati](../../../ambrogio-model/system-model/Requirements/ModelDrivenDevelopment.md#workflow-github-actions-con-privilegi-e-durata-limitati)
   * satisfiedBy: [ci.yml](../../.github/workflows/ci.yml)
   * satisfiedBy: [publish-image.yml](../../.github/workflows/publish-image.yml)
   * satisfiedBy: [secret-scan.yml](../../.github/workflows/secret-scan.yml)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Sviluppo governato dal modello](../../../ambrogio-model/system-model/Capabilities/Engineering.md#sviluppo-governato-dal-modello)
 ---
 
 ### Progetto unico del satellite
@@ -756,27 +716,29 @@ Quando programma o annulla una scadenza dell'interazione vocale, Application dev
 
 #### Relations
   * definedBy: [Porta di programmazione delle scadenze](../Contracts/VoiceSatellite.md#porta-di-programmazione-delle-scadenze)
+  * derivedFrom: [Capacità dell'ambiente fornite dalla composition root](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#capacità-dellambiente-fornite-dalla-composition-root)
   * satisfiedBy: [node-deadline-scheduler.adapter.ts](../../src/adapters/out/node-deadline-scheduler.adapter.ts)
   * satisfiedBy: [deadline-scheduler.ts](../../src/application/deadline-scheduler.ts)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Pubblicazione delle immagini Docker del satellite
 
-Quando viene creato un tag di release valido, il progetto deve pubblicare su GHCR un’immagine del satellite per Linux amd64 e arm64 soltanto dopo il superamento dei controlli software e delle verifiche delle immagini di entrambe le architetture.
+Quando viene creato un tag di release valido, il satellite deve pubblicare su GHCR l'immagine `ghcr.io/ambrogio-app/ambrogio-satellite` per Linux amd64 e arm64 soltanto dopo il superamento dei controlli software e delle verifiche delle immagini di entrambe le architetture.
 
 #### Metadata
   * type: requirement
 
 #### Contract References
   * [Profilo CI del satellite](../Contracts/VoiceSatellite.md#profilo-ci-del-satellite)
-  * [Profilo della scansione dei segreti con gitleaks](../Contracts/VoiceSatellite.md#profilo-della-scansione-dei-segreti-con-gitleaks)
+  * [Profilo della scansione dei segreti del satellite](../Contracts/VoiceSatellite.md#profilo-della-scansione-dei-segreti-del-satellite)
   * [Protezioni dei workflow GitHub Actions](../Contracts/VoiceSatellite.md#protezioni-dei-workflow-github-actions)
 
 #### Relations
+  * derivedFrom: [Pubblicazione delle immagini di release](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#pubblicazione-delle-immagini-di-release)
   * satisfiedBy: [publish-image.yml](../../.github/workflows/publish-image.yml)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
 ### Registrazione delle attivazioni locali
@@ -801,15 +763,15 @@ Quando riconosce la wake word, il satellite deve registrare un evento diagnostic
 Quando termina la riproduzione di una risposta per cui il backend segnala di attendere una replica, il satellite deve permettere alla famiglia di rispondere senza wake word nella stessa interazione, finché essa resta attiva.
 
 #### Concept References
-  * [Indicazione di replica attesa](../Thesaurus/Lessico.md#indicazione-di-replica-attesa)
-  * [Interazione vocale](../Thesaurus/Lessico.md#interazione-vocale)
-  * [Turno vocale](../Thesaurus/Lessico.md#turno-vocale)
+  * [Indicazione di replica attesa](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#indicazione-di-replica-attesa)
+  * [Interazione vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#interazione-vocale)
+  * [Turno vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#turno-vocale)
 
 #### Metadata
   * type: requirement
 
 #### Contract References
-  * [Contratto vocale backend di riferimento](../Contracts/VoiceSatellite.md#contratto-vocale-backend-di-riferimento)
+  * [Esiti del turno nel protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#esiti-del-turno-nel-protocollo-ambrogio-v1)
 
 #### Relations
   * satisfiedBy: [voice-turn.ts](../../src/domain/voice-turn.ts)
@@ -843,14 +805,18 @@ Quando la configurazione è invalida, il satellite deve impedirne l’avvio oper
   * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
 
 #### Relations
+  * derivedFrom: [Validazione della configurazione prima delle risorse](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#validazione-della-configurazione-prima-delle-risorse)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * satisfiedBy: [main.ts](../../src/main.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
 ### Rilascio completo delle risorse del satellite
 
 Quando termina o fallisce durante un avvio parziale, il satellite deve tentare il rilascio di tutte le risorse già acquisite, anche se una chiusura fallisce, conservando i guasti per la diagnosi al confine responsabile.
+
+#### Details
+Origine: baseline Reqvire «Lifecycle outcome preserved across failures», adottata; «Ordered startup before accepting work», adottata; «Single ordered shutdown», adattata: le risorse indipendenti si chiudono in parallelo invece che in ordine inverso di acquisizione.
 
 #### Metadata
   * type: requirement
@@ -897,15 +863,16 @@ Quando ha segnalato il fallimento di un’interazione per backend irraggiungibil
 Quando riceve una trasmissione audio della risposta dal backend, il satellite deve riprodurla sul dispositivo di uscita configurato alla frequenza di campionamento dichiarata dalla trasmissione, rispettando l'ordine delle trasmissioni del turno.
 
 #### Concept References
-  * [Risposta parlata](../Thesaurus/Lessico.md#risposta-parlata)
+  * [Risposta parlata](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#risposta-parlata)
   * [Dispositivo audio](../Thesaurus/Lessico.md#dispositivo-audio)
 
 #### Metadata
   * type: requirement
 
 #### Contract References
+  * [Esiti del turno nel protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#esiti-del-turno-nel-protocollo-ambrogio-v1)
+  * [Trasmissione in uscita del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#trasmissione-in-uscita-del-protocollo-ambrogio-v1)
   * [Adapter audio con Decibri](../Contracts/VoiceSatellite.md#adapter-audio-con-decibri)
-  * [Contratto vocale backend di riferimento](../Contracts/VoiceSatellite.md#contratto-vocale-backend-di-riferimento)
 
 #### Relations
   * satisfiedBy: [response-playback.ts](../../src/adapters/out/response-playback.ts)
@@ -935,7 +902,7 @@ Quando dopo una risposta che attende replica scade l'intervallo locale di inatti
   * type: requirement
 
 #### Contract References
-  * [Contratto vocale backend di riferimento](../Contracts/VoiceSatellite.md#contratto-vocale-backend-di-riferimento)
+  * [Esiti del turno nel protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#esiti-del-turno-nel-protocollo-ambrogio-v1)
   * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
 
 #### Relations
@@ -945,33 +912,39 @@ Quando dopo una risposta che attende replica scade l'intervallo locale di inatti
 
 ### Scansione dei segreti nella storia del repository
 
-Quando una modifica viene inviata a qualunque branch del repository del satellite o proposta tramite pull request, la CI deve analizzare l'intera storia Git alla ricerca di segreti e segnalare il fallimento se ne trova.
+Quando una modifica viene inviata a qualunque branch del repository del satellite o proposta tramite pull request, il job `Secret scan` del satellite deve eseguire la scansione comune dei segreti sull'intera storia del repository.
 
 #### Metadata
   * type: requirement
 
 #### Contract References
+  * [Profilo di scansione dei segreti con gitleaks](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#profilo-di-scansione-dei-segreti-con-gitleaks)
   * [Protezioni dei workflow GitHub Actions](../Contracts/VoiceSatellite.md#protezioni-dei-workflow-github-actions)
 
 #### Relations
+  * derivedFrom: [Scansione dei segreti nella CI](../../../ambrogio-model/system-model/Requirements/ModelDrivenDevelopment.md#scansione-dei-segreti-nella-ci)
   * satisfiedBy: [secret-scan.yml](../../.github/workflows/secret-scan.yml)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Sviluppo governato dal modello](../../../ambrogio-model/system-model/Capabilities/Engineering.md#sviluppo-governato-dal-modello)
 ---
 
 ### Scansione dei segreti prima della pubblicazione
 
 Quando viene creato un tag di release valido, il progetto non deve pubblicare immagini del satellite se la scansione dei segreti della stessa revisione non è superata.
 
+#### Details
+Origine: baseline Reqvire «Full-history secret scan in CI», adottata.
+
 #### Metadata
   * type: requirement
 
 #### Contract References
-  * [Profilo della scansione dei segreti con gitleaks](../Contracts/VoiceSatellite.md#profilo-della-scansione-dei-segreti-con-gitleaks)
+  * [Profilo della scansione dei segreti del satellite](../Contracts/VoiceSatellite.md#profilo-della-scansione-dei-segreti-del-satellite)
   * [Profilo di pubblicazione Docker del satellite](../Contracts/VoiceSatellite.md#profilo-di-pubblicazione-docker-del-satellite)
 
 #### Relations
+  * derivedFrom: [Pubblicazione delle immagini di release](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#pubblicazione-delle-immagini-di-release)
   * satisfiedBy: [publish-image.yml](../../.github/workflows/publish-image.yml)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
 ### Segnale acustico di disponibilità
@@ -1007,7 +980,7 @@ Quando la configurazione indica `audio.microphone` o `audio.speaker`, il satelli
 
 ### Selezione del file di configurazione
 
-Il satellite deve permettere di selezionare il percorso del file di configurazione mediante un’opzione di avvio.
+Il satellite deve leggere la configurazione dal percorso indicato con un’opzione di avvio.
 
 #### Metadata
   * type: requirement
@@ -1022,7 +995,7 @@ Il satellite deve permettere di selezionare il percorso del file di configurazio
 
 ### Selezione della wake word configurata
 
-Quando carica la configurazione, il satellite deve selezionare il modello di wake word richiesto dal catalogo distribuito oppure da un file ONNX compatibile presente nella directory dei modelli montata sull'installazione. Deve rifiutare identificatori sconosciuti o che possano uscire dalla directory dei modelli.
+Quando carica la configurazione, il satellite deve selezionare il modello di wake word richiesto dal catalogo distribuito oppure da un file ONNX compatibile presente nella directory dei modelli montata sull'installazione. Deve rifiutare identificatori sconosciuti o che escono dalla directory dei modelli.
 
 #### Metadata
   * type: requirement
@@ -1040,9 +1013,10 @@ Il satellite deve includere nei log soltanto campi diagnostici selezionati espli
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Log tecnici JSON con Pino](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#log-tecnici-json-con-pino)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * satisfiedBy: [main.ts](../../src/main.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Separazione Domain Application e adapter
@@ -1053,8 +1027,9 @@ Il satellite deve separare regole e stati in Domain, coordinamento e porte in Ap
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Struttura in layer dei componenti](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#struttura-in-layer-dei-componenti)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Serializzazione protetta dei guasti
@@ -1065,8 +1040,9 @@ Quando registra un guasto inatteso, il satellite deve passare al logger il campo
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Diagnosi definitiva unica dei guasti inattesi](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#diagnosi-definitiva-unica-dei-guasti-inattesi)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Sessione conversazionale persistente
@@ -1101,7 +1077,7 @@ Il satellite deve essere implementato in TypeScript ed eseguito su Node.js.
 
 ### Supporto Linux su due architetture
 
-Il satellite deve poter essere eseguito su Linux x86_64 e arm64 senza richiedere uno specifico modello di dispositivo hardware.
+Il satellite deve essere eseguibile su Linux x86_64 e arm64 senza richiedere uno specifico modello di dispositivo hardware.
 
 #### Metadata
   * type: requirement
@@ -1120,6 +1096,8 @@ Se l'arresto ordinato avviato da SIGINT o SIGTERM non termina entro il tempo mas
 #### Details
 Una chiusura nativa che non restituisce mai il controllo non deve lasciare attivo il processo: il gestore dei servizi o il runtime dei container attende la sua terminazione.
 
+Origine: baseline Reqvire «Bounded shutdown window», adattata: allo scadere il satellite registra soltanto `timeoutMs`, senza i guasti già osservati, e la finestra del supervisore non è dichiarata.
+
 #### Metadata
   * type: requirement
 
@@ -1136,6 +1114,9 @@ Una chiusura nativa che non restituisce mai il controllo non deve lasciare attiv
 ### Tono di errore per backend irraggiungibile
 
 Quando non riesce ad avviare un’interazione perché il backend non è raggiungibile, il satellite deve segnalare il fallimento riproducendo il tono di errore locale generato dal programma, senza messaggi parlati.
+
+#### Details
+Origine: baseline Reqvire «Error log at the public fallback», adottata.
 
 #### Metadata
   * type: requirement
@@ -1157,6 +1138,7 @@ Quando il backend risponde a un turno vocale soltanto in testo perché la voce n
   * type: requirement
 
 #### Contract References
+  * [Motivi di rifiuto del turno](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#motivi-di-rifiuto-del-turno)
   * [Tono locale di errore](../Contracts/VoiceSatellite.md#tono-locale-di-errore)
 
 #### Relations
@@ -1169,12 +1151,49 @@ Quando il backend risponde a un turno vocale soltanto in testo perché la voce n
 
 Quando un guasto raggiunge il confine tecnico responsabile della sua gestione, il satellite deve emettere una sola diagnosi definitiva senza duplicarla nei componenti intermedi.
 
+#### Details
+Origine: baseline Reqvire «Propagation of unexpected failures as exceptions», adottata.
+
 #### Metadata
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Diagnosi definitiva unica dei guasti inattesi](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#diagnosi-definitiva-unica-dei-guasti-inattesi)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
+---
+
+### Uso delle sole interfacce pubbliche del backend nel satellite
+
+Il satellite deve scambiare audio ed eventi con il backend secondo i contratti del protocollo conversazionale `ambrogio.v1` posseduti dal backend, e il suo codice di produzione non deve importare codice del backend.
+
+#### Details
+Le prove di integrazione del satellite avviano il backend affiancato soltanto tramite il suo ingresso di prova pubblico. La compatibilità fra release segue la versione del protocollo dichiarata da ciascuna release.
+
+#### Concept References
+  * [Backend](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#backend)
+  * [Sessione conversazionale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#sessione-conversazionale)
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Correlazione diagnostica della sessione Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#correlazione-diagnostica-della-sessione-ambrogio-v1)
+  * [Errori ed estensioni del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#errori-ed-estensioni-del-protocollo-ambrogio-v1)
+  * [Esiti del turno nel protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#esiti-del-turno-nel-protocollo-ambrogio-v1)
+  * [Motivi di rifiuto del turno](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#motivi-di-rifiuto-del-turno)
+  * [Schema JSON del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#schema-json-del-protocollo-ambrogio-v1)
+  * [Sessione del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#sessione-del-protocollo-ambrogio-v1)
+  * [Trasmissione in ingresso del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#trasmissione-in-ingresso-del-protocollo-ambrogio-v1)
+  * [Trasmissione in uscita del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#trasmissione-in-uscita-del-protocollo-ambrogio-v1)
+  * [Occupazione della conversazione e ammissione dei turni](../../../ambrogio-backend/system-model/Contracts/FamilyConversation.md#occupazione-della-conversazione-e-ammissione-dei-turni)
+  * [Ingresso di prova del server conversazionale](../../../ambrogio-backend/system-model/Contracts/ServerFoundation.md#ingresso-di-prova-del-server-conversazionale)
+  * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
+
+#### Relations
+  * derivedFrom: [Uso delle sole interfacce pubbliche del backend](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#uso-delle-sole-interfacce-pubbliche-del-backend)
+  * satisfiedBy: [ambrogio-session.ts](../../src/adapters/out/ambrogio-session.ts)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Uso di Pino per la diagnostica
@@ -1185,20 +1204,25 @@ Il satellite deve emettere i propri log tecnici mediante Pino al confine respons
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Log tecnici JSON con Pino](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#log-tecnici-json-con-pino)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Validazione prima della costruzione delle risorse
 
 Il satellite deve caricare e validare la configurazione prima di costruire le risorse operative.
 
+#### Details
+Origine: baseline Reqvire «One-time configuration load at startup», adottata; «Ordered startup before accepting work», adottata.
+
 #### Metadata
   * type: requirement
 
 #### Relations
+  * derivedFrom: [Validazione della configurazione prima delle risorse](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#validazione-della-configurazione-prima-delle-risorse)
   * satisfiedBy: [main.ts](../../src/main.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
 ### Valori di configurazione da ambiente
@@ -1214,22 +1238,5 @@ Il satellite deve consentire al modulo TypeScript di configurazione di ricavare 
 #### Relations
   * satisfiedBy: [config.example.ts](../../config.example.ts)
   * satisfiedBy: [config-file.ts](../../src/adapters/out/config-file.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
----
-
-### Verifiche manuali giustificate
-
-Ogni verifica di ispezione, analisi o dimostrazione deve indicare il motivo per cui non è automatizzabile, in una frase che inizia con «Non automatizzabile:».
-
-#### Details
-Una verifica automatizzabile è una verifica di test. Reqvire registra che una verifica esiste, non che sia stata eseguita: una verifica manuale non ripetuta dopo una modifica lascia passare una violazione del requisito.
-
-#### Metadata
-  * type: requirement
-
-#### Contract References
-  * [Script di integrità del modello](../Contracts/VoiceSatellite.md#script-di-integrità-del-modello)
-
-#### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
