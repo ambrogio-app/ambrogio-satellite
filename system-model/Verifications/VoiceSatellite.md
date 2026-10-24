@@ -8,6 +8,24 @@ Organizzare le dimostrazioni operative, le ispezioni e le prove automatiche dell
   * type: verification-objective
 ---
 
+### Analisi dei campi e degli import dei rifiuti nel satellite
+
+Esaminare le dichiarazioni e gli usi delle varianti di rifiuto previsto del satellite, della configurazione e degli argomenti di avvio, e gli import, compresi quelli di soli tipi, degli adapter inbound.
+
+#### Details
+L'analisi passa se ogni campo oltre `kind` è tipizzato, specifico della variante, stabile nel significato e usato dal chiamante, se nessun tipo comune impone a tutte le varianti campi generici come `message`, `cause` o codici di uscita, e se gli adapter inbound non importano né riconoscono tipi di rifiuto delle porte o del Domain. Fallisce se una di queste condizioni manca.
+
+Non automatizzabile: giudicare se un campo è stabile nel significato e necessario al chiamante, e se un tipo importato da un adapter inbound rappresenta un rifiuto interno, richiede di leggerne l'uso.
+
+#### Metadata
+  * type: analysis-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Campi specifici dei rifiuti previsti nel satellite](../Requirements/VoiceSatellite.md#campi-specifici-dei-rifiuti-previsti-nel-satellite)
+  * verify: [Isolamento degli adapter inbound dai rifiuti interni nel satellite](../Requirements/VoiceSatellite.md#isolamento-degli-adapter-inbound-dai-rifiuti-interni-nel-satellite)
+---
+
 ### Dimostrazione del recupero locale
 
 #### Details
@@ -250,6 +268,23 @@ Esaminare codice, import e firme: TypeScript eseguito da Node.js; stati e regole
   * verify: [Gestione dei guasti inattesi](../Requirements/VoiceSatellite.md#gestione-dei-guasti-inattesi)
   * verify: [Separazione Domain Application e adapter](../Requirements/VoiceSatellite.md#separazione-domain-application-e-adapter)
   * verify: [Stack TypeScript e Node.js](../Requirements/VoiceSatellite.md#stack-typescript-e-nodejs)
+---
+
+### Ispezione della collocazione del punto d'ingresso e del runtime
+
+Leggere `src/main.ts`, i file di `src/runtime/` e di `src/composition/` del satellite.
+
+#### Details
+L'ispezione passa se `src/main.ts` si limita a coordinare argomenti, configurazione, costruzione tramite la composition root, attivazione e arresto tramite il runner del processo, senza costruire componenti in proprio, e se percorso fatale, logger di base, caricamento della configurazione, avvio e arresto con le loro scadenze risiedono in `src/runtime/`. Fallisce se il punto d'ingresso assembla componenti o se un meccanismo del processo risiede fuori da `src/runtime/`.
+
+Non automatizzabile: stabilire se un modulo è un meccanismo del processo e se il punto d'ingresso coordina senza assemblare richiede di leggerne la responsabilità.
+
+#### Metadata
+  * type: inspection-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * verify: [Punto d'ingresso e meccanismi di processo del satellite](../Requirements/VoiceSatellite.md#punto-dingresso-e-meccanismi-di-processo-del-satellite)
 ---
 
 ### Ispezione della forma TypeScript dei contratti
@@ -537,6 +572,22 @@ Controllare proiezioni osservabili durante attesa, apertura, registrazione, risp
   * verify: [Contratti Application indipendenti dal Domain](../Requirements/VoiceSatellite.md#contratti-application-indipendenti-dal-domain)
 ---
 
+### Prova del contesto di build dell'immagine del satellite
+
+Leggere `.dockerignore` del satellite.
+
+#### Details
+La prova passa se `.dockerignore` esclude `.git`, `node_modules` a ogni livello, `dist`, `system-model`, `test`, i file `*.spec.ts`, i file di database `*.sqlite`, `*.sqlite-*`, `*.db`, `*.db-*` e i file d'ambiente `.env`, `*.env` e `*.env.*`, senza voci di reinclusione. Fallisce se manca un'esclusione o se una voce `!` reinclude file.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [container-build-context.spec.ts](../../test/repository/container-build-context.spec.ts)
+  * verify: [Distribuzione Docker facoltativa](../Requirements/VoiceSatellite.md#distribuzione-docker-facoltativa)
+---
+
 ### Prova del logger minimo del satellite
 
 Creare il logger di base del satellite su un flusso di prova, derivarne due logger con campi diversi ed emettere eventi con campi sensibili annidati e nomi di variabili delle credenziali; costruire il catalogo degli eventi, la chiamata conversazionale e la riproduzione con un logger di prova che registra le chiamate. Eseguire la regola di architettura che limita Pino al modulo del logger.
@@ -569,6 +620,23 @@ La prova passa se in entrambi i casi `stderr` contiene soltanto `Ambrogio satell
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [fatal-path.spec.ts](../../src/runtime/fatal-path.spec.ts)
   * verify: [Percorso fatale del satellite](../Requirements/VoiceSatellite.md#percorso-fatale-del-satellite)
+---
+
+### Prova del processo compilato del satellite
+
+Compilare il satellite in una cartella temporanea e avviarne `dist/main.js` con Node.js in un processo figlio: con una configurazione non valida, senza ambiente di esecuzione, con un argomento di avvio e con un modello di wake word presente ma non valido. Con `pnpm test:backend` usare i moduli compilati del canale conversazionale contro l'ingresso di prova del backend affiancato.
+
+#### Details
+La prova passa se il processo compilato risolve i propri moduli e termina con codice 2 e una sola riga di rifiuto per configurazione e argomenti non validi, con codice 1, una sola riga `satellite_startup_failed` e la sola riga del satellite su `stderr` per il modello non valido, e se la conversazione vocale con i moduli compilati riceve dal backend la risposta attesa. Fallisce se un modulo compilato non si risolve, se un esito o un codice di uscita differisce o se la conversazione non si completa.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [verify-backend.mjs](../../scripts/verify-backend.mjs)
+  * satisfiedBy: [main.e2e.spec.ts](../../src/main.e2e.spec.ts)
+  * verify: [Processo compilato del satellite provato come processo](../Requirements/VoiceSatellite.md#processo-compilato-del-satellite-provato-come-processo)
 ---
 
 ### Prova del riepilogo della pubblicazione del satellite
@@ -648,9 +716,9 @@ La prova passa se l'assenza e il valore vuoto sono rifiutati con `condition: "mi
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [configuration.spec.ts](../../src/runtime/configuration.spec.ts)
   * satisfiedBy: [main.e2e.spec.ts](../../src/main.e2e.spec.ts)
   * satisfiedBy: [main.spec.ts](../../src/main.spec.ts)
+  * satisfiedBy: [configuration.spec.ts](../../src/runtime/configuration.spec.ts)
   * verify: [Ambiente di esecuzione dichiarato del satellite](../Requirements/VoiceSatellite.md#ambiente-di-esecuzione-dichiarato-del-satellite)
 ---
 
@@ -684,8 +752,8 @@ La prova passa se senza configurazione non avviene alcuna regolazione; se con la
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [amixer-attenuation.adapter.spec.ts](../../src/adapters/out/amixer-attenuation.adapter.spec.ts)
-  * satisfiedBy: [configuration.spec.ts](../../src/runtime/configuration.spec.ts)
   * satisfiedBy: [voice-session.use-case.attenuation.spec.ts](../../src/application/voice-session.use-case.attenuation.spec.ts)
+  * satisfiedBy: [configuration.spec.ts](../../src/runtime/configuration.spec.ts)
   * verify: [Attenuazione dell'audio locale durante l'interazione](../Requirements/VoiceSatellite.md#attenuazione-dellaudio-locale-durante-linterazione)
   * verify: [Interazione indipendente dall'attenuazione](../Requirements/VoiceSatellite.md#interazione-indipendente-dallattenuazione)
   * verify: [Ripristino dell'attenuazione all'avvio e all'arresto](../Requirements/VoiceSatellite.md#ripristino-dellattenuazione-allavvio-e-allarresto)
@@ -768,8 +836,8 @@ La prova passa se senza configurazione `clientId` vale `satellite-<nome host>` e
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [configuration.spec.ts](../../src/runtime/configuration.spec.ts)
   * satisfiedBy: [conversation-channel.spec.ts](../../src/adapters/out/conversation-channel.spec.ts)
+  * satisfiedBy: [configuration.spec.ts](../../src/runtime/configuration.spec.ts)
   * verify: [Identificazione del satellite nella sessione](../Requirements/VoiceSatellite.md#identificazione-del-satellite-nella-sessione)
 ---
 
@@ -802,9 +870,9 @@ La prova usa punteggi simulati e non misura attivazioni spurie né parole mancat
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [configuration.spec.ts](../../src/runtime/configuration.spec.ts)
   * satisfiedBy: [onnx-wake-word.lifecycle.spec.ts](../../src/adapters/out/onnx-wake-word.lifecycle.spec.ts)
   * satisfiedBy: [satellite.spec.ts](../../src/composition/satellite.spec.ts)
+  * satisfiedBy: [configuration.spec.ts](../../src/runtime/configuration.spec.ts)
   * verify: [Conferma della wake word su blocchi consecutivi](../Requirements/VoiceSatellite.md#conferma-della-wake-word-su-blocchi-consecutivi)
 ---
 
@@ -821,10 +889,10 @@ La prova passa se un argomento di avvio, compreso `--config`, è rifiutato prima
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [startup-arguments.spec.ts](../../src/adapters/in/startup-arguments.spec.ts)
-  * satisfiedBy: [backend-url.spec.ts](../../src/runtime/backend-url.spec.ts)
-  * satisfiedBy: [configuration.spec.ts](../../src/runtime/configuration.spec.ts)
   * satisfiedBy: [main.e2e.spec.ts](../../src/main.e2e.spec.ts)
   * satisfiedBy: [main.spec.ts](../../src/main.spec.ts)
+  * satisfiedBy: [backend-url.spec.ts](../../src/runtime/backend-url.spec.ts)
+  * satisfiedBy: [configuration.spec.ts](../../src/runtime/configuration.spec.ts)
   * verify: [Configurazione del satellite dalle variabili d'ambiente](../Requirements/VoiceSatellite.md#configurazione-del-satellite-dalle-variabili-dambiente)
   * verify: [Rifiuto della configurazione invalida](../Requirements/VoiceSatellite.md#rifiuto-della-configurazione-invalida)
 ---
@@ -1044,72 +1112,4 @@ Ispezionare trigger, formato versione, corrispondenza package.json, dipendenza d
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Pubblicazione delle immagini Docker del satellite](../Requirements/VoiceSatellite.md#pubblicazione-delle-immagini-docker-del-satellite)
----
-
-### Prova del contesto di build dell'immagine del satellite
-
-Leggere `.dockerignore` del satellite.
-
-#### Details
-La prova passa se `.dockerignore` esclude `.git`, `node_modules` a ogni livello, `dist`, `system-model`, `test`, i file `*.spec.ts`, i file di database `*.sqlite`, `*.sqlite-*`, `*.db`, `*.db-*` e i file d'ambiente `.env`, `*.env` e `*.env.*`, senza voci di reinclusione. Fallisce se manca un'esclusione o se una voce `!` reinclude file.
-
-#### Metadata
-  * type: test-verification
-
-#### Relations
-  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [container-build-context.spec.ts](../../test/repository/container-build-context.spec.ts)
-  * verify: [Distribuzione Docker facoltativa](../Requirements/VoiceSatellite.md#distribuzione-docker-facoltativa)
----
-
-### Prova del processo compilato del satellite
-
-Compilare il satellite in una cartella temporanea e avviarne `dist/main.js` con Node.js in un processo figlio: con una configurazione non valida, senza ambiente di esecuzione, con un argomento di avvio e con un modello di wake word presente ma non valido. Con `pnpm test:backend` usare i moduli compilati del canale conversazionale contro l'ingresso di prova del backend affiancato.
-
-#### Details
-La prova passa se il processo compilato risolve i propri moduli e termina con codice 2 e una sola riga di rifiuto per configurazione e argomenti non validi, con codice 1, una sola riga `satellite_startup_failed` e la sola riga del satellite su `stderr` per il modello non valido, e se la conversazione vocale con i moduli compilati riceve dal backend la risposta attesa. Fallisce se un modulo compilato non si risolve, se un esito o un codice di uscita differisce o se la conversazione non si completa.
-
-#### Metadata
-  * type: test-verification
-
-#### Relations
-  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [main.e2e.spec.ts](../../src/main.e2e.spec.ts)
-  * satisfiedBy: [verify-backend.mjs](../../scripts/verify-backend.mjs)
-  * verify: [Processo compilato del satellite provato come processo](../Requirements/VoiceSatellite.md#processo-compilato-del-satellite-provato-come-processo)
----
-
-### Analisi dei campi e degli import dei rifiuti nel satellite
-
-Esaminare le dichiarazioni e gli usi delle varianti di rifiuto previsto del satellite, della configurazione e degli argomenti di avvio, e gli import, compresi quelli di soli tipi, degli adapter inbound.
-
-#### Details
-L'analisi passa se ogni campo oltre `kind` è tipizzato, specifico della variante, stabile nel significato e usato dal chiamante, se nessun tipo comune impone a tutte le varianti campi generici come `message`, `cause` o codici di uscita, e se gli adapter inbound non importano né riconoscono tipi di rifiuto delle porte o del Domain. Fallisce se una di queste condizioni manca.
-
-Non automatizzabile: giudicare se un campo è stabile nel significato e necessario al chiamante, e se un tipo importato da un adapter inbound rappresenta un rifiuto interno, richiede di leggerne l'uso.
-
-#### Metadata
-  * type: analysis-verification
-
-#### Relations
-  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Campi specifici dei rifiuti previsti nel satellite](../Requirements/VoiceSatellite.md#campi-specifici-dei-rifiuti-previsti-nel-satellite)
-  * verify: [Isolamento degli adapter inbound dai rifiuti interni nel satellite](../Requirements/VoiceSatellite.md#isolamento-degli-adapter-inbound-dai-rifiuti-interni-nel-satellite)
----
-
-### Ispezione della collocazione del punto d'ingresso e del runtime
-
-Leggere `src/main.ts`, i file di `src/runtime/` e di `src/composition/` del satellite.
-
-#### Details
-L'ispezione passa se `src/main.ts` si limita a coordinare argomenti, configurazione, costruzione tramite la composition root, attivazione e arresto tramite il runner del processo, senza costruire componenti in proprio, e se percorso fatale, logger di base, caricamento della configurazione, avvio e arresto con le loro scadenze risiedono in `src/runtime/`. Fallisce se il punto d'ingresso assembla componenti o se un meccanismo del processo risiede fuori da `src/runtime/`.
-
-Non automatizzabile: stabilire se un modulo è un meccanismo del processo e se il punto d'ingresso coordina senza assemblare richiede di leggerne la responsabilità.
-
-#### Metadata
-  * type: inspection-verification
-
-#### Relations
-  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Punto d'ingresso e meccanismi di processo del satellite](../Requirements/VoiceSatellite.md#punto-dingresso-e-meccanismi-di-processo-del-satellite)
 ---

@@ -189,6 +189,25 @@ Il satellite non ha eccezioni accettate: `pnpm-workspace.yaml` non dichiara `aud
   * specify: [Sviluppo governato dal modello](../../../ambrogio-model/system-model/Capabilities/Engineering.md#sviluppo-governato-dal-modello)
 ---
 
+### Avvio del container del satellite senza Docker Compose
+
+Quando chi installa avvia l'immagine container del satellite, l'avvio deve richiedere soltanto il runtime dei container, senza Docker Compose; `compose.example.yaml` è soltanto un esempio di avvio.
+
+#### Details
+Origine: baseline Reqvire «Container start without Compose», adottata.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Esecuzione host e container](../Contracts/VoiceSatellite.md#esecuzione-host-e-container)
+
+#### Relations
+  * satisfiedBy: [Dockerfile](../../Dockerfile)
+  * satisfiedBy: [verify-docker-image.mjs](../../scripts/verify-docker-image.mjs)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
+---
+
 ### Avvio dopo la wake word
 
 Quando riconosce la wake word mentre attende una nuova interazione, il satellite deve avviare una nuova interazione sulla sessione conversazionale pubblica del backend, riaprendo la sessione se non è pronta.
@@ -209,6 +228,23 @@ Quando riconosce la wake word mentre attende una nuova interazione, il satellite
 #### Relations
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Campi specifici dei rifiuti previsti nel satellite
+
+Le varianti di rifiuto previsto di Domain, Application e delle porte e quelle del caricamento della configurazione e degli argomenti di avvio del satellite devono contenere, oltre a `kind`, soltanto campi tipizzati specifici della variante, stabili nel significato e necessari al chiamante, senza campi generici comuni obbligatori per tutte le varianti.
+
+#### Details
+Origine: baseline Reqvire «Rejection-specific fields only», adottata.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * derivedFrom: [Esiti previsti come valori tipizzati](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#esiti-previsti-come-valori-tipizzati)
+  * satisfiedBy: [startup-arguments.ts](../../src/adapters/in/startup-arguments.ts)
+  * satisfiedBy: [configuration.ts](../../src/runtime/configuration.ts)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Catalogo distribuito delle wake word
@@ -278,8 +314,8 @@ Quando il punteggio di riconoscimento della wake word raggiunge la soglia config
   * [Motore locale della wake word con ONNX](../Contracts/VoiceSatellite.md#motore-locale-della-wake-word-con-onnx)
 
 #### Relations
-  * satisfiedBy: [configuration.ts](../../src/runtime/configuration.ts)
   * satisfiedBy: [onnx-wake-word.ts](../../src/adapters/out/onnx-wake-word.ts)
+  * satisfiedBy: [configuration.ts](../../src/runtime/configuration.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -310,8 +346,8 @@ Origine: baseline Reqvire «Configuration module per component reading environme
 #### Relations
   * derivedFrom: [Modulo di configurazione per componente dalle variabili d'ambiente](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#modulo-di-configurazione-per-componente-dalle-variabili-dambiente)
   * satisfiedBy: [startup-arguments.ts](../../src/adapters/in/startup-arguments.ts)
-  * satisfiedBy: [configuration.ts](../../src/runtime/configuration.ts)
   * satisfiedBy: [main.ts](../../src/main.ts)
+  * satisfiedBy: [configuration.ts](../../src/runtime/configuration.ts)
   * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
@@ -599,6 +635,27 @@ Quando emette un log tecnico, il satellite deve includere un nome event stabile 
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
+### Factory tecniche del satellite senza conoscenza business
+
+Le factory tecniche del runtime del satellite devono creare i meccanismi del processo senza conoscere Domain, casi d'uso o adapter, importando soltanto moduli Node.js, dipendenze e altri file del runtime, e la composition root deve consegnare loro risorse e operazioni già costruite tramite dipendenze esplicite.
+
+#### Details
+Le factory tecniche sono elencate nella regola `technical-factory-imports` di «Regole di architettura del satellite».
+
+Origine: baseline Reqvire «Technical factories without business knowledge», adottata.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Regole di architettura del satellite](../Contracts/VoiceSatellite.md#regole-di-architettura-del-satellite)
+
+#### Relations
+  * derivedFrom: [Capacità dell'ambiente fornite dalla composition root](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#capacità-dellambiente-fornite-dalla-composition-root)
+  * satisfiedBy: [satellite-process.ts](../../src/runtime/satellite-process.ts)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
+---
+
 ### File d'ambiente locale del satellite
 
 Lo sviluppo del satellite deve caricare il file `.env` soltanto con il comando `pnpm dev`, che avvia il processo con `node --env-file=.env`, il codice del satellite non deve leggere file d'ambiente, il repository deve fornire `.env.example` con ogni variabile letta dal modulo di configurazione e i soli valori approvati, e `.env` deve restare escluso da Git e dall'immagine container.
@@ -759,6 +816,22 @@ Il satellite deve inviare messaggi e frame audio soltanto su una sessione conver
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Isolamento degli adapter inbound dai rifiuti interni nel satellite
+
+Quando un adapter inbound del satellite rappresenta gli esiti di un caso d'uso, non deve importare né riconoscere i tipi di rifiuto interni delle porte o del Domain, compresi gli import di soli tipi.
+
+#### Details
+Origine: baseline Reqvire «Inbound adapters isolated from internal rejections», adottata.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * derivedFrom: [Gestione esplicita dei rifiuti previsti](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#gestione-esplicita-dei-rifiuti-previsti)
+  * satisfiedBy: [conversation-events.adapter.ts](../../src/adapters/in/conversation-events.adapter.ts)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
+---
+
 ### Istruzioni per gli agenti del satellite
 
 Le istruzioni per gli agenti del repository del satellite devono applicare al lavoro nel repository le regole di processo di `ambrogio-model`, rimandando a `ambrogio-model/AGENTS.md` per le regole comuni e aggiungendo soltanto le indicazioni proprie del repository.
@@ -805,6 +878,24 @@ I componenti tecnici del satellite che registrano eventi diagnostici devono rice
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * satisfiedBy: [main.ts](../../src/main.ts)
   * satisfiedBy: [logger.ts](../../src/runtime/logger.ts)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
+---
+
+### Mapping esaustivo dei rifiuti previsti nel satellite
+
+Quando un mapping del satellite deve gestire tutte le varianti di un'unione di rifiuti previsti, il codice TypeScript deve usare uno `switch` su `kind` con un ramo per ogni variante e un `default` che passa ad `assertNever` il valore su cui lo `switch` discrimina.
+
+#### Details
+Con due o più varianti il `default` passa la variante completa; con una sola variante passa `kind`, perché TypeScript restringe a `never` il letterale di `kind` ma non un tipo oggetto che non è un'unione.
+
+Origine: baseline Reqvire «Exhaustive rejection mapping with assertNever», adattata: con un'unione di una sola variante `assertNever` riceve `kind` invece della variante completa.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * derivedFrom: [Gestione esplicita dei rifiuti previsti](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#gestione-esplicita-dei-rifiuti-previsti)
+  * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
@@ -913,6 +1004,26 @@ I workflow GitHub Actions del satellite devono applicare il profilo comune dei w
   * specify: [Sviluppo governato dal modello](../../../ambrogio-model/system-model/Capabilities/Engineering.md#sviluppo-governato-dal-modello)
 ---
 
+### Processo compilato del satellite provato come processo
+
+La selezione `e2e` del satellite deve compilare il satellite e avviarne il punto d'ingresso compilato come processo figlio, verificando la risoluzione dei moduli, il rifiuto della configurazione e degli argomenti di avvio e il mancato avvio con un modello non valido, e le prove di integrazione contro il backend affiancato devono provare con i moduli compilati del satellite una conversazione vocale riuscita.
+
+#### Details
+Origine: baseline Reqvire «Compiled artifacts tested as processes», adattata: l'operazione riuscita non si prova nel processo compilato, perché il satellite attivo richiede microfono e altoparlante; si prova con i moduli compilati del canale conversazionale contro l'ingresso di prova del backend.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Suite di test del satellite](../Contracts/VoiceSatellite.md#suite-di-test-del-satellite)
+
+#### Relations
+  * derivedFrom: [Artefatti compilati provati come processi](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#artefatti-compilati-provati-come-processi)
+  * satisfiedBy: [verify-backend.mjs](../../scripts/verify-backend.mjs)
+  * satisfiedBy: [main.e2e.spec.ts](../../src/main.e2e.spec.ts)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
+---
+
 ### Progetto unico del satellite
 
 Il satellite deve organizzare Domain, Application e adapter in un solo progetto, senza suddivisione in package di workspace.
@@ -957,6 +1068,25 @@ Quando viene creato un tag di release valido, il satellite deve pubblicare su GH
   * derivedFrom: [Pubblicazione delle immagini di release](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#pubblicazione-delle-immagini-di-release)
   * satisfiedBy: [publish-image.yml](../../.github/workflows/publish-image.yml)
   * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
+---
+
+### Punto d'ingresso e meccanismi di processo del satellite
+
+Il punto d'ingresso `src/main.ts` del satellite deve coordinare l'esecuzione dei componenti assemblati dalla composition root, e i meccanismi tecnici propri del processo, cioè percorso fatale, logger di base, caricamento della configurazione, avvio e arresto con le loro scadenze, devono risiedere in `src/runtime/`.
+
+#### Details
+Il punto d'ingresso legge gli argomenti e la configurazione con i moduli del runtime, fa costruire il satellite alla composition root e ne affida attivazione e arresto al runner del processo, senza assemblare componenti in proprio.
+
+Origine: baseline Reqvire «Execution coordination in entrypoints», adottata; «Process mechanisms in the runtime directory», adottata.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * satisfiedBy: [main.ts](../../src/main.ts)
+  * satisfiedBy: [configuration.ts](../../src/runtime/configuration.ts)
+  * satisfiedBy: [satellite-process.ts](../../src/runtime/satellite-process.ts)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Registrazione delle attivazioni locali
@@ -1489,135 +1619,5 @@ Quando la suite automatica del satellite esegue le verifiche del codice e del re
   * derivedFrom: [Suite di test con Vitest accanto al codice](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#suite-di-test-con-vitest-accanto-al-codice)
   * satisfiedBy: [package.json](../../package.json)
   * satisfiedBy: [vitest.config.ts](../../vitest.config.ts)
-  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
----
-
-### Punto d'ingresso e meccanismi di processo del satellite
-
-Il punto d'ingresso `src/main.ts` del satellite deve coordinare l'esecuzione dei componenti assemblati dalla composition root, e i meccanismi tecnici propri del processo, cioè percorso fatale, logger di base, caricamento della configurazione, avvio e arresto con le loro scadenze, devono risiedere in `src/runtime/`.
-
-#### Details
-Il punto d'ingresso legge gli argomenti e la configurazione con i moduli del runtime, fa costruire il satellite alla composition root e ne affida attivazione e arresto al runner del processo, senza assemblare componenti in proprio.
-
-Origine: baseline Reqvire «Execution coordination in entrypoints», adottata; «Process mechanisms in the runtime directory», adottata.
-
-#### Metadata
-  * type: requirement
-
-#### Relations
-  * satisfiedBy: [main.ts](../../src/main.ts)
-  * satisfiedBy: [configuration.ts](../../src/runtime/configuration.ts)
-  * satisfiedBy: [satellite-process.ts](../../src/runtime/satellite-process.ts)
-  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
----
-
-### Factory tecniche del satellite senza conoscenza business
-
-Le factory tecniche del runtime del satellite devono creare i meccanismi del processo senza conoscere Domain, casi d'uso o adapter, importando soltanto moduli Node.js, dipendenze e altri file del runtime, e la composition root deve consegnare loro risorse e operazioni già costruite tramite dipendenze esplicite.
-
-#### Details
-Le factory tecniche sono elencate nella regola `technical-factory-imports` di «Regole di architettura del satellite».
-
-Origine: baseline Reqvire «Technical factories without business knowledge», adottata.
-
-#### Metadata
-  * type: requirement
-
-#### Contract References
-  * [Regole di architettura del satellite](../Contracts/VoiceSatellite.md#regole-di-architettura-del-satellite)
-
-#### Relations
-  * derivedFrom: [Capacità dell'ambiente fornite dalla composition root](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#capacità-dellambiente-fornite-dalla-composition-root)
-  * satisfiedBy: [satellite-process.ts](../../src/runtime/satellite-process.ts)
-  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
----
-
-### Mapping esaustivo dei rifiuti previsti nel satellite
-
-Quando un mapping del satellite deve gestire tutte le varianti di un'unione di rifiuti previsti, il codice TypeScript deve usare uno `switch` su `kind` con un ramo per ogni variante e un `default` che passa ad `assertNever` il valore su cui lo `switch` discrimina.
-
-#### Details
-Con due o più varianti il `default` passa la variante completa; con una sola variante passa `kind`, perché TypeScript restringe a `never` il letterale di `kind` ma non un tipo oggetto che non è un'unione.
-
-Origine: baseline Reqvire «Exhaustive rejection mapping with assertNever», adattata: con un'unione di una sola variante `assertNever` riceve `kind` invece della variante completa.
-
-#### Metadata
-  * type: requirement
-
-#### Relations
-  * derivedFrom: [Gestione esplicita dei rifiuti previsti](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#gestione-esplicita-dei-rifiuti-previsti)
-  * satisfiedBy: [main.ts](../../src/main.ts)
-  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
----
-
-### Campi specifici dei rifiuti previsti nel satellite
-
-Le varianti di rifiuto previsto di Domain, Application e delle porte e quelle del caricamento della configurazione e degli argomenti di avvio del satellite devono contenere, oltre a `kind`, soltanto campi tipizzati specifici della variante, stabili nel significato e necessari al chiamante, senza campi generici comuni obbligatori per tutte le varianti.
-
-#### Details
-Origine: baseline Reqvire «Rejection-specific fields only», adottata.
-
-#### Metadata
-  * type: requirement
-
-#### Relations
-  * derivedFrom: [Esiti previsti come valori tipizzati](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#esiti-previsti-come-valori-tipizzati)
-  * satisfiedBy: [configuration.ts](../../src/runtime/configuration.ts)
-  * satisfiedBy: [startup-arguments.ts](../../src/adapters/in/startup-arguments.ts)
-  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
----
-
-### Isolamento degli adapter inbound dai rifiuti interni nel satellite
-
-Quando un adapter inbound del satellite rappresenta gli esiti di un caso d'uso, non deve importare né riconoscere i tipi di rifiuto interni delle porte o del Domain, compresi gli import di soli tipi.
-
-#### Details
-Origine: baseline Reqvire «Inbound adapters isolated from internal rejections», adottata.
-
-#### Metadata
-  * type: requirement
-
-#### Relations
-  * derivedFrom: [Gestione esplicita dei rifiuti previsti](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#gestione-esplicita-dei-rifiuti-previsti)
-  * satisfiedBy: [conversation-events.adapter.ts](../../src/adapters/in/conversation-events.adapter.ts)
-  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
----
-
-### Avvio del container del satellite senza Docker Compose
-
-Quando chi installa avvia l'immagine container del satellite, l'avvio deve richiedere soltanto il runtime dei container, senza Docker Compose; `compose.example.yaml` è soltanto un esempio di avvio.
-
-#### Details
-Origine: baseline Reqvire «Container start without Compose», adottata.
-
-#### Metadata
-  * type: requirement
-
-#### Contract References
-  * [Esecuzione host e container](../Contracts/VoiceSatellite.md#esecuzione-host-e-container)
-
-#### Relations
-  * satisfiedBy: [Dockerfile](../../Dockerfile)
-  * satisfiedBy: [verify-docker-image.mjs](../../scripts/verify-docker-image.mjs)
-  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
----
-
-### Processo compilato del satellite provato come processo
-
-La selezione `e2e` del satellite deve compilare il satellite e avviarne il punto d'ingresso compilato come processo figlio, verificando la risoluzione dei moduli, il rifiuto della configurazione e degli argomenti di avvio e il mancato avvio con un modello non valido, e le prove di integrazione contro il backend affiancato devono provare con i moduli compilati del satellite una conversazione vocale riuscita.
-
-#### Details
-Origine: baseline Reqvire «Compiled artifacts tested as processes», adattata: l'operazione riuscita non si prova nel processo compilato, perché il satellite attivo richiede microfono e altoparlante; si prova con i moduli compilati del canale conversazionale contro l'ingresso di prova del backend.
-
-#### Metadata
-  * type: requirement
-
-#### Contract References
-  * [Suite di test del satellite](../Contracts/VoiceSatellite.md#suite-di-test-del-satellite)
-
-#### Relations
-  * derivedFrom: [Artefatti compilati provati come processi](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#artefatti-compilati-provati-come-processi)
-  * satisfiedBy: [main.e2e.spec.ts](../../src/main.e2e.spec.ts)
-  * satisfiedBy: [verify-backend.mjs](../../scripts/verify-backend.mjs)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
