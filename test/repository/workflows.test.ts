@@ -6,6 +6,13 @@ const read = (name: string) => readFileSync(new URL(`../../.github/workflows/${n
 const workflows = { ci: read('ci.yml'), secretScan: read('secret-scan.yml'), publish: read('publish-image.yml') };
 const all = Object.values(workflows);
 
+// Shared values live in the contracts of ambrogio-model, checked out side by side in the workspace
+// (locally and in CI); the satellite's own values live in its contracts.
+const contract = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
+const commonContracts = contract('../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md');
+const satelliteContracts = contract('../../system-model/Contracts/VoiceSatellite.md');
+const manifest = (path: string) => JSON.parse(contract(path)) as { packageManager?: string };
+
 /** Lines of a top-level key, or of a nested key, until the indentation returns to its level. */
 function section(text: string, key: string, indent = 0): string {
   const lines = text.split('\n');
@@ -28,12 +35,15 @@ const step = (jobText: string, name: string) => {
 const sha = /^[0-9a-f]{40}$/;
 
 describe('workflow protections', () => {
-  const pinned = new Map([
-    ['actions/checkout', ['d23441a48e516b6c34aea4fa41551a30e30af803', 'v6']],
-    ['actions/setup-node', ['249970729cb0ef3589644e2896645e5dc5ba9c38', 'v6']],
-    ['docker/setup-qemu-action', ['c7c53464625b32c7a7e944ae62b3e17d2b600130', 'v3']],
-    ['docker/setup-buildx-action', ['8d2750c68a42422c14e847fe6c8ac0403b4cbd6f', 'v3']],
-  ]);
+  /** Actions fixed by the contracts, written as `owner/action@<sha>` (vN). */
+  const pinnedIn = (text: string) => [...text.matchAll(/`([\w.-]+\/[\w.-]+)@([0-9a-f]{40})` \((v\d+)\)/g)]
+    .map(([, action, ref, version]) => [action!, [ref!, version!]] as const);
+  const pinned = new Map([...pinnedIn(commonContracts), ...pinnedIn(satelliteContracts)]);
+
+  it('reads the pinned actions from the contracts', () => {
+    expect([...pinned.keys()].sort()).toEqual(
+      ['actions/checkout', 'actions/setup-node', 'docker/setup-buildx-action', 'docker/setup-qemu-action']);
+  });
 
   it('pins every external action by commit SHA with the major version of the contract', () => {
     for (const text of all) {
@@ -61,6 +71,8 @@ describe('workflow protections', () => {
 
   it('bounds every job that runs steps with the contract timeout', () => {
     expect(job(workflows.ci, 'checks')).toMatch(/^ {4}name: Satellite checks$/m);
+    expect(satelliteContracts).toContain(
+      '`timeout-minutes: 15` per `Satellite checks`, `10` per `Secret scan` e `60` per il job `publish`');
     expect(job(workflows.ci, 'checks')).toMatch(/^ {4}timeout-minutes: 15$/m);
     expect(job(workflows.secretScan, 'gitleaks')).toMatch(/^ {4}name: Secret scan$/m);
     expect(job(workflows.secretScan, 'gitleaks')).toMatch(/^ {4}timeout-minutes: 10$/m);
@@ -116,10 +128,47 @@ describe('CI workflow', () => {
   it('uses the pinned runner, Node.js, pnpm, frozen lockfile and ONNX Runtime settings', () => {
     expect(checks).toMatch(/^ {4}runs-on: ubuntu-24\.04$/m);
     expect(step(checks, 'Set up Node.js')).toMatch(/^ {10}node-version: '24'$/m);
+    expect(manifest('../../package.json').packageManager).toBe('pnpm@12.11.2');
+    expect(manifest('../../../ambrogio-backend/package.json').packageManager).toBe('pnpm@12.11.2');
     expect(step(checks, 'Install pnpm')).toMatch(/run: npm install --global pnpm@12\.11\.2$/m);
-    expect(step(checks, 'Install dependencies')).toMatch(/run: pnpm install --frozen-lockfile$/m);
-    expect(section(checks, 'env', 4)).toBe(
-      "    env:\n      ONNXRUNTIME_NODE_INSTALL: skip\n      ORT_DISABLE_TELEMETRY: '1'");
+    expect(satelliteContracts).toContain('Il job installa poi pnpm 12.11.2');
+    const install = step(checks, 'Install dependencies');
+    expect(install).toMatch(/^ {8}working-directory: workspace\/ambrogio-satellite$/m);
+    expect(install).toMatch(/run: pnpm install --frozen-lockfile$/m);
+    expect(section(checks, 'env', 4)).toBe('    env:\n      BRANCH: ${{ github.head_ref || github.ref_name }}\n'
+      + "      ONNXRUNTIME_NODE_INSTALL: skip\n      ORT_DISABLE_TELEMETRY: '1'");
+  });
+
+  it('checks out the workspace side by side and checks its model without a Reqvire version of its own', () => {
+    const checkout = step(checks, 'Check out repository');
+    expect(checkout).toMatch(/^ {10}path: workspace\/ambrogio-satellite$/m);
+    expect(checkout).toMatch(/^ {10}fetch-depth: 0$/m);
+    const model = step(checks, 'Check out ambrogio-model');
+    expect(model).toContain('set -euo pipefail');
+    expect(model).toContain('url=https://github.com/ambrogio-app/ambrogio-model.git');
+    expect(model).toContain('ref=main');
+    expect(model).toContain('if git ls-remote --exit-code --heads "$url" "$BRANCH" >/dev/null; then ref="$BRANCH"; fi');
+    expect(model).toContain('git clone --quiet --branch "$ref" "$url" workspace/ambrogio-model');
+    expect(step(checks, 'Check out the other repositories side by side')).toMatch(
+      /^ {8}run: workspace\/ambrogio-model\/scripts\/checkout-workspace workspace "\$BRANCH"$/m);
+    expect(step(checks, 'Check the model of the workspace')).toMatch(
+      /^ {8}run: workspace\/ambrogio-model\/scripts\/model-checks --workspace workspace$/m);
+    expect(workflows.ci).not.toMatch(/reqvire/i);
+    expect(workflows.ci).not.toContain('check-model');
+  });
+
+  it('builds the side-by-side backend and runs the integration test only after the satellite build', () => {
+    const install = step(checks, 'Install backend dependencies');
+    expect(install).toMatch(/^ {8}working-directory: workspace\/ambrogio-backend$/m);
+    expect(install).toMatch(/^ {8}run: pnpm install --frozen-lockfile$/m);
+    const build = step(checks, 'Build backend');
+    expect(build).toMatch(/^ {8}working-directory: workspace\/ambrogio-backend$/m);
+    expect(build).toMatch(/^ {8}run: pnpm build$/m);
+    const integration = step(checks, 'Test against the side-by-side backend');
+    expect(integration).toMatch(/^ {8}working-directory: workspace\/ambrogio-satellite$/m);
+    expect(integration).toMatch(/^ {8}run: pnpm test:backend$/m);
+    expect(manifest('../../package.json')).toMatchObject(
+      { scripts: { 'test:backend': 'pnpm build && node scripts/verify-backend.mjs' } });
   });
 
   it('installs the gitleaks release of the secret scan, verifying its checksum before extraction', () => {
@@ -135,20 +184,27 @@ describe('CI workflow', () => {
 
   it('runs every check in the contract order and lets each failure fail the job', () => {
     const commands = [
-      'run: pnpm install --frozen-lockfile',
-      'run: npx --yes @reqvire-org/reqvire@1.3.2 --workspace "$PWD" validate',
-      'npx --yes @reqvire-org/reqvire@1.3.2 --workspace "$PWD" lint --json > "$report"',
-      "jq -e '.auto_fixable == [] and .needs_manual_review == []' \"$report\"",
-      'run: node scripts/check-model.mjs',
+      'name: Check out repository',
+      'name: Set up Node.js',
+      'name: Check out ambrogio-model',
+      'run: workspace/ambrogio-model/scripts/checkout-workspace workspace "$BRANCH"',
+      'run: workspace/ambrogio-model/scripts/model-checks --workspace workspace',
+      'run: npm install --global pnpm@12.11.2',
+      'name: Install backend dependencies',
+      'name: Build backend',
+      'name: Install dependencies',
       'run: pnpm typecheck',
       'name: Install gitleaks',
-      'run: pnpm test',
-      'run: pnpm build',
+      'run: pnpm test\n',
+      'name: Build\n',
+      'run: pnpm test:backend',
     ];
     const positions = commands.map(command => checks.indexOf(command));
     expect(positions.every(position => position >= 0), String(positions)).toBe(true);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
-    expect(step(checks, 'Lint Reqvire model')).toContain('set -euo pipefail');
+    for (const name of ['Run tests', 'Build', 'Check TypeScript and core isolation']) {
+      expect(step(checks, name), name).toMatch(/^ {8}working-directory: workspace\/ambrogio-satellite$/m);
+    }
     for (const text of all) expect(text).not.toContain('continue-on-error');
   });
 });
@@ -168,9 +224,12 @@ describe('secret scan workflow', () => {
   });
 
   it('downloads the pinned release, verifies the checksum before extracting and scans the whole history', () => {
-    expect(workflows.secretScan).toMatch(/^ {2}GITLEAKS_VERSION: 8\.30\.1$/m);
-    expect(workflows.secretScan).toMatch(
-      /^ {2}GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb$/m);
+    const version = /`gitleaks_(\d+\.\d+\.\d+)_linux_x64\.tar\.gz`/.exec(commonContracts)?.[1];
+    const checksum = /SHA-256 `([0-9a-f]{64})`/.exec(commonContracts)?.[1];
+    expect(version).toBe('8.30.1');
+    expect(checksum).toBeDefined();
+    expect(workflows.secretScan).toMatch(new RegExp(`^ {2}GITLEAKS_VERSION: ${version!.replaceAll('.', '\\.')}$`, 'm'));
+    expect(workflows.secretScan).toMatch(new RegExp(`^ {2}GITLEAKS_SHA256: ${checksum}$`, 'm'));
     const install = step(scan, 'Install gitleaks');
     expect(install).toContain('archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"');
     expect(install).toContain('"https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/$archive"');

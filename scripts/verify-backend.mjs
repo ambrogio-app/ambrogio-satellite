@@ -1,24 +1,31 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-// Integration check of the satellite's ambrogio.v1 channel against the pinned backend revision.
-// The backend validates every client message with the published schema; speech recognition and
-// synthesis are replaced by deterministic components, and playback is captured instead of Decibri.
+// Integration check of the satellite's ambrogio.v1 channel against the backend checked out side by
+// side in the workspace (or AMBROGIO_BACKEND_REPO), compiled, and started only through its public
+// test entry point. The backend validates every client message with the published schema; speech
+// recognition and synthesis are replaced by deterministic components, and playback is captured
+// instead of Decibri.
 const satellite = fileURLToPath(new URL('..', import.meta.url));
 const root = resolve(process.env.AMBROGIO_BACKEND_REPO ?? resolve(satellite, '../ambrogio-backend'));
-const expectedCommit = 'a570c013617fe7b9e944063dfd67ce2c00da398e'; // ambrogio-backend v0.8.0
-const actualCommit = execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-assert.equal(actualCommit, expectedCommit, 'Il backend locale deve essere al commit dichiarato nel contratto del satellite.');
+const entryPoint = join(root, 'apps/server/dist/runtime/test-server.js');
+try {
+  await access(entryPoint);
+} catch {
+  throw new Error(`Backend test entry point not found at ${entryPoint}: check out ambrogio-backend side by side `
+    + 'and build it, or set AMBROGIO_BACKEND_REPO.');
+}
+let backendCommit = 'unknown';
+try {
+  backendCommit = execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+} catch {}
+process.stdout.write(`ambrogio-backend: ${root} at commit ${backendCommit}\n`);
 
-const { loadConversationConfig } = await import(pathToFileURL(`${root}/packages/conversations/dist/adapters/out/conversation-config.js`));
-const { loadVoiceConfig } = await import(pathToFileURL(`${root}/packages/conversations/dist/adapters/out/voice-config.js`));
-const { loadHttpConfig } = await import(pathToFileURL(`${root}/apps/server/dist/runtime/http-config.js`));
-const { prepareConfiguredConversations } = await import(pathToFileURL(`${root}/apps/server/dist/composition/conversations.js`));
-const { buildConversationServer } = await import(pathToFileURL(`${root}/apps/server/dist/runtime/consultation-server.js`));
+const { startTestServer } = await import(pathToFileURL(entryPoint));
 const { ConversationChannel } = await import(pathToFileURL(`${satellite}/dist/adapters/out/conversation-channel.js`));
 const { AmbrogioSession } = await import(pathToFileURL(`${satellite}/dist/adapters/out/ambrogio-session.js`));
 
@@ -101,31 +108,11 @@ async function ask(channel, words, { activation = false } = {}) {
 }
 
 const directory = await mkdtemp(join(tmpdir(), 'ambrogio-satellite-backend-'));
-let built;
-let prepared;
+let server;
 const channels = [];
 try {
-  // The backend reads each component's configuration from a TypeScript module: write placeholder
-  // modules and load them with the backend's own loaders. The voice files only need to be readable,
-  // because the deterministic speech components replace Vosk and the synthesizer.
-  const voice = join(directory, 'voice');
-  await mkdir(join(directory, 'vosk'));
-  await mkdir(join(voice, 'espeak-ng-data'), { recursive: true });
-  await writeFile(join(voice, 'voice.onnx'), '');
-  await writeFile(join(voice, 'tokens.txt'), '');
-  const configModule = (name, value) => {
-    const filename = join(directory, name);
-    return writeFile(filename, `export default ${JSON.stringify(value, null, 2)};\n`).then(() => filename);
-  };
-  const conversationConfig = await loadConversationConfig(await configModule('conversations.ts', {
-    archivePath: join(directory, 'archive.sqlite'), language: 'it', timeZone: 'UTC', listPageSize: 20, maxListPageSize: 100 }));
-  const httpConfig = await loadHttpConfig(await configModule('http.ts', { host: '127.0.0.1', port: 3000, allowedOrigins: [] }));
-  const voiceConfig = await loadVoiceConfig(await configModule('voice.ts', {
-    voskModelPath: join(directory, 'vosk'), voiceEngine: 'piper', voiceModelDir: voice }), conversationConfig.language);
-  prepared = await prepareConfiguredConversations(conversationConfig, new Date());
-  built = await buildConversationServer(httpConfig, prepared, reply, voiceConfig, speech, { sessionPingIntervalMs: 30_000 });
-  const address = await built.server.listen({ host: '127.0.0.1', port: 0 });
-  const sessionUrl = new URL('api/session', `${address.replace('http:', 'ws:')}/`);
+  server = await startTestServer({ directory, language: 'it', reply, speech, sessionPingIntervalMs: 30_000 });
+  const { sessionUrl } = server;
   const lost = [];
   const satelliteA = new ConversationChannel({ url: sessionUrl, identity: { clientId: 'satellite-a', name: 'Satellite A' },
     lost: () => lost.push('satellite-a') });
@@ -172,21 +159,20 @@ try {
   assert.deepEqual(slowTurn.outcome, { kind: 'completed', expectsReply: false });
 
   // The archive holds the transcribed requests of each conversation.
-  const history = async id => (await built.server.inject({ method: 'GET', url: `/api/conversations/${id}` })).json();
+  const history = async id => {
+    const response = await fetch(`${server.origin}/api/conversations/${id}`);
+    assert.equal(response.status, 200);
+    return response.json();
+  };
   assert.deepEqual((await history(first.conversationId)).turns.map(turn => [turn.text, turn.status]),
     [['accendi la luce?', 'answered'], ['va bene', 'answered']]);
   assert.deepEqual((await history(slowTurn.conversationId)).turns.map(turn => turn.text), ['lento']);
   assert.deepEqual(lost, []);
-  process.stdout.write('Pinned ambrogio.v1 backend + satellite channel: activation, reply in the same conversation, '
+  process.stdout.write('Side-by-side ambrogio.v1 backend + satellite channel: activation, reply in the same conversation, '
     + 'new conversation per activation, expectsReply, spoken failure, occupied rejection, no protocol errors OK\n');
 } finally {
   releaseSlow();
   await Promise.allSettled(channels.map(channel => channel.close()));
-  if (built) {
-    await built.turnIngress.stopAccepting();
-    await built.turnIngress.closeSessions();
-    await built.server.close();
-  }
-  await prepared?.archive.close();
+  await server?.close();
   await rm(directory, { recursive: true, force: true });
 }

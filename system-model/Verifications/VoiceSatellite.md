@@ -40,19 +40,19 @@ Con speaker e microfono reali, pronunciare la wake word configurata, attendere i
 ### Dimostrazione del trasporto ambrogio.v1
 
 #### Details
-Contro la revisione backend registrata nel «Contratto vocale backend di riferimento», avviare il satellite e verificare che apra una sola sessione su `api/session` con il sottoprotocollo `ambrogio.v1`, invii `session.hello` con l'identità configurata e trasmetta soltanto dopo `session.ready`. Completare un'interazione con la wake word e una replica senza wake word: la prima richiesta non contiene `conversationId`, la replica usa il `conversationId` ricevuto in `turn.accepted`; una nuova attivazione con la wake word inizia una nuova conversazione. Verificare `input.start` audio a 16 kHz con `reply: "audio"`, frame binari con il numero `stream` big-endian e `input.end` alla fine del parlato; osservare trasmissioni audio di risposta, `turn.completed` con `expectsReply`, un turno rifiutato con il messaggio parlato e il ritorno alla wake word.
+Contro il backend affiancato nella cartella di lavoro, installato con trascrizione e sintesi reali, avviare il satellite e verificare che apra una sola sessione su `api/session` con il sottoprotocollo `ambrogio.v1`, invii `session.hello` con l'identità configurata e trasmetta soltanto dopo `session.ready`. Completare un'interazione con la wake word e una replica senza wake word: la prima richiesta non contiene `conversationId`, la replica usa il `conversationId` ricevuto in `turn.accepted`; una nuova attivazione con la wake word inizia una nuova conversazione. Verificare `input.start` audio a 16 kHz con `reply: "audio"`, frame binari con il numero `stream` big-endian e `input.end` alla fine del parlato; osservare trasmissioni audio di risposta, `turn.completed` con `expectsReply`, un turno rifiutato con il messaggio parlato e il ritorno alla wake word.
 
-Chiudere la sessione lato backend mentre il satellite attende la wake word e verificare che la successiva attivazione la riapra senza avvisi; chiuderla durante un'interazione e verificare il recupero locale senza riprendere la richiesta sulla nuova sessione. Inviare un messaggio del server non legato a un turno con `id` e verificare `client.result` con `reason: "unsupported"`. Registrare le versioni dei pacchetti e i log della prova. Non automatizzabile: richiede il backend installato con trascrizione e sintesi reali e la voce della persona al microfono del satellite; lo scambio dei messaggi con componenti vocali deterministici è provato da `scripts/verify-pinned-backend.mjs` nella «Prova della sessione e delle conversazioni del satellite».
+Chiudere la sessione lato backend mentre il satellite attende la wake word e verificare che la successiva attivazione la riapra senza avvisi; chiuderla durante un'interazione e verificare il recupero locale senza riprendere la richiesta sulla nuova sessione. Inviare un messaggio del server non legato a un turno con `id` e verificare `client.result` con `reason: "unsupported"`. Registrare il commit del backend, le versioni dei pacchetti e i log della prova nell'evidenza. Non automatizzabile: richiede il backend installato con trascrizione e sintesi reali e la voce della persona al microfono del satellite; lo scambio dei messaggi con componenti vocali deterministici è provato dalla «Prova della sessione e delle conversazioni del satellite».
 
 #### Metadata
   * type: demonstration-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Compatibilità con il canale vocale backend](../Requirements/VoiceSatellite.md#compatibilità-con-il-canale-vocale-backend)
   * verify: [Invio soltanto su sessione pronta](../Requirements/VoiceSatellite.md#invio-soltanto-su-sessione-pronta)
   * verify: [Nuova conversazione a ogni attivazione](../Requirements/VoiceSatellite.md#nuova-conversazione-a-ogni-attivazione)
   * verify: [Sessione conversazionale persistente](../Requirements/VoiceSatellite.md#sessione-conversazionale-persistente)
+  * verify: [Uso delle sole interfacce pubbliche del backend nel satellite](../Requirements/VoiceSatellite.md#uso-delle-sole-interfacce-pubbliche-del-backend-nel-satellite)
 ---
 
 ### Dimostrazione dell'attenuazione sul dispositivo
@@ -104,7 +104,7 @@ Sull'host e nel container, con microfono e speaker reali, avviare con un modulo 
 ### Dimostrazione della conversazione e delle repliche
 
 #### Details
-Contro la revisione backend compatibile fissata nel contratto, riprodurre una risposta completa; parlare durante la riproduzione e verificare che non la interrompa né apra un turno. Provare `turn.completed` con `expectsReply` uguale a `true` e `false`, con l'esito arrivato sia prima sia dopo la fine della riproduzione: la replica senza wake word si apre soltanto con `true`, dopo che lo speaker ha riprodotto tutte le trasmissioni chiuse da `output.end`, e appartiene alla stessa conversazione. Con una risposta in più trasmissioni e con pause lunghe nella sintesi, la conclusione non deve anticipare la fine dell'audio. Se l'esito non arriva entro 60 secondi dalla fine della richiesta, concludere con il recupero locale senza aprire la replica.
+Contro il backend affiancato nella cartella di lavoro, riprodurre una risposta completa; parlare durante la riproduzione e verificare che non la interrompa né apra un turno. Provare `turn.completed` con `expectsReply` uguale a `true` e `false`, con l'esito arrivato sia prima sia dopo la fine della riproduzione: la replica senza wake word si apre soltanto con `true`, dopo che lo speaker ha riprodotto tutte le trasmissioni chiuse da `output.end`, e appartiene alla stessa conversazione. Con una risposta in più trasmissioni e con pause lunghe nella sintesi, la conclusione non deve anticipare la fine dell'audio. Se l'esito non arriva entro 60 secondi dalla fine della richiesta, concludere con il recupero locale senza aprire la replica.
 
 Con `expectsReply` non booleano non aprire la replica. Provare un turno rifiutato e uno fallito dopo l'ammissione: l'audio del messaggio pubblico è riprodotto e il satellite torna alla wake word. Dopo inattività occorre una nuova wake word. Non automatizzabile: la conclusione della risposta dipende dalla riproduzione effettiva sullo speaker reale e da sintesi reali con pause; le regole con sessioni e speaker controllati sono coperte dalle prove automatiche.
 
@@ -114,11 +114,11 @@ Con `expectsReply` non booleano non aprire la replica. Provare un turno rifiutat
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Attesa della fine della risposta](../Requirements/VoiceSatellite.md#attesa-della-fine-della-risposta)
-  * verify: [Compatibilità con il canale vocale backend](../Requirements/VoiceSatellite.md#compatibilità-con-il-canale-vocale-backend)
   * verify: [Replica richiesta dal backend](../Requirements/VoiceSatellite.md#replica-richiesta-dal-backend)
   * verify: [Riproduzione della risposta vocale](../Requirements/VoiceSatellite.md#riproduzione-della-risposta-vocale)
   * verify: [Ritorno alla wake word dopo la risposta](../Requirements/VoiceSatellite.md#ritorno-alla-wake-word-dopo-la-risposta)
   * verify: [Ritorno alla wake word per inattività](../Requirements/VoiceSatellite.md#ritorno-alla-wake-word-per-inattività)
+  * verify: [Uso delle sole interfacce pubbliche del backend nel satellite](../Requirements/VoiceSatellite.md#uso-delle-sole-interfacce-pubbliche-del-backend-nel-satellite)
 ---
 
 ### Dimostrazione della distribuzione Linux
@@ -164,7 +164,7 @@ Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare il model
   * verify: [Delimitazione locale dei turni vocali](../Requirements/VoiceSatellite.md#delimitazione-locale-dei-turni-vocali)
 ---
 
-### Ispezione dei nomi secondo le responsabilità
+### Ispezione dei nomi secondo le responsabilità nel satellite
 
 #### Details
 Partire dall'elenco completo dei file di produzione, dalle porte Application e dai punti di ingresso; non limitare la ricerca ai nomi che contengono già `.adapter` o `.use-case`. Per ciascun componente interessato registrare percorso, responsabilità, eventuale porta implementata o caso d'uso invocato, classificazione e nome atteso.
@@ -178,7 +178,7 @@ Per ogni rinomina controllare import, export pubblici, riferimenti nei test e co
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Nomi dei file secondo il ruolo architetturale](../Requirements/VoiceSatellite.md#nomi-dei-file-secondo-il-ruolo-architetturale)
+  * verify: [Nomi dei file secondo il ruolo architetturale nel satellite](../Requirements/VoiceSatellite.md#nomi-dei-file-secondo-il-ruolo-architetturale-nel-satellite)
 ---
 
 ### Ispezione del bootstrap della configurazione
@@ -203,7 +203,7 @@ Ispezionare dipendenze, bootstrap, composition root, configurazione e logger: de
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Perimetro iniziale dei segnali di osservabilità](../Requirements/VoiceSatellite.md#perimetro-iniziale-dei-segnali-di-osservabilità)
+  * verify: [Perimetro iniziale dei segnali di osservabilità del satellite](../Requirements/VoiceSatellite.md#perimetro-iniziale-dei-segnali-di-osservabilità-del-satellite)
 ---
 
 ### Ispezione del workflow CI del satellite
@@ -224,16 +224,15 @@ L'ispezione passa se il job `Satellite checks` ha eseguito tutti i passi del con
 ### Ispezione della architettura e degli esiti
 
 #### Details
-Esaminare codice, import e firme: TypeScript eseguito da Node.js; stati e regole in Domain; coordinamento e porte in Application; librerie audio, wake word e trasporto negli adapter. Per ogni esito negativo dichiarato verificare la rappresentazione tipizzata; per i guasti inattesi verificare propagazione e gestione diagnostica al confine tecnico. Accertare repository e modello autonomi con riferimento esplicito al contratto backend, senza grafi fusi. Controllare che il lessico e l'ontologia locali definiscano i termini e le relazioni essenziali senza dipendere dal modello backend, che i riferimenti ai concetti risolvano e che le esportazioni semantiche e la validazione Reqvire abbiano esito corretto. Non automatizzabile: attribuire stati, regole e integrazioni al layer corretto e giudicare l'autonomia del lessico richiede di leggere codice e modello.
+Esaminare codice, import e firme: TypeScript eseguito da Node.js; stati e regole in Domain; coordinamento e porte in Application; librerie audio, wake word e trasporto negli adapter. Per ogni esito negativo dichiarato verificare la rappresentazione tipizzata; per i guasti inattesi verificare propagazione e gestione diagnostica al confine tecnico. Controllare che il lessico e l'ontologia del satellite definiscano i termini e le relazioni propri del satellite, che i termini condivisi con il resto del prodotto rimandino al «Lessico Ambrogio» di `ambrogio-model`, che i riferimenti ai concetti risolvano e che le esportazioni semantiche e la validazione Reqvire dell'intero modello abbiano esito corretto. Non automatizzabile: attribuire stati, regole e integrazioni al layer corretto e distinguere i termini propri del satellite da quelli condivisi richiede di leggere codice e modello.
 
 #### Metadata
   * type: inspection-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Esiti previsti come valori tipizzati](../Requirements/VoiceSatellite.md#esiti-previsti-come-valori-tipizzati)
+  * verify: [Esiti previsti come valori tipizzati nel satellite](../Requirements/VoiceSatellite.md#esiti-previsti-come-valori-tipizzati-nel-satellite)
   * verify: [Gestione dei guasti inattesi](../Requirements/VoiceSatellite.md#gestione-dei-guasti-inattesi)
-  * verify: [Modello autonomo del satellite](../Requirements/VoiceSatellite.md#modello-autonomo-del-satellite)
   * verify: [Separazione Domain Application e adapter](../Requirements/VoiceSatellite.md#separazione-domain-application-e-adapter)
   * verify: [Stack TypeScript e Node.js](../Requirements/VoiceSatellite.md#stack-typescript-e-nodejs)
 ---
@@ -248,10 +247,10 @@ Inventariare tutte le dichiarazioni Application, incluse capacità restituite e 
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Forma TypeScript dei contratti Application](../Requirements/VoiceSatellite.md#forma-typescript-dei-contratti-application)
+  * verify: [Forma TypeScript dei contratti Application nel satellite](../Requirements/VoiceSatellite.md#forma-typescript-dei-contratti-application-nel-satellite)
 ---
 
-### Ispezione della protezione del merge
+### Ispezione della protezione del merge del satellite
 
 Leggere con `gh api repos/<proprietario>/<repository>/rulesets` e con il dettaglio del ruleset `main` le regole attive sul branch principale.
 
@@ -263,7 +262,7 @@ L'ispezione passa se il ruleset corrisponde al contratto: applicazione attiva su
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Controlli obbligatori prima del merge](../Requirements/VoiceSatellite.md#controlli-obbligatori-prima-del-merge)
+  * verify: [Controlli obbligatori prima del merge del satellite](../Requirements/VoiceSatellite.md#controlli-obbligatori-prima-del-merge-del-satellite)
 ---
 
 ### Ispezione della raccolta esterna dei log
@@ -293,34 +292,19 @@ L'ispezione passa se la scansione locale termina senza ritrovamenti e l'esecuzio
   * verify: [Scansione dei segreti nella storia del repository](../Requirements/VoiceSatellite.md#scansione-dei-segreti-nella-storia-del-repository)
 ---
 
-### Ispezione delle decisioni sostituite
+### Ispezione delle istruzioni per gli agenti del satellite
 
-Durante la revisione di ogni modifica che registra una decisione in sostituzione di un'altra, cercare nel modello gli elementi che affermano la decisione sostituita, con `change-impact` e con una ricerca testuale dei suoi termini chiave.
+Durante la revisione di ogni modifica di `AGENTS.md` del satellite o di `ambrogio-model/AGENTS.md`, leggere le istruzioni del satellite e confrontarle con i requisiti di processo di `ambrogio-model` e con `ambrogio-model/AGENTS.md`.
 
 #### Details
-L'ispezione passa se, dopo la modifica, nessun requisito, contratto o verifica afferma ancora la decisione sostituita. Fallisce se un elemento la afferma ancora. Non automatizzabile: riconoscere che un testo afferma una decisione sostituita richiede di leggerlo; lo script copre soltanto date e formule di storia.
+L'ispezione passa se le istruzioni del satellite rimandano a `ambrogio-model/AGENTS.md` per le regole comuni, non contraddicono i requisiti di processo di `ambrogio-model`, non descrivono un modello autonomo del repository né una revisione fissata del backend, eseguono Reqvire sulla cartella di lavoro con la versione di `ambrogio-model/.reqvire-version` e aggiungono soltanto indicazioni proprie del satellite. Fallisce se un'istruzione contraddice un requisito o ripete una regola comune in forma diversa. Non automatizzabile: confrontare istruzioni in prosa con i requisiti richiede di leggerle.
 
 #### Metadata
   * type: inspection-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Decisioni sostituite rimosse nella stessa modifica](../Requirements/VoiceSatellite.md#decisioni-sostituite-rimosse-nella-stessa-modifica)
----
-
-### Ispezione delle dipendenze fra contratti
-
-Durante la revisione di ogni modifica che aggiunge o modifica un contratto, leggere il contratto e i contratti dei requisiti da cui dipende, ed eseguire `change-impact` sulla modifica.
-
-#### Details
-L'ispezione passa se il contratto afferma soltanto la decisione del proprio requisito e ogni dipendenza da un contratto posseduto da un altro requisito è dichiarata come Contract Reference dal requisito proprietario del contratto dipendente, così che `change-impact` la segnali. Fallisce se un contratto ripete contenuto posseduto da un altro requisito o se una dipendenza non è dichiarata. Non automatizzabile: stabilire se due testi affermano lo stesso fatto richiede di leggerli.
-
-#### Metadata
-  * type: inspection-verification
-
-#### Relations
-  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Dipendenze fra contratti dichiarate come riferimenti](../Requirements/VoiceSatellite.md#dipendenze-fra-contratti-dichiarate-come-riferimenti)
+  * verify: [Istruzioni per gli agenti del satellite](../Requirements/VoiceSatellite.md#istruzioni-per-gli-agenti-del-satellite)
 ---
 
 ### Ispezione delle licenze dei modelli distribuiti
@@ -394,7 +378,7 @@ La prova passa se gli eventi tardivi non interrompono l'acquisizione del microfo
 
 ### Prova dei confini interni
 
-Leggere come testo tutti i file TypeScript di `src` e `test`: tolti i commenti, estrarre con espressioni regolari gli specificatori di `import … from`, `export … from`, `import` senza binding e `import()` con letterale, compresi quelli di soli tipi, risolvere i percorsi relativi e classificarli per layer; verificare prima la lettura su un file campione con ogni forma, commenti e stringhe che contengono testo simile a un import; leggere `package.json`, `pnpm-workspace.yaml` e l'elenco dei file tracciati da Git.
+Leggere come testo tutti i file TypeScript di `src` e `test`: tolti i commenti, estrarre con espressioni regolari gli specificatori di `import … from`, `export … from`, `import` senza binding, `import()` e `require` o `require.resolve` con letterale, compresi quelli di soli tipi, risolvere i percorsi relativi e classificarli per layer; verificare prima la lettura su un file campione con ogni forma, commenti e stringhe che contengono testo simile a un import; leggere `package.json`, `pnpm-workspace.yaml` e l'elenco dei file tracciati da Git.
 
 #### Details
 La prova passa se i file Domain importano soltanto Domain; se i file Application importano soltanto Application e Domain; se Domain e Application non importano moduli esterni né moduli `node:`, e quindi né logger né accesso a file o ambiente; se soltanto la composition root importa come valore i casi d'uso Application e i file `*.adapter.ts`; se, fra il codice di produzione, i test Domain importano soltanto Domain, i test Application soltanto Application e Domain, i test inbound soltanto l'adapter inbound con il nome del test e Application, e i test outbound soltanto adapter outbound, Application e Domain; e se il repository traccia un solo `package.json`, senza campo `workspaces`, e `pnpm-workspace.yaml` non dichiara `packages`. Le prove di integrazione della composition root e del confine di processo sono escluse dalle regole dei test, come prevede il contratto «Regole di importazione dei test». Fallisce se la lettura del file campione non produce esattamente gli specificatori attesi, se un import, anche di soli tipi, viola una regola, se un percorso relativo non si risolve in un file del repository o se un layer non contiene file.
@@ -516,6 +500,22 @@ La prova passa se il tono di errore è PCM16 mono a 16 kHz di 5600 campioni (350
   * verify: [Tono di errore per backend irraggiungibile](../Requirements/VoiceSatellite.md#tono-di-errore-per-backend-irraggiungibile)
 ---
 
+### Prova dell'assenza di import del backend nel satellite
+
+Leggere come testo tutti i file TypeScript di `src`, estrarne gli specificatori con la stessa lettura della «Prova dei confini interni» e risolverli.
+
+#### Details
+La prova passa se i file di `src` letti non sono vuoti e se ogni specificatore del codice di produzione è un modulo di Node.js, una dipendenza di runtime dichiarata nel `package.json` del satellite o un percorso relativo che resta in `src`; nessuno specificatore deve risolversi in un percorso del repository `ambrogio-backend` o fuori dal repository, né nominare un package del backend, e nessun package del backend deve comparire fra le dipendenze del satellite. L'unico import calcolato a runtime ammesso è quello del caricatore della configurazione in `src/adapters/out/config-file.ts`, che importa il modulo di configurazione dell'installazione. Fallisce se un file di produzione importa codice del backend, anche soltanto per i tipi, o se uno specificatore non può essere risolto.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [backend-imports.test.ts](../../test/architecture/backend-imports.test.ts)
+  * verify: [Uso delle sole interfacce pubbliche del backend nel satellite](../Requirements/VoiceSatellite.md#uso-delle-sole-interfacce-pubbliche-del-backend-nel-satellite)
+---
+
 ### Prova dell'attenuazione dell'audio locale
 
 Con una porta di attenuazione registrata nei test, avviare il satellite con e senza `audio.attenuation`, riconoscere la wake word e concludere l'interazione dopo la risposta, dopo una replica richiesta dal backend, per inattività, per backend irraggiungibile e per perdita della sessione; arrestare poi il processo. Con un esecutore di processi registrato, provare l'adapter `amixer` con esito riuscito, controllo inesistente, codice di uscita diverso da zero e scadenza del tempo massimo. Validare la configurazione con valori corretti, campi mancanti, `level` fuori da 0-100 e campi non previsti.
@@ -598,26 +598,6 @@ La prova passa se senza configurazione `clientId` vale `satellite-<nome host>` e
   * verify: [Identificazione del satellite nella sessione](../Requirements/VoiceSatellite.md#identificazione-del-satellite-nella-sessione)
 ---
 
-### Prova dell'integrità del modello
-
-Eseguire `node scripts/check-model.mjs` nella radice del repository, come fa la CI dopo la validazione e il lint del modello.
-
-#### Details
-La prova passa se lo script non segnala storia delle decisioni, formule non normative, verifiche manuali senza «Non automatizzabile:» né file di governo non riferiti dal modello, e termina con stato 0. Fallisce se lo script segnala una violazione o non riesce a eseguire.
-
-#### Metadata
-  * type: test-verification
-
-#### Relations
-  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [check-model.mjs](../../scripts/check-model.mjs)
-  * verify: [Controllo automatico dell'integrità del modello](../Requirements/VoiceSatellite.md#controllo-automatico-dellintegrità-del-modello)
-  * verify: [Decisioni sostituite rimosse nella stessa modifica](../Requirements/VoiceSatellite.md#decisioni-sostituite-rimosse-nella-stessa-modifica)
-  * verify: [File di governo collegati al modello](../Requirements/VoiceSatellite.md#file-di-governo-collegati-al-modello)
-  * verify: [Formulazione normativa degli obblighi](../Requirements/VoiceSatellite.md#formulazione-normativa-degli-obblighi)
-  * verify: [Verifiche manuali giustificate](../Requirements/VoiceSatellite.md#verifiche-manuali-giustificate)
----
-
 ### Prova della conferma su blocchi consecutivi
 
 Con sessioni ONNX simulate che restituiscono una sequenza controllata di punteggi del classificatore, uno per blocco da 80 ms, e soglia 0,5: con `patience` 2 un solo blocco sopra soglia seguito da uno sotto soglia non produce rilevamenti; due blocchi consecutivi sopra soglia producono un solo rilevamento, sul secondo blocco; due blocchi sopra soglia separati da uno sotto soglia non producono rilevamenti; con `patience` 1 un solo blocco sopra soglia produce un rilevamento. Dopo l'azzeramento della pipeline un blocco sopra soglia non completa un conteggio iniziato prima. Opzioni con `patience` non intero o minore di 1 sono rifiutate all'apertura. La configurazione senza `wakeWord.patience` produce il valore 2, accetta 1 e 10 e rifiuta 0, 11, valori non interi e stringhe con `field: "wakeWord.patience"`; la composition root passa il valore configurato al riconoscitore.
@@ -661,10 +641,10 @@ La prova passa se l'avvio richiede un solo percorso indicato con `--config`; se 
 
 ### Prova della configurazione del workflow CI
 
-Leggere come testo `.github/workflows/ci.yml` e confrontarlo con il contratto «Profilo CI del satellite» e con `.github/workflows/secret-scan.yml`.
+Leggere come testo `.github/workflows/ci.yml` e confrontarlo con il contratto «Profilo CI del satellite», con il contratto «Checkout affiancato dello spazio di lavoro» di `ambrogio-model` e con `.github/workflows/secret-scan.yml`.
 
 #### Details
-La prova passa se il workflow si attiva su `pull_request`, sui `push` al solo branch `main`, su `workflow_dispatch` e su `workflow_call`, senza filtri `paths` o `paths-ignore`; se il job `Satellite checks` usa `ubuntu-24.04`, Node.js `24`, pnpm 12.11.2 e `pnpm install --frozen-lockfile`, con `ONNXRUNTIME_NODE_INSTALL: skip` e `ORT_DISABLE_TELEMETRY: '1'`; se installa gitleaks con la versione e lo SHA-256 di `.github/workflows/secret-scan.yml`, dallo stesso archivio della release ufficiale, ed esegue `sha256sum --check --strict` prima dell'estrazione; se esegue nell'ordine la validazione Reqvire 1.3.2, il lint JSON Reqvire 1.3.2 con il controllo `jq` che richiede liste vuote, `node scripts/check-model.mjs`, `pnpm typecheck`, `pnpm test` e `pnpm build`, con l'installazione di gitleaks prima di `pnpm test`; e se nessun workflow o passo usa `continue-on-error`. Fallisce se manca un controllo, se l'ordine differisce, se un attivatore manca o è filtrato per percorso, se la versione o l'impronta di gitleaks differiscono dalla scansione dei segreti o se un passo fallito non fa fallire il job.
+La prova passa se il workflow si attiva su `pull_request`, sui `push` al solo branch `main`, su `workflow_dispatch` e su `workflow_call`, senza filtri `paths` o `paths-ignore`; se il job `Satellite checks` usa `ubuntu-24.04`, Node.js `24` e `BRANCH: ${{ github.head_ref || github.ref_name }}`; se esegue il checkout del repository con `path: workspace/ambrogio-satellite` e `fetch-depth: 0`, scarica `ambrogio-model` in `workspace/ambrogio-model` sul branch `BRANCH` se esiste e altrimenti su `main`, ed esegue nell'ordine `workspace/ambrogio-model/scripts/checkout-workspace workspace "$BRANCH"` e `workspace/ambrogio-model/scripts/model-checks --workspace workspace`, senza un numero di versione di Reqvire nel workflow; se installa pnpm 12.11.2, la versione di `packageManager` del `package.json` del satellite, ed esegue in `workspace/ambrogio-backend` `pnpm install --frozen-lockfile` e `pnpm build`; se i passi del satellite girano in `workspace/ambrogio-satellite` con `pnpm install --frozen-lockfile`, `ONNXRUNTIME_NODE_INSTALL: skip` e `ORT_DISABLE_TELEMETRY: '1'`; se installa gitleaks con la versione e lo SHA-256 di `.github/workflows/secret-scan.yml`, dallo stesso archivio della release ufficiale, ed esegue `sha256sum --check --strict` prima dell'estrazione; se esegue nell'ordine `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm test:backend`, con l'installazione di gitleaks prima di `pnpm test`; e se nessun workflow o passo usa `continue-on-error`. Fallisce se manca un controllo, se l'ordine differisce, se un attivatore manca o è filtrato per percorso, se la versione o l'impronta di gitleaks differiscono dalla scansione dei segreti o se un passo fallito non fa fallire il job.
 
 #### Metadata
   * type: test-verification
@@ -677,10 +657,10 @@ La prova passa se il workflow si attiva su `pull_request`, sui `push` al solo br
 
 ### Prova della configurazione della scansione dei segreti
 
-Leggere come testo `.github/workflows/secret-scan.yml` e `.github/workflows/publish-image.yml` e confrontarli con i contratti «Profilo della scansione dei segreti con gitleaks» e «Profilo di pubblicazione Docker del satellite».
+Leggere come testo `.github/workflows/secret-scan.yml` e `.github/workflows/publish-image.yml` e confrontarli con il «Profilo di scansione dei segreti con gitleaks» di `ambrogio-model` e con i contratti «Profilo della scansione dei segreti del satellite» e «Profilo di pubblicazione Docker del satellite».
 
 #### Details
-La prova passa se la scansione si attiva su `push` senza filtri di branch o percorso, su `pull_request`, su `workflow_dispatch` e su `workflow_call`; se il checkout usa `fetch-depth: 0` e `persist-credentials: false`; se `GITLEAKS_VERSION` vale `8.30.1` e `GITLEAKS_SHA256` vale l'impronta del contratto; se il passo di installazione scarica `gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz` dalla release ufficiale ed esegue `sha256sum --check --strict` prima di `tar`; se il comando di scansione è `gitleaks git --redact --no-banner --exit-code 1 .`; se nessun passo usa `continue-on-error`; e se `publish-image.yml` richiama `./.github/workflows/ci.yml` e `./.github/workflows/secret-scan.yml` e il job `publish` dichiara `needs: [checks, secret-scan]`. Fallisce se un attivatore manca o è filtrato, se l'impronta è verificata dopo l'estrazione o non è verificata, se versione, impronta o comando differiscono dal contratto o se il job `publish` non dipende da entrambi i workflow.
+La prova passa se la scansione si attiva su `push` senza filtri di branch o percorso, su `pull_request`, su `workflow_dispatch` e su `workflow_call`; se il checkout usa `fetch-depth: 0` e `persist-credentials: false`; se `GITLEAKS_VERSION` vale `8.30.1` e `GITLEAKS_SHA256` vale l'impronta del profilo comune; se il passo di installazione scarica `gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz` dalla release ufficiale ed esegue `sha256sum --check --strict` prima di `tar`; se il comando di scansione è `gitleaks git --redact --no-banner --exit-code 1 .`; se nessun passo usa `continue-on-error`; e se `publish-image.yml` richiama `./.github/workflows/ci.yml` e `./.github/workflows/secret-scan.yml` e il job `publish` dichiara `needs: [checks, secret-scan]`. Fallisce se un attivatore manca o è filtrato, se l'impronta è verificata dopo l'estrazione o non è verificata, se versione, impronta o comando differiscono dal profilo comune o se il job `publish` non dipende da entrambi i workflow.
 
 #### Metadata
   * type: test-verification
@@ -732,29 +712,30 @@ La prova passa se senza selettore l'apertura non indica alcun dispositivo, così
 
 ### Prova della sessione e delle conversazioni del satellite
 
-Con un backend `ambrogio.v1` controllato, avviare il satellite e completare due attivazioni con la wake word e una replica senza wake word; chiudere la sessione lato backend mentre il satellite attende la wake word e durante un'interazione; ritardare `session.ready`.
+Con un backend `ambrogio.v1` controllato, avviare il satellite e completare due attivazioni con la wake word e una replica senza wake word; chiudere la sessione lato backend mentre il satellite attende la wake word e durante un'interazione; ritardare `session.ready`. Ripetere lo scambio contro il backend affiancato nella cartella di lavoro, compilato e avviato soltanto tramite il suo «Ingresso di prova del server conversazionale», con componenti vocali deterministici al posto di trascrizione e sintesi; la prova contro il backend affiancato gira nella CI del satellite dopo il checkout affiancato, senza un commit fissato del backend.
 
 #### Details
-La prova passa se all'avvio esiste una sola sessione pronta, se ogni attivazione con la wake word apre una richiesta senza `conversationId` e la replica usa il `conversationId` di `turn.accepted`, se nessun messaggio o frame è inviato prima di `session.ready`, se la sessione chiusa durante l'attesa viene riaperta alla successiva attivazione senza avvisi e se la chiusura durante un'interazione produce il recupero locale senza riprendere la richiesta sulla nuova sessione. Fallisce se una richiesta, una trasmissione o un turno vengono ripresi su una sessione diversa da quella in cui sono iniziati.
+La prova passa se all'avvio esiste una sola sessione pronta, se ogni attivazione con la wake word apre una richiesta senza `conversationId` e la replica usa il `conversationId` di `turn.accepted`, se nessun messaggio o frame è inviato prima di `session.ready`, se la sessione chiusa durante l'attesa viene riaperta alla successiva attivazione senza avvisi e se la chiusura durante un'interazione produce il recupero locale senza riprendere la richiesta sulla nuova sessione. Contro il backend affiancato passa inoltre se il backend accetta la sessione, trascrive la richiesta, conserva attivazione e replica nella stessa conversazione e restituisce le trasmissioni audio e gli esiti dei contratti del protocollo. Fallisce se una richiesta, una trasmissione o un turno vengono ripresi su una sessione diversa da quella in cui sono iniziati, se il backend affiancato manca o non è compilato, o se la prova importa codice del backend diverso dal suo ingresso di prova.
 
 #### Metadata
   * type: test-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [verify-pinned-backend.mjs](../../scripts/verify-pinned-backend.mjs)
+  * satisfiedBy: [verify-backend.mjs](../../scripts/verify-backend.mjs)
   * satisfiedBy: [conversation-channel.test.ts](../../test/adapters/out/conversation-channel.test.ts)
   * verify: [Invio soltanto su sessione pronta](../Requirements/VoiceSatellite.md#invio-soltanto-su-sessione-pronta)
   * verify: [Nuova conversazione a ogni attivazione](../Requirements/VoiceSatellite.md#nuova-conversazione-a-ogni-attivazione)
   * verify: [Sessione conversazionale persistente](../Requirements/VoiceSatellite.md#sessione-conversazionale-persistente)
+  * verify: [Uso delle sole interfacce pubbliche del backend nel satellite](../Requirements/VoiceSatellite.md#uso-delle-sole-interfacce-pubbliche-del-backend-nel-satellite)
 ---
 
 ### Prova delle protezioni dei workflow
 
-Leggere come testo `.github/workflows/ci.yml`, `.github/workflows/secret-scan.yml` e `.github/workflows/publish-image.yml` e confrontarli con il contratto «Protezioni dei workflow GitHub Actions».
+Leggere come testo `.github/workflows/ci.yml`, `.github/workflows/secret-scan.yml` e `.github/workflows/publish-image.yml` e confrontarli con il «Profilo comune dei workflow GitHub Actions» di `ambrogio-model` e con il contratto «Protezioni dei workflow GitHub Actions».
 
 #### Details
-La prova passa se ogni `uses:` di un'azione esterna indica uno SHA di 40 caratteri esadecimali seguito dal commento della versione maggiore e la terna di azione, SHA e versione è una di quelle del contratto; se ogni checkout ha `persist-credentials: false`; se ogni `actions/setup-node` ha `package-manager-cache: false`; se i job `Satellite checks`, `Secret scan` e `publish` hanno rispettivamente `timeout-minutes` 15, 10 e 60 e ogni job che esegue passi dichiara un tempo massimo; se ogni workflow dichiara come permessi predefiniti soltanto `contents: read`; se soltanto il job `publish` dichiara permessi propri, `contents: read` e `packages: write`; se `ci.yml` e `secret-scan.yml` dichiarano `workflow_call`; e se il workflow di pubblicazione usa il gruppo di concorrenza `satellite-release-${{ github.ref }}` con `cancel-in-progress: false`, passa `GITHUB_TOKEN` a `docker login` con `--password-stdin` ed esegue `docker logout ghcr.io` con `if: always()`. Fallisce se un'azione è indicata per tag o ramo, se SHA e versione non corrispondono al contratto, se un checkout conserva le credenziali, se un job che esegue passi non ha tempo massimo o se un job diverso da `publish` riceve permessi di scrittura.
+La prova passa se ogni `uses:` di un'azione esterna indica uno SHA di 40 caratteri esadecimali seguito dal commento della versione maggiore e la terna di azione, SHA e versione è una di quelle del profilo comune o del contratto del satellite; se ogni checkout ha `persist-credentials: false`; se ogni `actions/setup-node` ha `package-manager-cache: false`; se i job `Satellite checks`, `Secret scan` e `publish` hanno rispettivamente `timeout-minutes` 15, 10 e 60 e ogni job che esegue passi dichiara un tempo massimo; se ogni workflow dichiara come permessi predefiniti soltanto `contents: read`; se soltanto il job `publish` dichiara permessi propri, `contents: read` e `packages: write`; se `ci.yml` e `secret-scan.yml` dichiarano `workflow_call`; e se il workflow di pubblicazione usa il gruppo di concorrenza `satellite-release-${{ github.ref }}` con `cancel-in-progress: false`, passa `GITHUB_TOKEN` a `docker login` con `--password-stdin` ed esegue `docker logout ghcr.io` con `if: always()`. Fallisce se un'azione è indicata per tag o ramo, se SHA e versione non corrispondono al contratto, se un checkout conserva le credenziali, se un job che esegue passi non ha tempo massimo o se un job diverso da `publish` riceve permessi di scrittura.
 
 #### Metadata
   * type: test-verification
@@ -778,7 +759,7 @@ Con una porta controllata verificare scadenza della risposta e della replica ai 
   * satisfiedBy: [node-deadline-scheduler.test.ts](../../test/adapters/out/node-deadline-scheduler.test.ts)
   * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
   * satisfiedBy: [tsconfig.core.json](../../tsconfig.core.json)
-  * verify: [Indipendenza tecnica di Domain e Application](../Requirements/VoiceSatellite.md#indipendenza-tecnica-di-domain-e-application)
+  * verify: [Indipendenza tecnica di Domain e Application nel satellite](../Requirements/VoiceSatellite.md#indipendenza-tecnica-di-domain-e-application-nel-satellite)
   * verify: [Programmazione delle scadenze tramite porta Application](../Requirements/VoiceSatellite.md#programmazione-delle-scadenze-tramite-porta-application)
 ---
 

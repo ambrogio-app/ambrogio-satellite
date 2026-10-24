@@ -143,8 +143,10 @@ system-model/      engineering model (requirements, contracts, verifications)
 ```bash
 pnpm test           # Vitest suite
 pnpm typecheck
-pnpm test:backend   # protocol test against a pinned ambrogio-backend revision
+pnpm test:backend   # protocol test against the ambrogio-backend checkout next to this repository
 ```
+
+`pnpm test:backend` uses the backend in `../ambrogio-backend`, or in the folder named by `AMBROGIO_BACKEND_REPO`. Build the backend first (`pnpm install --frozen-lockfile && pnpm build` in its folder): the test starts it only through its public test entry point, `apps/server/dist/runtime/test-server.js`, and prints the backend commit it used.
 
 Secrets never belong in this repository. CI scans the whole Git history with [gitleaks](https://github.com/gitleaks/gitleaks) 8.30.1 on every push and pull request, and image publication waits for that scan. Locally, a versioned pre-commit hook blocks commits that add secrets; install gitleaks 8.30.1 on your `PATH` and enable the hook once per clone:
 
@@ -152,7 +154,7 @@ Secrets never belong in this repository. CI scans the whole Git history with [gi
 git config core.hooksPath .githooks
 ```
 
-Ambrogio is developed model first with [Reqvire](https://reqvire.org/). This repository is self-contained: the repository root is its Reqvire workspace. [`system-model/`](system-model/) holds the satellite's own glossary, ontology, requirements, contracts and verifications, so you can read it without the backend's model. It also records which version of the backend's public `ambrogio.v1` contract the satellite is compatible with. [`AGENTS.md`](AGENTS.md) describes the workflow.
+Ambrogio is developed model first with [Reqvire](https://reqvire.org/). Ambrogio has a single model spread across its repositories: [`system-model/`](system-model/) holds the satellite's part (its own glossary, ontology, requirements, contracts and verifications), linked directly to the shared decisions and vocabulary in [ambrogio-model](https://github.com/ambrogio-app/ambrogio-model) and to the backend's public `ambrogio.v1` contracts. The model is read and checked from a folder that holds the repositories side by side. [`AGENTS.md`](AGENTS.md) describes the workflow.
 
 ## Licenses
 

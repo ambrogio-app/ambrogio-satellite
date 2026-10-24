@@ -105,22 +105,6 @@ Lo stato osservabile è una proiezione Application immutabile per tipo, restitui
   * type: specification
 ---
 
-### Contratto vocale backend di riferimento
-
-La revisione backend di riferimento per il satellite è ambrogio-backend `v0.8.0`, commit `a570c013617fe7b9e944063dfd67ce2c00da398e`. I contratti pertinenti sono `Sessione del protocollo Ambrogio v1`, `Trasmissione in ingresso del protocollo Ambrogio v1`, `Trasmissione in uscita del protocollo Ambrogio v1`, `Esiti del turno nel protocollo Ambrogio v1`, `Motivi di rifiuto del turno`, `Errori ed estensioni del protocollo Ambrogio v1` e `Correlazione diagnostica della sessione Ambrogio v1` in https://github.com/ambrogio-app/ambrogio-backend/blob/a570c013617fe7b9e944063dfd67ce2c00da398e/system-model/Contracts/ConversationProtocol.md ; la forma dei messaggi è definita da https://github.com/ambrogio-app/ambrogio-backend/blob/a570c013617fe7b9e944063dfd67ce2c00da398e/protocol/ambrogio-v1.schema.json alla stessa revisione.
-
-Il backend possiede trascrizione, sintesi, ammissione dei turni, `expectsReply` e motivi di rifiuto; ogni messaggio per la famiglia, compresi rifiuti ed errori, arriva come trasmissione nel formato chiesto con `reply`, salvo il rifiuto `audio_unavailable` trasmesso sempre in testo. Il satellite possiede la regola delle conversazioni per attivazione, la decisione di aprire una replica dopo la riproduzione e l'intervallo locale di inattività. Il canale del satellite è compatibile con questa revisione secondo la prova di integrazione `scripts/verify-pinned-backend.mjs`, che usa componenti vocali deterministici al posto di trascrizione e sintesi; la prova con audio reale appartiene alla «Dimostrazione del trasporto ambrogio.v1». Le relazioni Reqvire restano interne a ciascun repository; il riferimento esterno non fonde i grafi.
-
-#### Concorrenza dei turni
-Il backend ammette turni in parallelo tra conversazioni diverse e al massimo un turno attivo per ciascuna conversazione. Il conflitto riguarda la stessa conversazione, indipendentemente dal client o dal canale; i turni rifiutati non sono accodati. Ogni satellite mantiene il proprio ciclo locale e le interazioni degli altri client non ne sostituiscono lo stato. Limiti globali di capacità non fanno parte di questo contratto.
-
-#### Metadata
-  * type: source
-
-#### Relations
-  * define: [Compatibilità con il canale vocale backend](../Requirements/VoiceSatellite.md#compatibilità-con-il-canale-vocale-backend)
----
-
 ### Convenzione TypeScript di porte e dati
 
 Il satellite usa interface per contratti Application a oggetto che espongono capacità tramite operazioni nominate; type per dati, unioni di eventi/esiti e contratti callable. La classificazione dipende dalla responsabilità del contratto e comprende le capacità restituite da una porta.
@@ -129,27 +113,6 @@ VoiceSessionPorts e DeadlineScheduler sono porte a oggetto; ScheduledDeadline è
 
 #### Metadata
   * type: specification
----
-
-### Convenzione dei nomi di casi d'uso e adapter
-
-I casi d'uso e gli adapter usano suffissi di ruolo, mantenendo nel nome la funzione concreta del componente. Questa convenzione appartiene a questo repository; non richiede un modello multirepository.
-
-Un file che realizza un caso d'uso Application si chiama `<azione>.use-case.ts`, con un nome che descrive l'operazione offerta, per esempio `start-voice-conversation.use-case.ts`. Il criterio vale anche per casi d'uso che non espongono rifiuti previsti.
-
-Un file che realizza un adapter si chiama `<funzione-o-integrazione>.adapter.ts`. Sono adapter di ingresso i componenti che traducono eventi o richieste esterne in invocazioni di Application; sono adapter di uscita i componenti che realizzano una porta Application tramite una tecnologia concreta. La realizzazione è indifferentemente una classe, una funzione o un oggetto fornito dalla composition root: non dipende dalla presenza della parola TypeScript `implements`. Per esempio, un'implementazione SQLite di una porta di lettura si chiama `sqlite-conversation-history-read.adapter.ts`.
-
-La collocazione in `adapters/` non rende automaticamente adapter ogni file contenuto. Mapper, schemi, cataloghi, validatori, driver di libreria e funzioni tecniche di supporto mantengono nomi descrittivi senza aggiungere `.adapter`, salvo che realizzino essi stessi un ingresso o una porta Application. Un coordinatore con stato non riceve o evita `.use-case` per il solo fatto di essere una classe: occorre identificarne la responsabilità e stabilire se offre un caso d'uso oppure supporta altri casi d'uso. In caso di ruolo ambiguo, documentare l'esito della classificazione nell'ispezione prima di rinominare.
-
-La regola riguarda i nomi dei file di produzione. Non impone il suffisso `Adapter` o `UseCase` a ogni simbolo TypeScript, non introduce un suffisso obbligatorio per le porte e non modifica le regole sui confini dei layer. Le altre regole sulla dichiarazione di firme, factory ed esiti restano applicabili nel loro ambito.
-
-Motivazione: Martin Fowler sostiene una politica coerente dei nomi dei ruoli e l'uso dei nomi dei pattern quando chiariscono la responsabilità, senza proporre una convenzione universale: https://martinfowler.com/articles/refactoring-external-service.html . Robert C. Martin evidenzia la riconoscibilità dei casi d'uso nella struttura: https://blog.cleancoder.com/uncle-bob/2011/09/30/Screaming-Architecture.html . Gli esempi di Alistair Cockburn non impongono il termine Adapter nei nomi: https://alistair.cockburn.us/hexagonal-architecture . Il suffisso obbligatorio qui adottato è una scelta locale, non una prescrizione attribuita a questi autori.
-
-#### Metadata
-  * type: specification
-
-#### Relations
-  * define: [Nomi dei file secondo il ruolo architetturale](../Requirements/VoiceSatellite.md#nomi-dei-file-secondo-il-ruolo-architetturale)
 ---
 
 ### Esecuzione host e container
@@ -175,7 +138,7 @@ Il tipo locale è `type Result<T, E> = Readonly<{ ok: true; value: T }> | Readon
   * type: specification
 
 #### Relations
-  * define: [Esiti previsti come valori tipizzati](../Requirements/VoiceSatellite.md#esiti-previsti-come-valori-tipizzati)
+  * define: [Esiti previsti come valori tipizzati nel satellite](../Requirements/VoiceSatellite.md#esiti-previsti-come-valori-tipizzati-nel-satellite)
 ---
 
 ### Evento diagnostico dell'attivazione locale
@@ -209,7 +172,7 @@ La riga non riporta valori letti dal file, percorsi, nome host o messaggi di lib
 
 ### Hook pre-commit dei segreti con gitleaks
 
-Il repository versiona l'hook `.githooks/pre-commit`, script POSIX `sh` eseguibile. Ogni clone lo abilita una volta con `git config core.hooksPath .githooks`; Git non attiva automaticamente gli hook versionati. Se il comando `gitleaks` non è nel `PATH`, l'hook stampa su stderr un messaggio che indica come installare gitleaks 8.30.1 e abilitare l'hook, ed esce con stato diverso da zero, bloccando il commit. Altrimenti esegue `gitleaks git --pre-commit --staged --redact --no-banner .`: analizza soltanto le modifiche in staging, blocca il commit quando trova un segreto e non stampa i valori trovati. La versione attesa è la stessa fissata per la CI. Aggirare l'hook con `--no-verify` non è una procedura prevista; la scansione in CI resta la garanzia sul repository remoto.
+L'hook `.githooks/pre-commit` del satellite realizza l'hook locale del «Profilo di scansione dei segreti con gitleaks» di `ambrogio-model` come script POSIX `sh` eseguibile. Il messaggio stampato quando `gitleaks` non è nel `PATH` va su stderr e indica, oltre alla versione da installare, come abilitare l'hook con `git config core.hooksPath .githooks`. La scansione in CI resta la garanzia sul repository remoto.
 
 #### Metadata
   * type: specification
@@ -258,7 +221,7 @@ La composition root fornisce l'adapter Node.js; nei test Application una impleme
 
 ### Profilo CI del satellite
 
-GitHub Actions esegue il job stabile `Satellite checks` del workflow `.github/workflows/ci.yml` su ogni pull request, sui push a main, su richiesta manuale e quando un altro workflow lo richiama come workflow riutilizzabile, senza filtri sui percorsi. Runner Linux Ubuntu 24.04 x86_64, Node.js 24, pnpm 12.11.2 e installazione con lockfile congelato, senza scaricare i binari di ONNX Runtime durante l'installazione e con la telemetria di ONNX Runtime disattivata. Reqvire 1.3.2 valida il modello e produce il lint JSON: sia rilievi automatici sia rilievi manuali fanno fallire il controllo. Segue lo script del contratto «Script di integrità del modello», poi pnpm typecheck (compreso tsconfig.core.json), pnpm test e pnpm build. Prima di pnpm test il job installa la versione di gitleaks del contratto «Profilo della scansione dei segreti con gitleaks» con lo stesso archivio della release ufficiale e la stessa impronta SHA-256, verificata prima dell'estrazione, perché la suite esegue l'hook pre-commit; se l'impronta non corrisponde il job fallisce. Nessuna credenziale personale è richiesta; permessi, tempo massimo e azioni fissate seguono il contratto «Protezioni dei workflow GitHub Actions». Le prove audio con periferiche e la compatibilità arm64 restano verifiche separate prima del rilascio.
+GitHub Actions esegue il job stabile `Satellite checks` del workflow `.github/workflows/ci.yml` su ogni pull request, sui push a main, su richiesta manuale e quando un altro workflow lo richiama come workflow riutilizzabile, senza filtri sui percorsi, con la variabile `BRANCH` uguale a `github.head_ref` per una pull request e altrimenti a `github.ref_name`. Runner Linux Ubuntu 24.04 x86_64 e Node.js 24. Il job esegue il checkout del repository in `workspace/ambrogio-satellite` con `fetch-depth: 0`, scarica `ambrogio-model` in `workspace/ambrogio-model` sul branch `BRANCH` se esiste sul remoto e altrimenti su `main`, ed esegue `workspace/ambrogio-model/scripts/checkout-workspace workspace "$BRANCH"` secondo «Checkout affiancato dello spazio di lavoro», poi `workspace/ambrogio-model/scripts/model-checks --workspace workspace` secondo «Controlli del modello dello spazio di lavoro», con la versione di Reqvire di «Risoluzione della versione di Reqvire». Il job installa poi pnpm 12.11.2, la stessa versione dichiarata dal backend, e prepara il backend affiancato in `workspace/ambrogio-backend` con `pnpm install --frozen-lockfile` e `pnpm build`. I passi successivi girano in `workspace/ambrogio-satellite`: installazione con lockfile congelato, senza scaricare i binari di ONNX Runtime durante l'installazione e con la telemetria di ONNX Runtime disattivata; pnpm typecheck (compreso tsconfig.core.json); installazione di gitleaks; pnpm test; pnpm build; `pnpm test:backend`, la prova di integrazione con il backend affiancato compilato nel job, che avvia il backend soltanto tramite «Ingresso di prova del server conversazionale» e stampa il commit del backend usato. Il job installa la versione di gitleaks del «Profilo di scansione dei segreti con gitleaks» di `ambrogio-model` con lo stesso archivio della release ufficiale e la stessa impronta SHA-256, verificata prima dell'estrazione, perché la suite esegue l'hook pre-commit; se l'impronta non corrisponde il job fallisce. Nessuna credenziale personale è richiesta; permessi, tempo massimo e azioni fissate seguono il contratto «Protezioni dei workflow GitHub Actions». Le prove audio con periferiche e la compatibilità arm64 restano verifiche separate prima del rilascio.
 
 #### Metadata
   * type: specification
@@ -267,13 +230,9 @@ GitHub Actions esegue il job stabile `Satellite checks` del workflow `.github/wo
   * define: [Controlli CI delle modifiche del satellite](../Requirements/VoiceSatellite.md#controlli-ci-delle-modifiche-del-satellite)
 ---
 
-### Profilo della scansione dei segreti con gitleaks
+### Profilo della scansione dei segreti del satellite
 
-Il repository del satellite usa gitleaks 8.30.1 per individuare segreti, sia in CI sia prima di ogni commit locale.
-
-Il workflow riutilizzabile `.github/workflows/secret-scan.yml` si attiva al push su qualunque branch, su ogni pull request, su richiesta manuale e quando un altro workflow lo richiama. Esegue il checkout con l'intera storia (`fetch-depth: 0`). Scarica dalla release ufficiale `gitleaks_8.30.1_linux_x64.tar.gz`, ne verifica lo SHA-256 `551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb` prima di estrarlo e interrompe il job se l'impronta non corrisponde. Esegue `gitleaks git --redact --no-banner --exit-code 1 .` sull'intera storia: un ritrovamento fa fallire il job e i valori trovati non compaiono nel log. Nessuna credenziale personale è richiesta; permessi, tempo massimo e azioni fissate seguono il contratto «Protezioni dei workflow GitHub Actions».
-
-Un falso positivo si risolve con un'eccezione esplicita concordata con la persona e registrata in questo modello, non disattivando la scansione.
+Il workflow `.github/workflows/secret-scan.yml` del satellite realizza nel job `Secret scan` la scansione in CI del «Profilo di scansione dei segreti con gitleaks» di `ambrogio-model`, con la versione, l'archivio, l'impronta e il comando di quel profilo. Permessi, tempo massimo e azioni fissate seguono il contratto «Protezioni dei workflow GitHub Actions».
 
 #### Alternative e conseguenze
 Sono state considerate l'azione ufficiale `gitleaks/gitleaks-action`, che è gratuita per gli account personali ma richiede una licenza quando il repository appartiene a un'organizzazione, il solo controllo in CI, che lascia entrare un segreto nella storia locale fino al push, e il solo hook locale, che dipende dall'attivazione in ogni clone e non protegge il repository remoto. Il binario fissato per versione e impronta non dipende da licenze né da azioni di terze parti; l'aggiornamento di versione richiede di aggiornare insieme versione e impronta.
@@ -287,7 +246,7 @@ Sono state considerate l'azione ufficiale `gitleaks/gitleaks-action`, che è gra
 
 ### Profilo di pubblicazione Docker del satellite
 
-Il workflow `.github/workflows/publish-image.yml` pubblica `ghcr.io/ambrogio-app/ambrogio-satellite` al push di un tag vMAJOR.MINOR.PATCH, con versione corrispondente a package.json; il repository appartiene all'organizzazione GitHub `ambrogio-app`. Il tag immagine finale coincide con il tag Git; nessun latest. Il workflow richiama sul medesimo commit, come workflow riutilizzabili, la CI del contratto «Profilo CI del satellite» e la scansione del contratto «Profilo della scansione dei segreti con gitleaks»; il job di pubblicazione dipende da entrambi e non viene eseguito se uno dei due fallisce. Il job costruisce poi e verifica entrambe le immagini linux/amd64 e linux/arm64. Le immagini verificate ricevono i tag tecnici <versione>-amd64 e <versione>-arm64; il tag di release riunisce entrambe in un manifest. Nessun push avviene prima che entrambe le verifiche locali siano riuscite. Il job di pubblicazione accede a GHCR con `GITHUB_TOKEN` e il permesso `packages: write`, secondo il contratto «Protezioni dei workflow GitHub Actions»; un push ordinario su main non pubblica. L’emulazione è ammessa per build e smoke test arm64, ma non dimostra audio o prestazioni su hardware reale. Docker resta facoltativo. Il workflow non cambia la visibilità del pacchetto nel registro.
+Il workflow `.github/workflows/publish-image.yml` pubblica `ghcr.io/ambrogio-app/ambrogio-satellite` al push di un tag vMAJOR.MINOR.PATCH, con versione corrispondente a package.json; il repository appartiene all'organizzazione GitHub `ambrogio-app`. Il tag immagine finale coincide con il tag Git; nessun latest. Il workflow richiama sul medesimo commit, come workflow riutilizzabili, la CI del contratto «Profilo CI del satellite» e la scansione del contratto «Profilo della scansione dei segreti del satellite»; il job di pubblicazione dipende da entrambi e non viene eseguito se uno dei due fallisce. Il job costruisce poi e verifica entrambe le immagini linux/amd64 e linux/arm64. Le immagini verificate ricevono i tag tecnici <versione>-amd64 e <versione>-arm64; il tag di release riunisce entrambe in un manifest. Nessun push avviene prima che entrambe le verifiche locali siano riuscite. Il job di pubblicazione accede a GHCR con `GITHUB_TOKEN` e il permesso `packages: write`, secondo il contratto «Protezioni dei workflow GitHub Actions»; un push ordinario su main non pubblica. L’emulazione è ammessa per build e smoke test arm64, ma non dimostra audio o prestazioni su hardware reale. Docker resta facoltativo. Il workflow non cambia la visibilità del pacchetto nel registro.
 
 #### Metadata
   * type: specification
@@ -310,7 +269,7 @@ Nessuna dipendenza di trasporto emette direttamente su console i messaggi ricevu
   * define: [Serializzazione protetta dei guasti](../Requirements/VoiceSatellite.md#serializzazione-protetta-dei-guasti)
 ---
 
-### Profilo iniziale di osservabilità
+### Profilo iniziale di osservabilità del satellite
 
 La diagnostica iniziale usa i log JSON applicativi già previsti. Non sono introdotti contatori o API applicative di metriche, exporter di tracing distribuito o registri di audit. I log non costituiscono un registro di audit garantito. Ogni estensione, per esempio conteggi delle attivazioni o tempi di risposta, richiede un bisogno concreto concordato, requisiti e contratti propri, protezioni dei dati e verifiche dedicate. La raccolta esterna dei log resta responsabilità del deployment. Il profilo non introduce identificativi di correlazione nel satellite né modifiche al protocollo conversazionale; la correlazione diagnostica delle sessioni appartiene al backend.
 
@@ -318,19 +277,16 @@ La diagnostica iniziale usa i log JSON applicativi già previsti. Non sono intro
   * type: specification
 
 #### Relations
-  * define: [Perimetro iniziale dei segnali di osservabilità](../Requirements/VoiceSatellite.md#perimetro-iniziale-dei-segnali-di-osservabilità)
+  * define: [Perimetro iniziale dei segnali di osservabilità del satellite](../Requirements/VoiceSatellite.md#perimetro-iniziale-dei-segnali-di-osservabilità-del-satellite)
 ---
 
 ### Protezioni dei workflow GitHub Actions
 
-I workflow `.github/workflows/ci.yml`, `.github/workflows/secret-scan.yml` e `.github/workflows/publish-image.yml` applicano queste protezioni:
+I workflow `.github/workflows/ci.yml`, `.github/workflows/secret-scan.yml` e `.github/workflows/publish-image.yml` applicano il «Profilo comune dei workflow GitHub Actions» di `ambrogio-model` con questi valori propri del satellite:
 
-- azioni esterne fissate per SHA del commit, con la versione maggiore in commento: `actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803` (v6), `actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38` (v6), `docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130` (v3) e `docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f` (v3); l'aggiornamento di un'azione cambia insieme SHA e commento;
-- ogni checkout con `persist-credentials: false`;
+- azioni esterne aggiuntive, fissate allo stesso modo: `docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130` (v3) e `docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f` (v3);
 - `actions/setup-node` con `package-manager-cache: false`, senza cache condivise fra esecuzioni;
-- tempo massimo per job: `timeout-minutes: 15` per `Satellite checks`, `10` per `Secret scan` e `60` per il job `publish`;
-- permessi predefiniti di ogni workflow `contents: read`; soltanto il job `publish` riceve anche `packages: write`;
-- `ci.yml` e `secret-scan.yml` dichiarano `workflow_call`, così il workflow di pubblicazione esegue gli stessi controlli sul commit del tag invece di duplicarli;
+- tempo massimo per job: `timeout-minutes: 15` per `Satellite checks`, `10` per `Secret scan` e `60` per il job `publish`, che è l'unico a ricevere `packages: write`;
 - il workflow di pubblicazione usa il gruppo di concorrenza `satellite-release-<ref>` senza annullare un'esecuzione in corso, passa `GITHUB_TOKEN` a `docker login` tramite stdin ed esegue `docker logout ghcr.io` anche quando un passo precedente fallisce.
 
 #### Metadata
@@ -353,7 +309,7 @@ Il fallimento è segnalato con il tono definito in «Tono locale di errore», ge
 
 ### Regole della replica vocale
 
-Il backend determina e comunica se la risposta attende una replica: durante la stessa generazione della risposta l'agente produce il booleano strutturato `expectsReply`, che il backend invia in `turn.completed`. I turni conclusi con `turn.failed`, `turn.rejected` o `turn.interrupted` non comunicano `expectsReply` e il satellite li tratta come conclusivi, dopo aver riprodotto l'eventuale audio del messaggio pubblico.
+Il satellite riceve l'indicazione `expectsReply` in `turn.completed`, secondo «Esiti del turno nel protocollo Ambrogio v1» del backend. I turni conclusi con `turn.failed`, `turn.rejected` o `turn.interrupted` non comunicano `expectsReply` e il satellite li tratta come conclusivi, dopo aver riprodotto l'eventuale audio del messaggio pubblico.
 
 Il satellite associa esiti e trasmissioni alla richiesta corrente tramite `requestId` e `turnId`. Riproduce in ordine le trasmissioni audio del turno e considera completata la risposta quando ha ricevuto l'esito del turno e lo speaker ha riprodotto tutti i campioni accodati dopo l'ultimo `output.end`. Se l'esito non arriva entro 60 secondi dalla fine della richiesta, il satellite chiude l'interazione con il recupero locale senza aprire una replica.
 
@@ -368,7 +324,7 @@ Soltanto dopo la riproduzione completa e un `turn.completed` con `expectsReply: 
 
 ### Regole di importazione dei test
 
-I test Domain importano codice di produzione soltanto da Domain. I test Application importano soltanto Application e Domain. I test inbound importano il proprio adapter inbound e Application, senza Domain. I test outbound importano il proprio adapter outbound, Application e Domain, senza adapter inbound. Le regole valgono anche per i soli tipi. Le prove di integrazione della composition root sono escluse da queste regole e attraversano i layer: non sono test unitari di un layer. Nei test Application le porte permettono di simulare audio, riconoscimento e backend senza dispositivi reali. Il progetto usa Vitest per i test, in coerenza con il backend.
+Ai test del satellite si applicano le regole di import per layer del requisito comune «Import del codice di produzione nei test per layer», anche per i soli tipi. Le prove di integrazione della composition root e del confine di processo attraversano i layer e restano escluse da quelle regole. Nei test Application le porte permettono di simulare audio, riconoscimento e backend senza dispositivi reali. Il progetto usa Vitest per i test.
 
 #### Metadata
   * type: constraint
@@ -399,20 +355,15 @@ Domain contiene stati e regole dell’interazione locale. Application coordina i
   * define: [Separazione Domain Application e adapter](../Requirements/VoiceSatellite.md#separazione-domain-application-e-adapter)
 ---
 
-### Ruleset del branch principale
+### Ruleset del branch principale del satellite
 
-Il repository GitHub ha un ruleset di branch chiamato `main`, con applicazione `active`, che ha come destinazione il branch predefinito, nessun attore escluso e le regole:
-
-- `pull_request`, che ammette l'integrazione solo tramite pull request, con `required_approving_review_count` uguale a 0;
-- `required_status_checks`, con i controlli `Satellite checks` e `Secret scan` prodotti da GitHub Actions e `strict_required_status_checks_policy` uguale a `false`;
-- `non_fast_forward`, che vieta la riscrittura forzata;
-- `deletion`, che vieta la cancellazione del branch.
+Il ruleset `main` del repository del satellite segue il «Ruleset del branch principale» di `ambrogio-model`; i controlli richiesti sono `Satellite checks` e `Secret scan`.
 
 #### Metadata
   * type: specification
 
 #### Relations
-  * define: [Controlli obbligatori prima del merge](../Requirements/VoiceSatellite.md#controlli-obbligatori-prima-del-merge)
+  * define: [Controlli obbligatori prima del merge del satellite](../Requirements/VoiceSatellite.md#controlli-obbligatori-prima-del-merge-del-satellite)
 ---
 
 ### Scadenza dell'arresto del processo
@@ -426,24 +377,6 @@ Se l'arresto ordinato termina prima della scadenza, il tempo massimo è annullat
 
 #### Relations
   * define: [Tempo massimo dell'arresto del processo](../Requirements/VoiceSatellite.md#tempo-massimo-dellarresto-del-processo)
----
-
-### Script di integrità del modello
-
-Lo script `scripts/check-model.mjs` legge il modello con Reqvire 1.3.2 (`search --filter-type <tipo> --json` e `resources`) e i file tracciati con `git ls-files`, e segnala:
-
-- ogni requisito, contratto o verifica il cui testo, tolti code span, testi tra virgolette e nomi tra «», contiene una data (ISO `AAAA-MM-GG` oppure giorno, nome del mese e anno, in italiano o in inglese) o le formule `concordato il`, `concordata il`, `deciso il`, `decisa il`, `scelto il`, `scelta il`, anche con `con la persona`, `agreed on` e `decided on`;
-- ogni occorrenza, come parola intera e senza distinzione di maiuscole, di `può`, `possono`, `potrebbe`, `potrebbero`, `dovrebbe`, `dovrebbero`, `eventualmente`, `may`, `might`, `could`, `should` e `possibly` nell'enunciato di un requisito (il testo prima della sezione `#### Details`) o nel testo di un contratto, tolti code span, testi tra virgolette e nomi tra «»;
-- ogni verifica di ispezione, analisi o dimostrazione il cui contenuto non contiene `Non automatizzabile:`;
-- ogni file tracciato che corrisponde a `.github/workflows/**`, `.githooks/**`, `scripts/**`, `Dockerfile*`, `compose*.yaml`, `compose*.yml`, `.dockerignore`, `.gitignore`, `.npmrc`, `package.json`, `tsconfig*.json`, `vitest*.config.*`, a qualunque profondità, oppure a `pnpm-workspace.yaml` nella radice, e che nessun elemento del modello riferisce.
-
-Lo script stampa una riga per violazione e termina con stato 1 se ne trova almeno una, con stato 0 altrimenti. La CI lo esegue con `node scripts/check-model.mjs` dopo `validate` e `lint`.
-
-#### Metadata
-  * type: specification
-
-#### Relations
-  * define: [Controllo automatico dell'integrità del modello](../Requirements/VoiceSatellite.md#controllo-automatico-dellintegrità-del-modello)
 ---
 
 ### Segmentazione dei turni con Silero ONNX
@@ -461,7 +394,7 @@ La distribuzione usa il file `models/silero_vad.onnx` incluso nel pacchetto Deci
 
 ### Segnalazione locale di voce non disponibile
 
-Quando una trasmissione del server per il turno corrente dichiara contenuto testuale, come nel rifiuto `audio_unavailable` di un backend senza voce configurata, il satellite non la pronuncia: registra l'evento informativo `satellite_voice_unavailable` e riproduce al suo posto il tono definito in «Tono locale di errore». Dopo il tono e l'esito del turno il satellite torna ad attendere la wake word senza aprire una replica e senza reinviare la richiesta.
+Quando una trasmissione del server per il turno corrente dichiara contenuto testuale, come nel rifiuto `audio_unavailable` previsto dai «Motivi di rifiuto del turno» del backend, il satellite non la pronuncia: registra l'evento informativo `satellite_voice_unavailable` e riproduce al suo posto il tono definito in «Tono locale di errore». Dopo il tono e l'esito del turno il satellite torna ad attendere la wake word senza aprire una replica e senza reinviare la richiesta.
 
 #### Metadata
   * type: specification
@@ -500,13 +433,15 @@ Il satellite comunica con il backend con il protocollo conversazionale `ambrogio
 
 La sessione è persistente: viene aperta all'avvio, resta aperta finché il backend la mantiene con i propri ping e, se risulta chiusa, viene riaperta alla successiva attivazione con la wake word. Il satellite invia messaggi e frame soltanto su una sessione pronta e non riprende mai su una nuova sessione una richiesta, una trasmissione o un turno della sessione precedente. Una sessione persa durante un'interazione attiva segue il recupero locale; la sua perdita mentre il satellite attende la wake word non produce avvisi.
 
-Ogni richiesta è una trasmissione audio: `input.start` con `requestId` e `stream` nuovi, `content` `{"type":"audio","sampleRate":16000}`, `reply` `"audio"` e `conversationId` soltanto per una replica senza wake word, il `conversationId` ricevuto in `turn.accepted` per il turno precedente; poi frame binari con i 4 byte big-endian del numero `stream` seguiti da PCM16 mono a 16 kHz; infine `input.end` alla fine del parlato rilevata localmente. Ogni attivazione con la wake word inizia una nuova conversazione senza `conversationId`. La durata della richiesta resta entro i 60 secondi del contratto backend.
+Ogni richiesta è una trasmissione audio: `input.start` con `requestId` e `stream` nuovi, `content` `{"type":"audio","sampleRate":16000}`, `reply` `"audio"` e `conversationId` soltanto per una replica senza wake word, il `conversationId` ricevuto in `turn.accepted` per il turno precedente; poi frame binari con i 4 byte big-endian del numero `stream` seguiti da PCM16 mono a 16 kHz; infine `input.end` alla fine del parlato rilevata localmente. Ogni attivazione con la wake word inizia una nuova conversazione senza `conversationId`. La durata della richiesta resta entro il limite di trasmissione del backend.
 
-Le risposte arrivano come trasmissioni `output.start`, frame audio alla frequenza dichiarata e `output.end`; l'esito del turno è `turn.completed` con `expectsReply`, `turn.failed`, `turn.rejected` o `turn.interrupted`. Un `session.error` riferito alla richiesta corrente equivale a un guasto dell'interazione. A un messaggio del server non legato a un turno che contiene `id` il satellite risponde con `client.result`, `ok: false` e `reason: "unsupported"`. La revisione backend compatibile è quella registrata nel «Contratto vocale backend di riferimento».
+Le risposte arrivano come trasmissioni `output.start`, frame audio alla frequenza dichiarata e `output.end`; l'esito del turno è `turn.completed` con `expectsReply`, `turn.failed`, `turn.rejected` o `turn.interrupted`. Un `session.error` riferito alla richiesta corrente equivale a un guasto dell'interazione. A un messaggio del server non legato a un turno che contiene `id` il satellite risponde con `client.result`, `ok: false` e `reason: "unsupported"`.
+
+Trascrizione, sintesi, ammissione dei turni, `expectsReply` e motivi di rifiuto appartengono al backend, secondo i contratti del protocollo `ambrogio.v1` e «Occupazione della conversazione e ammissione dei turni» del backend. Il satellite possiede la regola delle conversazioni per attivazione, la decisione di aprire una replica dopo la riproduzione e l'intervallo locale di inattività, definiti in «Regole della replica vocale». Ogni satellite mantiene il proprio ciclo locale: le interazioni degli altri client sulla stessa installazione non ne sostituiscono lo stato.
 
 #### Metadata
   * type: specification
 
 #### Relations
-  * define: [Compatibilità con il canale vocale backend](../Requirements/VoiceSatellite.md#compatibilità-con-il-canale-vocale-backend)
+  * define: [Uso delle sole interfacce pubbliche del backend nel satellite](../Requirements/VoiceSatellite.md#uso-delle-sole-interfacce-pubbliche-del-backend-nel-satellite)
 ---

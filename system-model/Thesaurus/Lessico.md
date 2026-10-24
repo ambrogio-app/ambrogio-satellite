@@ -2,7 +2,7 @@
 
 ### Lessico del satellite vocale
 
-Vocabolario autonomo dei termini che descrivono il dispositivo satellite, il suo ciclo di interazione e il confine con il backend. Le definizioni sono leggibili senza consultare il modello del backend.
+Termini propri del satellite vocale: il dispositivo, la sua configurazione, la wake word e il ciclo locale di attivazione e ascolto. I termini condivisi con il resto del prodotto, come satellite vocale, interazione vocale, turno vocale, risposta parlata e backend, appartengono al «Lessico Ambrogio» di `ambrogio-model`.
 
 #### Metadata
   * type: concept-scheme
@@ -19,24 +19,13 @@ Riconoscimento della wake word sul satellite che avvia il tentativo di aprire un
 
 #### Relations
   * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
-  * related: [Interazione vocale](#interazione-vocale)
+  * related: [Interazione vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#interazione-vocale)
   * related: [Riserva audio](#riserva-audio)
----
-
-### Backend vocale
-
-Sistema esterno al satellite che gestisce la conversazione e il canale vocale pubblico, producendo risposte e segnali di controllo per l'interazione.
-
-#### Metadata
-  * type: concept
-
-#### Relations
-  * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
 ---
 
 ### Catalogo delle wake word
 
-Insieme dei modelli di wake word supportati e distribuiti dal progetto, tra cui la configurazione può scegliere.
+Insieme dei modelli di wake word supportati e distribuiti dal progetto, fra i quali la configurazione sceglie quello usato.
 
 #### Metadata
   * type: concept
@@ -54,6 +43,7 @@ Dati scelti dall'installatore per individuare il backend, i dispositivi audio e 
 
 #### Relations
   * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
+  * related: [Backend](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#backend)
   * related: [Dispositivo audio](#dispositivo-audio)
 ---
 
@@ -66,29 +56,6 @@ Periferica usata dal satellite per acquisire la voce oppure riprodurre l'audio v
 
 #### Relations
   * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
----
-
-### Indicazione di replica attesa
-
-Segnale booleano fornito dal backend con una risposta che stabilisce se, dopo la riproduzione, la famiglia può formulare un altro turno nella stessa interazione senza wake word.
-
-#### Metadata
-  * type: concept
-
-#### Relations
-  * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
----
-
-### Interazione vocale
-
-Sessione temporanea tra satellite e backend che può contenere più turni consecutivi della famiglia senza ripetere la wake word.
-
-#### Metadata
-  * type: concept
-
-#### Relations
-  * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
-  * related: [Turno vocale](#turno-vocale)
 ---
 
 ### Modello di wake word
@@ -115,7 +82,7 @@ Individuazione locale dei tratti di parlato e delle pause che delimitano un turn
 
 #### Relations
   * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
-  * related: [Turno vocale](#turno-vocale)
+  * related: [Turno vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#turno-vocale)
 ---
 
 ### Riserva audio
@@ -127,41 +94,6 @@ Porzione temporanea di audio conservata in memoria dal satellite durante il rico
 
 #### Relations
   * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
----
-
-### Risposta parlata
-
-Audio prodotto per comunicare alla famiglia l'esito di un turno vocale; termina quando la riproduzione sul satellite è conclusa.
-
-#### Metadata
-  * type: concept
-
-#### Relations
-  * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
-  * related: [Indicazione di replica attesa](#indicazione-di-replica-attesa)
----
-
-### Satellite vocale
-
-Processo eseguito su un dispositivo Linux che acquisisce e riproduce audio, riconosce localmente una wake word e comunica con il backend vocale.
-
-#### Metadata
-  * type: concept
-
-#### Relations
-  * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
----
-
-### Turno vocale
-
-Richiesta pronunciata dalla famiglia durante un'interazione vocale e inviata al backend come unità di elaborazione.
-
-#### Metadata
-  * type: concept
-
-#### Relations
-  * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
-  * related: [Risposta parlata](#risposta-parlata)
 ---
 
 ### Wake word
