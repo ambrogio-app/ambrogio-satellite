@@ -11,7 +11,7 @@ const all = Object.values(workflows);
 const contract = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const commonContracts = contract('../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md');
 const satelliteContracts = contract('../../system-model/Contracts/VoiceSatellite.md');
-const manifest = (path: string) => JSON.parse(contract(path)) as { packageManager?: string };
+const manifest = (path: string) => JSON.parse(contract(path)) as { packageManager?: string; scripts?: Record<string, string> };
 
 /** Lines of a top-level key, or of a nested key, until the indentation returns to its level. */
 function section(text: string, key: string, indent = 0): string {
@@ -125,18 +125,18 @@ describe('CI workflow', () => {
     expect(workflows.ci).not.toMatch(/paths(-ignore)?:/);
   });
 
-  it('uses the pinned runner, Node.js, pnpm, frozen lockfile and ONNX Runtime settings', () => {
+  it('uses the pinned runner, Node.js, pnpm through Corepack, frozen lockfile and ONNX Runtime settings', () => {
     expect(checks).toMatch(/^ {4}runs-on: ubuntu-24\.04$/m);
     expect(step(checks, 'Set up Node.js')).toMatch(/^ {10}node-version: '24'$/m);
     expect(manifest('../../package.json').packageManager).toBe('pnpm@12.11.2');
     expect(manifest('../../../ambrogio-backend/package.json').packageManager).toBe('pnpm@12.11.2');
-    expect(step(checks, 'Install pnpm')).toMatch(/run: npm install --global pnpm@12\.11\.2$/m);
-    expect(satelliteContracts).toContain('Il job installa poi pnpm 12.11.2');
+    expect(step(checks, 'Enable Corepack')).toMatch(/^ {8}run: corepack enable$/m);
+    expect(commonContracts).toContain('esegue `corepack enable` con la variabile d\'ambiente `COREPACK_ENABLE_DOWNLOAD_PROMPT` uguale a `0`');
     const install = step(checks, 'Install dependencies');
     expect(install).toMatch(/^ {8}working-directory: workspace\/ambrogio-satellite$/m);
     expect(install).toMatch(/run: pnpm install --frozen-lockfile$/m);
     expect(section(checks, 'env', 4)).toBe('    env:\n      BRANCH: ${{ github.head_ref || github.ref_name }}\n'
-      + "      ONNXRUNTIME_NODE_INSTALL: skip\n      ORT_DISABLE_TELEMETRY: '1'");
+      + "      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'\n      ONNXRUNTIME_NODE_INSTALL: skip\n      ORT_DISABLE_TELEMETRY: '1'");
   });
 
   it('checks out the workspace side by side and checks its model without a Reqvire version of its own', () => {
@@ -189,10 +189,11 @@ describe('CI workflow', () => {
       'name: Check out ambrogio-model',
       'run: workspace/ambrogio-model/scripts/checkout-workspace workspace "$BRANCH"',
       'run: workspace/ambrogio-model/scripts/model-checks --workspace workspace',
-      'run: npm install --global pnpm@12.11.2',
+      'run: corepack enable',
       'name: Install backend dependencies',
       'name: Build backend',
       'name: Install dependencies',
+      'run: pnpm audit --audit-level high',
       'run: pnpm typecheck',
       'name: Install gitleaks',
       'run: pnpm test\n',
@@ -206,6 +207,76 @@ describe('CI workflow', () => {
       expect(step(checks, name), name).toMatch(/^ {8}working-directory: workspace\/ambrogio-satellite$/m);
     }
     for (const text of all) expect(text).not.toContain('continue-on-error');
+  });
+});
+
+describe('dependency audit', () => {
+  const checks = job(workflows.ci, 'checks');
+
+  it('audits the satellite dependencies for high and critical advisories right after the frozen install', () => {
+    const audit = step(checks, 'Audit dependencies');
+    expect(audit).toMatch(/^ {8}working-directory: workspace\/ambrogio-satellite$/m);
+    expect(audit).toMatch(/^ {8}run: pnpm audit --audit-level high$/m);
+    const names = steps(checks).map(item => /- name: (.+)\n/.exec(item)?.[1]);
+    expect(names.indexOf('Audit dependencies')).toBe(names.indexOf('Install dependencies') + 1);
+    expect(commonContracts).toContain('esegue `pnpm audit --audit-level high` nella cartella del repository');
+  });
+
+  it('never weakens the audit with ignore or scope options', () => {
+    for (const text of all) {
+      for (const [line] of text.matchAll(/pnpm audit.*$/gm)) {
+        expect(line).not.toMatch(/--(ignore|ignore-unfixable|ignore-registry-errors|prod|dev)\b/);
+      }
+    }
+  });
+
+  it('accepts only single GHSA advisories listed in the common contract as exceptions', () => {
+    const config = readFileSync(new URL('../../pnpm-workspace.yaml', import.meta.url), 'utf8');
+    const audit = /^auditConfig:\n((?: {2}.*\n?)*)/m.exec(config)?.[1] ?? '';
+    const ignored = [...audit.matchAll(/^ {4}- (.+)$/gm)].map(match => match[1]!.replace(/^'|'$/g, ''));
+    for (const advisory of ignored) {
+      expect(advisory).toMatch(/^GHSA(-[23456789cfghjmpqrvwx]{4}){3}$/);
+      expect(commonContracts).toContain(advisory);
+    }
+    expect(audit.replace(/^ {2}ignoreGhsas:\n|^ {4}- .+\n?/gm, '').trim()).toBe('');
+  });
+});
+
+describe('Corepack and complete verification', () => {
+  const checks = job(workflows.ci, 'checks');
+  const dockerfile = readFileSync(new URL('../../Dockerfile', import.meta.url), 'utf8');
+
+  it('never installs or runs another pnpm in the workflows or the Dockerfile', () => {
+    for (const text of [...all, dockerfile]) {
+      expect(text).not.toMatch(/npm install (--global|-g) pnpm|npx[^\n]*pnpm/);
+    }
+  });
+
+  it('enables Corepack in the Docker build stage before the frozen install', () => {
+    const build = dockerfile.split(/^FROM /m)[1]!;
+    expect(build).toMatch(/^node:24\S* AS build$/m);
+    const prompt = build.indexOf('ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0');
+    const enable = build.indexOf('RUN corepack enable');
+    const install = build.indexOf('RUN pnpm install --frozen-lockfile');
+    expect(prompt).toBeGreaterThanOrEqual(0);
+    expect(enable).toBeGreaterThan(prompt);
+    expect(install).toBeGreaterThan(enable);
+    expect(build.indexOf('COPY package.json')).toBeGreaterThan(enable);
+  });
+
+  it('runs in pnpm verify the same checks as the CI job, in the same order', () => {
+    const runs = steps(checks).map(item => ({
+      directory: /^ {8}working-directory: workspace\/(\S+)$/m.exec(item)?.[1],
+      command: /^ {8}run: (pnpm .+)$/m.exec(item)?.[1],
+    })).filter((entry): entry is { directory: string; command: string } => !!entry.directory && !!entry.command);
+    const backend = runs.filter(entry => entry.directory === 'ambrogio-backend').map(entry => entry.command);
+    const satellite = runs.filter(entry => entry.directory === 'ambrogio-satellite').map(entry => entry.command);
+    expect(backend).toEqual(['pnpm install --frozen-lockfile', 'pnpm build']);
+    expect(satellite.slice(0, 2)).toEqual(['pnpm install --frozen-lockfile', 'pnpm audit --audit-level high']);
+    const expected = ['../ambrogio-model/scripts/model-checks', ...satellite.slice(0, 2),
+      `(cd ../ambrogio-backend && ${backend.join(' && ')})`, ...satellite.slice(2)].join(' && ');
+    expect(manifest('../../package.json')).toMatchObject({ scripts: { verify: expected } });
+    expect(satellite.slice(2)).toEqual(['pnpm typecheck', 'pnpm test', 'pnpm build', 'pnpm test:backend']);
   });
 });
 
@@ -245,5 +316,12 @@ describe('secret scan workflow', () => {
     expect(job(workflows.publish, 'checks')).toMatch(/^ {4}uses: \.\/\.github\/workflows\/ci\.yml$/m);
     expect(job(workflows.publish, 'secret-scan')).toMatch(/^ {4}uses: \.\/\.github\/workflows\/secret-scan\.yml$/m);
     expect(job(workflows.publish, 'publish')).toMatch(/^ {4}needs: \[checks, secret-scan\]$/m);
+  });
+
+  it('writes the published image reference to the job summary after the push', () => {
+    const publish = step(job(workflows.publish, 'publish'), 'Publish verified images and release manifest');
+    const summary = publish.indexOf('echo "Published $IMAGE for linux/amd64 and linux/arm64" >> "$GITHUB_STEP_SUMMARY"');
+    expect(summary).toBeGreaterThan(publish.indexOf('docker buildx imagetools create --tag "$IMAGE"'));
+    expect(satelliteContracts).toContain('scrive nel riepilogo del job');
   });
 });

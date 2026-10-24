@@ -1,38 +1,41 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { dirname, join, normalize } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import {
+  analyse, describeViolation, exceptions, repositoryWorkspace, ruleNames, workspaceOf, type ArchitectureException,
+  type RuleName,
+} from './architecture-rules.js';
 import { readSpecifiers } from './import-specifiers.js';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const tracked = execFileSync('git', ['-C', root, 'ls-files'], { encoding: 'utf8' }).split('\n').filter(Boolean);
-const sources = tracked.filter(path => /^(src|test)\/.*\.ts$/.test(path));
+const workspace = repositoryWorkspace(root);
+const filesOf = (prefix: string) => workspace.files.filter(path => path.startsWith(prefix));
 
-type Import = Readonly<{ from: string; specifier: string; target?: string; typeOnly: boolean }>;
+/** One negative fixture per rule: a small in-memory workspace that breaks only that rule. */
+const negativeFixtures: Record<RuleName, Readonly<Record<string, string>>> = {
+  'production-layer-classification': { 'src/helpers/format.ts': 'export const format = (text: string) => text;\n' },
+  'core-layer-imports': {
+    'src/domain/turn.ts': "import type { Logger } from 'pino';\nexport type Turn = { logger: Logger };\n",
+  },
+  'composition-root-assembly': {
+    'src/application/voice-session.use-case.ts': 'export class VoiceSession {}\n',
+    'src/adapters/in/wake-word.adapter.ts':
+      "import { VoiceSession } from '../../application/voice-session.use-case.js';\nexport const session = new VoiceSession();\n",
+  },
+  'layer-test-imports': {
+    'src/application/voice-session.use-case.ts': 'export class VoiceSession {}\n',
+    'test/domain/voice-turn.test.ts':
+      "import type { VoiceSession } from '../../src/application/voice-session.use-case.js';\nexport type Seen = VoiceSession;\n",
+  },
+  'no-backend-imports': {
+    'src/composition/satellite.ts': "import { reply } from '@ambrogio/conversations/application';\nexport { reply };\n",
+  },
+};
 
-let imports: Import[] = [];
-
-function collect(): void {
-  imports = sources.flatMap(path => readSpecifiers(readFileSync(join(root, path), 'utf8')).map(({ specifier, typeOnly }) => ({
-    from: path, specifier, typeOnly,
-    target: specifier.startsWith('.') ? normalize(join(dirname(path), specifier)).replace(/\.js$/, '.ts') : undefined,
-  })));
-}
-
-/** Production layer of a file under `src`. */
-function layer(path: string): string {
-  if (path === 'src/main.ts') return 'main';
-  const match = /^src\/(domain|application|composition|runtime|adapters\/in|adapters\/out)\//.exec(path);
-  if (!match) throw new Error(`Unclassified production file ${path}`);
-  return match[1]!;
-}
-const production = (from: string) => imports.filter(entry => entry.from === from && entry.target?.startsWith('src/'));
-const filesOf = (prefix: string) => sources.filter(path => path.startsWith(prefix));
-
-beforeAll(collect);
-
-describe('import boundaries', () => {
+describe('central architecture rules', () => {
   it('reads the self-check sample exactly', () => {
     const sample = readFileSync(new URL('./import-sample.txt', import.meta.url), 'utf8');
     expect(readSpecifiers(sample)).toEqual([
@@ -52,54 +55,51 @@ describe('import boundaries', () => {
     ]);
   });
 
-  it('finds layer files and resolves every relative import inside the repository', () => {
-    expect(imports.length).toBeGreaterThan(sources.length);
+  it('analyses the whole import graph of src and test, type-only imports included', () => {
+    expect(workspace.imports.length).toBeGreaterThan(workspace.files.length);
+    expect(workspace.imports.some(edge => edge.typeOnly)).toBe(true);
     for (const layerPrefix of ['src/domain/', 'src/application/', 'src/adapters/in/', 'src/adapters/out/',
       'src/composition/', 'test/domain/', 'test/application/', 'test/adapters/in/', 'test/adapters/out/']) {
       expect(filesOf(layerPrefix).length, layerPrefix).toBeGreaterThan(0);
     }
-    for (const entry of imports.filter(entry => entry.target)) {
-      expect(tracked, `${entry.from} -> ${entry.specifier}`).toContain(entry.target);
+    for (const edge of workspace.imports.filter(edge => edge.target)) {
+      expect(workspace.files, `${edge.from} -> ${edge.specifier}`).toContain(edge.target);
     }
   });
 
-  it('keeps Domain and Application free of other layers and of every external or node: module', () => {
-    for (const path of [...filesOf('src/domain/'), ...filesOf('src/application/')]) {
-      const allowed = path.startsWith('src/domain/') ? ['domain'] : ['domain', 'application'];
-      for (const entry of imports.filter(entry => entry.from === path)) {
-        expect(entry.target, `${path} imports ${entry.specifier}`).toBeDefined();
-        expect(allowed, `${path} imports ${entry.specifier}`).toContain(layer(entry.target!));
-      }
+  it('finds no violation of any rule in the repository', () => {
+    expect(analyse(workspace).map(describeViolation)).toEqual([]);
+  });
+
+  it.each(ruleNames)('fails the negative fixture of %s with the rule name', rule => {
+    const violations = analyse(workspaceOf(negativeFixtures[rule], ['pino']), []);
+    expect(violations.length).toBeGreaterThan(0);
+    expect(violations.map(violation => violation.rule)).toEqual(violations.map(() => rule));
+  });
+
+  it('lists every exception with an existing rule, an import, a reason, and a matching violation', () => {
+    const unexcepted = analyse(workspace, []);
+    for (const exception of exceptions) {
+      expect(ruleNames).toContain(exception.rule);
+      expect(exception.from).toMatch(/^(src|test)\/.+\.ts$/);
+      expect(exception.specifier.length).toBeGreaterThan(0);
+      expect(exception.reason.trim().length).toBeGreaterThan(20);
+      expect(unexcepted.filter(violation => violation.rule === exception.rule && violation.from === exception.from
+        && violation.specifier === exception.specifier), JSON.stringify(exception)).toHaveLength(1);
     }
   });
 
-  it('assembles use cases and adapters only in the composition root', () => {
-    for (const entry of imports.filter(entry => entry.from.startsWith('src/') && !entry.typeOnly && entry.target)) {
-      if (/\.(use-case|adapter)\.ts$/.test(entry.target!)) {
-        expect(layer(entry.from), `${entry.from} imports ${entry.specifier}`).toBe('composition');
-      }
-    }
-  });
-
-  it('limits the production imports of each layer test', () => {
-    const rules: ReadonlyArray<readonly [string, readonly string[]]> = [
-      ['test/domain/', ['domain']],
-      ['test/application/', ['domain', 'application']],
-      ['test/adapters/in/', ['adapters/in', 'application']],
-      ['test/adapters/out/', ['adapters/out', 'application', 'domain']],
-    ];
-    for (const [prefix, allowed] of rules) {
-      for (const path of filesOf(prefix)) {
-        for (const entry of production(path)) {
-          expect(allowed, `${path} imports ${entry.specifier}`).toContain(layer(entry.target!));
-          if (prefix === 'test/adapters/in/' && layer(entry.target!) === 'adapters/in') {
-            const name = path.slice(prefix.length).replace(/\.test\.ts$/, '');
-            expect([`src/adapters/in/${name}.ts`, `src/adapters/in/${name}.adapter.ts`],
-              `${path} imports ${entry.specifier}`).toContain(entry.target);
-          }
-        }
-      }
-    }
+  it('lets an exception suppress only its own violation', () => {
+    const fixture = workspaceOf({
+      'src/domain/a.ts': "import 'node:fs';\n",
+      'src/domain/b.ts': "import 'node:fs';\n",
+    });
+    const exception: ArchitectureException = {
+      rule: 'core-layer-imports', from: 'src/domain/a.ts', specifier: 'node:fs', reason: 'Fixture exception for one file only.',
+    };
+    expect(analyse(fixture, []).map(violation => violation.from)).toEqual(['src/domain/a.ts', 'src/domain/b.ts']);
+    expect(analyse(fixture, [exception]).map(violation => violation.from)).toEqual(['src/domain/b.ts']);
+    expect(analyse(fixture, [{ ...exception, rule: 'composition-root-assembly' }])).toHaveLength(2);
   });
 });
 

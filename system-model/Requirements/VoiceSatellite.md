@@ -125,6 +125,26 @@ Origine: baseline Reqvire «Time limit with cancellation of remote work», adott
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Audit delle dipendenze nella CI del satellite
+
+Quando la CI del satellite controlla una modifica, il job `Satellite checks` deve eseguire l'audit delle dipendenze del satellite subito dopo la loro installazione congelata e deve fallire se trova un avviso di gravità alta o critica non elencato fra le eccezioni accettate.
+
+#### Details
+Il satellite non ha eccezioni accettate: `pnpm-workspace.yaml` non dichiara `auditConfig`.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Audit delle dipendenze con pnpm](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#audit-delle-dipendenze-con-pnpm)
+
+#### Relations
+  * derivedFrom: [Audit delle vulnerabilità delle dipendenze](../../../ambrogio-model/system-model/Requirements/ModelDrivenDevelopment.md#audit-delle-vulnerabilità-delle-dipendenze)
+  * satisfiedBy: [ci.yml](../../.github/workflows/ci.yml)
+  * satisfiedBy: [pnpm-workspace.yaml](../../pnpm-workspace.yaml)
+  * specify: [Sviluppo governato dal modello](../../../ambrogio-model/system-model/Capabilities/Engineering.md#sviluppo-governato-dal-modello)
+---
+
 ### Avvio dopo la wake word
 
 Quando riconosce la wake word mentre attende una nuova interazione, il satellite deve avviare una nuova interazione sulla sessione conversazionale pubblica del backend, riaprendo la sessione se non è pronta.
@@ -160,6 +180,26 @@ Il satellite deve mettere a disposizione modelli di wake word distribuiti e supp
 
 #### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Comando di verifica completo del satellite
+
+Il satellite deve offrire il comando `pnpm verify`, che esegue in locale i controlli del job `Satellite checks` secondo «Comando di verifica completo con pnpm» e termina con esito non riuscito al primo controllo fallito.
+
+#### Details
+I comandi successivi all'installazione e all'audit, nell'ordine del job della CI, sono `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm test:backend`; prima di essi `pnpm verify` prepara il backend affiancato con `pnpm install --frozen-lockfile` e `pnpm build` in `../ambrogio-backend`.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Comando di verifica completo con pnpm](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#comando-di-verifica-completo-con-pnpm)
+  * [Profilo CI del satellite](../Contracts/VoiceSatellite.md#profilo-ci-del-satellite)
+
+#### Relations
+  * derivedFrom: [Comando di verifica completo](../../../ambrogio-model/system-model/Requirements/ModelDrivenDevelopment.md#comando-di-verifica-completo)
+  * satisfiedBy: [package.json](../../package.json)
+  * specify: [Sviluppo governato dal modello](../../../ambrogio-model/system-model/Capabilities/Engineering.md#sviluppo-governato-dal-modello)
 ---
 
 ### Condizioni di distribuzione dei modelli wake word
@@ -282,15 +322,17 @@ Quando gli adapter interagiscono con i casi d'uso del satellite, devono usare da
 
 ### Controlli CI delle modifiche del satellite
 
-Quando una modifica viene inviata al branch main o proposta tramite pull request, quando la CI viene avviata manualmente e quando un altro workflow la richiama, la CI del satellite deve eseguire, dopo il checkout affiancato dei repository del modello, i controlli dell'intero modello, il controllo TypeScript completo e dei layer interni, la suite Vitest, la prova di integrazione con il backend affiancato e la build, segnalando il fallimento se uno dei controlli fallisce.
+Quando una modifica viene inviata al branch main o proposta tramite pull request, quando la CI viene avviata manualmente e quando un altro workflow la richiama, la CI del satellite deve eseguire, dopo il checkout affiancato dei repository del modello, i controlli dell'intero modello, l'installazione congelata delle dipendenze con pnpm attivato da Corepack, l'audit delle dipendenze, il controllo TypeScript completo e dei layer interni, la suite Vitest, la prova di integrazione con il backend affiancato e la build, segnalando il fallimento se uno dei controlli fallisce.
 
 #### Metadata
   * type: requirement
 
 #### Contract References
   * [Ingresso di prova del server conversazionale](../../../ambrogio-backend/system-model/Contracts/ServerFoundation.md#ingresso-di-prova-del-server-conversazionale)
+  * [Audit delle dipendenze con pnpm](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#audit-delle-dipendenze-con-pnpm)
   * [Checkout affiancato dello spazio di lavoro](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#checkout-affiancato-dello-spazio-di-lavoro)
   * [Controlli del modello dello spazio di lavoro](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#controlli-del-modello-dello-spazio-di-lavoro)
+  * [Profilo di installazione con pnpm e Corepack](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#profilo-di-installazione-con-pnpm-e-corepack)
   * [Profilo di scansione dei segreti con gitleaks](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#profilo-di-scansione-dei-segreti-con-gitleaks)
   * [Risoluzione della versione di Reqvire](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#risoluzione-della-versione-di-reqvire)
   * [Profilo della scansione dei segreti del satellite](../Contracts/VoiceSatellite.md#profilo-della-scansione-dei-segreti-del-satellite)
@@ -299,6 +341,23 @@ Quando una modifica viene inviata al branch main o proposta tramite pull request
 #### Relations
   * derivedFrom: [Controlli CI dei repository di Ambrogio](../../../ambrogio-model/system-model/Requirements/ModelDrivenDevelopment.md#controlli-ci-dei-repository-di-ambrogio)
   * satisfiedBy: [ci.yml](../../.github/workflows/ci.yml)
+  * specify: [Sviluppo governato dal modello](../../../ambrogio-model/system-model/Capabilities/Engineering.md#sviluppo-governato-dal-modello)
+---
+
+### Controlli del modello prima del commit del satellite
+
+Quando si crea un commit in un clone del satellite con l'hook versionato attivo, l'hook `.githooks/pre-commit` deve eseguire, dopo la scansione dei segreti, i controlli dell'intero modello con `scripts/model-checks` di `ambrogio-model` affiancato e deve impedire il commit se questi controlli falliscono o se `ambrogio-model` non è affiancato al repository.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Controlli del modello dello spazio di lavoro](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#controlli-del-modello-dello-spazio-di-lavoro)
+  * [Controlli del modello nell'hook pre-commit](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#controlli-del-modello-nellhook-pre-commit)
+
+#### Relations
+  * derivedFrom: [Controlli del modello prima del commit](../../../ambrogio-model/system-model/Requirements/ModelDrivenDevelopment.md#controlli-del-modello-prima-del-commit)
+  * satisfiedBy: [pre-commit](../../.githooks/pre-commit)
   * specify: [Sviluppo governato dal modello](../../../ambrogio-model/system-model/Capabilities/Engineering.md#sviluppo-governato-dal-modello)
 ---
 
@@ -366,6 +425,7 @@ Origine: baseline Reqvire «Server distributed as a container image», adottata.
   * [Adapter audio con Decibri](../Contracts/VoiceSatellite.md#adapter-audio-con-decibri)
   * [Attenuazione locale con softvol e amixer](../Contracts/VoiceSatellite.md#attenuazione-locale-con-softvol-e-amixer)
   * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
+  * [Profilo di installazione delle dipendenze del satellite](../Contracts/VoiceSatellite.md#profilo-di-installazione-delle-dipendenze-del-satellite)
 
 #### Relations
   * satisfiedBy: [Dockerfile](../../Dockerfile)
@@ -549,6 +609,26 @@ Il controllo TypeScript del satellite deve compilare Domain e Application con la
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
+### Installazione delle dipendenze del satellite con pnpm e Corepack
+
+Quando si installano le dipendenze del satellite, nella CI o nella build dell'immagine, l'installazione deve usare pnpm alla versione di `packageManager` attivata con Corepack, dal lockfile versionato senza modificarlo, con le sole eccezioni all'attesa per le nuove versioni e i soli script di build ammessi dal contratto «Profilo di installazione delle dipendenze del satellite».
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Profilo di installazione con pnpm e Corepack](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#profilo-di-installazione-con-pnpm-e-corepack)
+
+#### Relations
+  * derivedFrom: [Installazione delle dipendenze con pnpm attivato da Corepack](../../../ambrogio-model/system-model/Requirements/ModelDrivenDevelopment.md#installazione-delle-dipendenze-con-pnpm-attivato-da-corepack)
+  * satisfiedBy: [ci.yml](../../.github/workflows/ci.yml)
+  * satisfiedBy: [Dockerfile](../../Dockerfile)
+  * satisfiedBy: [package.json](../../package.json)
+  * satisfiedBy: [pnpm-lock.yaml](../../pnpm-lock.yaml)
+  * satisfiedBy: [pnpm-workspace.yaml](../../pnpm-workspace.yaml)
+  * specify: [Sviluppo governato dal modello](../../../ambrogio-model/system-model/Capabilities/Engineering.md#sviluppo-governato-dal-modello)
+---
+
 ### Interazione indipendente dall'attenuazione
 
 Se la regolazione del controllo di attenuazione non riesce, il satellite deve proseguire l'interazione o l'attesa della wake word senza interromperla e registrare un evento diagnostico del guasto.
@@ -725,7 +805,7 @@ Quando programma o annulla una scadenza dell'interazione vocale, Application dev
 
 ### Pubblicazione delle immagini Docker del satellite
 
-Quando viene creato un tag di release valido, il satellite deve pubblicare su GHCR l'immagine `ghcr.io/ambrogio-app/ambrogio-satellite` per Linux amd64 e arm64 soltanto dopo il superamento dei controlli software e delle verifiche delle immagini di entrambe le architetture.
+Quando viene creato un tag di release valido, il satellite deve pubblicare su GHCR l'immagine `ghcr.io/ambrogio-app/ambrogio-satellite` per Linux amd64 e arm64 soltanto dopo il superamento dei controlli software e delle verifiche delle immagini di entrambe le architetture, e deve scrivere il riferimento dell'immagine pubblicata nel riepilogo del job di pubblicazione.
 
 #### Metadata
   * type: requirement
@@ -756,6 +836,19 @@ Quando riconosce la wake word, il satellite deve registrare un evento diagnostic
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Regole di architettura centrali del satellite
+
+Il satellite deve controllare a ogni esecuzione della suite di test le proprie regole di architettura sugli import dalla fonte centrale e con le eccezioni del contratto «Regole di architettura del satellite», e la suite deve fallire su ogni violazione non eccettuata.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * derivedFrom: [Regole di architettura centrali e bloccanti](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#regole-di-architettura-centrali-e-bloccanti)
+  * satisfiedBy: [architecture-rules.ts](../../test/architecture/architecture-rules.ts)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
 ### Replica richiesta dal backend

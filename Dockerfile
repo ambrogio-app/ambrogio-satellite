@@ -1,7 +1,8 @@
 FROM node:24-bookworm-slim AS build
 
 WORKDIR /app
-RUN npm install --global pnpm@12.11.2
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable
 ENV ONNXRUNTIME_NODE_INSTALL=skip
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json tsconfig.build.json ./
 RUN pnpm install --frozen-lockfile

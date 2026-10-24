@@ -15,7 +15,8 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.core.json",
     "test": "vitest run",
-    "test:backend": "pnpm build && node scripts/verify-backend.mjs"
+    "test:backend": "pnpm build && node scripts/verify-backend.mjs",
+    "verify": "../ambrogio-model/scripts/model-checks && pnpm install --frozen-lockfile && pnpm audit --audit-level high && (cd ../ambrogio-backend && pnpm install --frozen-lockfile && pnpm build) && pnpm typecheck && pnpm test && pnpm build && pnpm test:backend"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

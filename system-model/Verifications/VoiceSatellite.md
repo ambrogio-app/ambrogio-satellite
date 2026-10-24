@@ -388,11 +388,28 @@ La prova passa se i file Domain importano soltanto Domain; se i file Application
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [architecture-rules.ts](../../test/architecture/architecture-rules.ts)
   * satisfiedBy: [import-boundaries.test.ts](../../test/architecture/import-boundaries.test.ts)
   * verify: [Assemblaggio delle risorse nella composition root](../Requirements/VoiceSatellite.md#assemblaggio-delle-risorse-nella-composition-root)
   * verify: [Confini degli import nei test](../Requirements/VoiceSatellite.md#confini-degli-import-nei-test)
   * verify: [Distribuzione mirata della configurazione](../Requirements/VoiceSatellite.md#distribuzione-mirata-della-configurazione)
   * verify: [Progetto unico del satellite](../Requirements/VoiceSatellite.md#progetto-unico-del-satellite)
+---
+
+### Prova dei controlli del modello nell'hook pre-commit del satellite
+
+In una cartella temporanea che contiene un repository Git con una copia di `.githooks/pre-commit` attivata tramite `core.hooksPath` e, accanto, uno script finto `ambrogio-model/scripts/model-checks` che registra ogni esecuzione e riesce o fallisce: tentare un commit privo di segreti con lo script che riesce, poi con lo script che fallisce, poi senza `ambrogio-model` affiancato, e un commit con una credenziale fittizia; leggere l'hook versionato.
+
+#### Details
+La prova passa se il commit privo di segreti riesce dopo un'esecuzione dello script; se con lo script che fallisce il commit è rifiutato e l'output riporta il messaggio dello script; se senza `ambrogio-model` affiancato il commit è rifiutato con il messaggio di «Controlli del modello nell'hook pre-commit»; se il commit con la credenziale è rifiutato senza eseguire lo script; e se l'hook versionato esegue `../ambrogio-model/scripts/model-checks` rispetto alla radice del repository. Fallisce se un commit è creato nonostante un controllo fallito o l'assenza di `ambrogio-model`, se lo script non viene eseguito per un commit privo di segreti o se viene eseguito dopo una scansione fallita. Lo script finto sostituisce i controlli reali, che la CI esegue a parte sull'intero modello, perché Reqvire renderebbe lenta la suite.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [pre-commit-hook.test.ts](../../test/repository/pre-commit-hook.test.ts)
+  * verify: [Controlli del modello prima del commit del satellite](../Requirements/VoiceSatellite.md#controlli-del-modello-prima-del-commit-del-satellite)
 ---
 
 ### Prova del bootstrap della configurazione
@@ -454,6 +471,22 @@ La prova passa se ogni condizione precedente è rispettata; se, alla scadenza di
   * verify: [Tempo massimo dell'arresto del processo](../Requirements/VoiceSatellite.md#tempo-massimo-dellarresto-del-processo)
 ---
 
+### Prova del comando di verifica completo del satellite
+
+Leggere lo script `verify` di `package.json` e i passi del job `Satellite checks` di `.github/workflows/ci.yml`, e ricavare dai passi la sequenza attesa.
+
+#### Details
+La prova passa se `verify` è esattamente `../ambrogio-model/scripts/model-checks`, seguito dai comandi `pnpm` del job in `workspace/ambrogio-satellite` per l'installazione congelata e l'audit, dalla preparazione del backend in `../ambrogio-backend` con i comandi del job in `workspace/ambrogio-backend`, e dagli altri comandi `pnpm` del job nello stesso ordine, `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm test:backend`, tutti uniti da `&&`. Fallisce se un comando della CI manca, è in un altro ordine o non interrompe la sequenza quando fallisce.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [workflows.test.ts](../../test/repository/workflows.test.ts)
+  * verify: [Comando di verifica completo del satellite](../Requirements/VoiceSatellite.md#comando-di-verifica-completo-del-satellite)
+---
+
 ### Prova del confine Application della sessione
 
 #### Details
@@ -466,6 +499,22 @@ Controllare proiezioni osservabili durante attesa, apertura, registrazione, risp
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [voice-session.test.ts](../../test/application/voice-session.test.ts)
   * verify: [Contratti Application indipendenti dal Domain](../Requirements/VoiceSatellite.md#contratti-application-indipendenti-dal-domain)
+---
+
+### Prova del riepilogo della pubblicazione del satellite
+
+Leggere come testo `.github/workflows/publish-image.yml` e confrontarlo con il contratto «Profilo di pubblicazione Docker del satellite».
+
+#### Details
+La prova passa se il passo che pubblica le immagini, dopo aver creato il manifest con il tag di release, scrive in `$GITHUB_STEP_SUMMARY` il riferimento `$IMAGE` dell'immagine pubblicata con le sue piattaforme. Fallisce se il riepilogo manca o se è scritto prima della pubblicazione.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [workflows.test.ts](../../test/repository/workflows.test.ts)
+  * verify: [Pubblicazione delle immagini Docker del satellite](../Requirements/VoiceSatellite.md#pubblicazione-delle-immagini-docker-del-satellite)
 ---
 
 ### Prova del tono di errore per voce non disponibile
@@ -505,13 +554,14 @@ La prova passa se il tono di errore è PCM16 mono a 16 kHz di 5600 campioni (350
 Leggere come testo tutti i file TypeScript di `src`, estrarne gli specificatori con la stessa lettura della «Prova dei confini interni» e risolverli.
 
 #### Details
-La prova passa se i file di `src` letti non sono vuoti e se ogni specificatore del codice di produzione è un modulo di Node.js, una dipendenza di runtime dichiarata nel `package.json` del satellite o un percorso relativo che resta in `src`; nessuno specificatore deve risolversi in un percorso del repository `ambrogio-backend` o fuori dal repository, né nominare un package del backend, e nessun package del backend deve comparire fra le dipendenze del satellite. L'unico import calcolato a runtime ammesso è quello del caricatore della configurazione in `src/adapters/out/config-file.ts`, che importa il modulo di configurazione dell'installazione. Fallisce se un file di produzione importa codice del backend, anche soltanto per i tipi, o se uno specificatore non può essere risolto.
+La prova passa se i file di `src` letti non sono vuoti e se ogni specificatore del codice di produzione è un modulo di Node.js, una dipendenza di runtime dichiarata nel `package.json` del satellite o un percorso relativo che resta in `src`; nessuno specificatore deve risolversi in un percorso del repository `ambrogio-backend` o fuori dal repository, né nominare un package del backend, e nessun package del backend deve comparire fra le dipendenze del satellite. Il controllo è la regola `no-backend-imports` di «Regole di architettura del satellite»; l'unico import calcolato a runtime ammesso è la sua eccezione registrata, il caricatore della configurazione in `src/adapters/out/config-file.ts`, che importa il modulo di configurazione dell'installazione. Fallisce se un file di produzione importa codice del backend, anche soltanto per i tipi, o se uno specificatore non può essere risolto.
 
 #### Metadata
   * type: test-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [architecture-rules.ts](../../test/architecture/architecture-rules.ts)
   * satisfiedBy: [backend-imports.test.ts](../../test/architecture/backend-imports.test.ts)
   * verify: [Uso delle sole interfacce pubbliche del backend nel satellite](../Requirements/VoiceSatellite.md#uso-delle-sole-interfacce-pubbliche-del-backend-nel-satellite)
 ---
@@ -534,6 +584,22 @@ La prova passa se senza configurazione non avviene alcuna regolazione; se con la
   * verify: [Attenuazione dell'audio locale durante l'interazione](../Requirements/VoiceSatellite.md#attenuazione-dellaudio-locale-durante-linterazione)
   * verify: [Interazione indipendente dall'attenuazione](../Requirements/VoiceSatellite.md#interazione-indipendente-dallattenuazione)
   * verify: [Ripristino dell'attenuazione all'avvio e all'arresto](../Requirements/VoiceSatellite.md#ripristino-dellattenuazione-allavvio-e-allarresto)
+---
+
+### Prova dell'audit delle dipendenze del satellite
+
+Leggere come testo `.github/workflows/ci.yml`, gli altri workflow e `pnpm-workspace.yaml` e confrontarli con il contratto «Audit delle dipendenze con pnpm» di `ambrogio-model`.
+
+#### Details
+La prova passa se il job `Satellite checks` esegue `pnpm audit --audit-level high` in `workspace/ambrogio-satellite` nel passo immediatamente successivo all'installazione congelata; se nessun comando `pnpm audit` usa `--ignore`, `--ignore-unfixable`, `--ignore-registry-errors`, `--prod` o `--dev`; e se `auditConfig` di `pnpm-workspace.yaml` contiene soltanto `ignoreGhsas` con singoli identificativi GHSA elencati nel contratto comune. Fallisce se l'audit manca, è in un'altra posizione, usa un'opzione che lo indebolisce o se un'eccezione non è un singolo avviso registrato. L'esito dell'audit sugli avvisi del registro è dato dall'esecuzione di `pnpm audit` nella CI e in `pnpm verify`, perché richiede la rete.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [workflows.test.ts](../../test/repository/workflows.test.ts)
+  * verify: [Audit delle dipendenze nella CI del satellite](../Requirements/VoiceSatellite.md#audit-delle-dipendenze-nella-ci-del-satellite)
 ---
 
 ### Prova dell'evento di attivazione locale
@@ -598,6 +664,22 @@ La prova passa se senza configurazione `clientId` vale `satellite-<nome host>` e
   * verify: [Identificazione del satellite nella sessione](../Requirements/VoiceSatellite.md#identificazione-del-satellite-nella-sessione)
 ---
 
+### Prova dell'installazione con Corepack del satellite
+
+Leggere come testo `.github/workflows/ci.yml`, gli altri workflow, il `Dockerfile` e `package.json` e confrontarli con il contratto «Profilo di installazione delle dipendenze del satellite»; in CI installare le dipendenze da un checkout pulito.
+
+#### Details
+La prova passa se `packageManager` è `pnpm@12.11.2`; se il job `Satellite checks` dichiara `COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'` ed esegue `corepack enable` prima delle installazioni; se la fase di build del `Dockerfile` parte da un'immagine `node` 24, dichiara `ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0` ed esegue `corepack enable` prima di copiare il manifest e di `pnpm install --frozen-lockfile`; se nessun workflow né il `Dockerfile` installano pnpm con `npm install --global` o lo eseguono con `npx`; e se l'installazione congelata in CI riesce. Fallisce se una di queste condizioni manca.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [workflows.test.ts](../../test/repository/workflows.test.ts)
+  * verify: [Installazione delle dipendenze del satellite con pnpm e Corepack](../Requirements/VoiceSatellite.md#installazione-delle-dipendenze-del-satellite-con-pnpm-e-corepack)
+---
+
 ### Prova della conferma su blocchi consecutivi
 
 Con sessioni ONNX simulate che restituiscono una sequenza controllata di punteggi del classificatore, uno per blocco da 80 ms, e soglia 0,5: con `patience` 2 un solo blocco sopra soglia seguito da uno sotto soglia non produce rilevamenti; due blocchi consecutivi sopra soglia producono un solo rilevamento, sul secondo blocco; due blocchi sopra soglia separati da uno sotto soglia non producono rilevamenti; con `patience` 1 un solo blocco sopra soglia produce un rilevamento. Dopo l'azzeramento della pipeline un blocco sopra soglia non completa un conteggio iniziato prima. Opzioni con `patience` non intero o minore di 1 sono rifiutate all'apertura. La configurazione senza `wakeWord.patience` produce il valore 2, accetta 1 e 10 e rifiuta 0, 11, valori non interi e stringhe con `field: "wakeWord.patience"`; la composition root passa il valore configurato al riconoscitore.
@@ -644,7 +726,7 @@ La prova passa se l'avvio richiede un solo percorso indicato con `--config`; se 
 Leggere come testo `.github/workflows/ci.yml` e confrontarlo con il contratto «Profilo CI del satellite», con il contratto «Checkout affiancato dello spazio di lavoro» di `ambrogio-model` e con `.github/workflows/secret-scan.yml`.
 
 #### Details
-La prova passa se il workflow si attiva su `pull_request`, sui `push` al solo branch `main`, su `workflow_dispatch` e su `workflow_call`, senza filtri `paths` o `paths-ignore`; se il job `Satellite checks` usa `ubuntu-24.04`, Node.js `24` e `BRANCH: ${{ github.head_ref || github.ref_name }}`; se esegue il checkout del repository con `path: workspace/ambrogio-satellite` e `fetch-depth: 0`, scarica `ambrogio-model` in `workspace/ambrogio-model` sul branch `BRANCH` se esiste e altrimenti su `main`, ed esegue nell'ordine `workspace/ambrogio-model/scripts/checkout-workspace workspace "$BRANCH"` e `workspace/ambrogio-model/scripts/model-checks --workspace workspace`, senza un numero di versione di Reqvire nel workflow; se installa pnpm 12.11.2, la versione di `packageManager` del `package.json` del satellite, ed esegue in `workspace/ambrogio-backend` `pnpm install --frozen-lockfile` e `pnpm build`; se i passi del satellite girano in `workspace/ambrogio-satellite` con `pnpm install --frozen-lockfile`, `ONNXRUNTIME_NODE_INSTALL: skip` e `ORT_DISABLE_TELEMETRY: '1'`; se installa gitleaks con la versione e lo SHA-256 di `.github/workflows/secret-scan.yml`, dallo stesso archivio della release ufficiale, ed esegue `sha256sum --check --strict` prima dell'estrazione; se esegue nell'ordine `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm test:backend`, con l'installazione di gitleaks prima di `pnpm test`; e se nessun workflow o passo usa `continue-on-error`. Fallisce se manca un controllo, se l'ordine differisce, se un attivatore manca o è filtrato per percorso, se la versione o l'impronta di gitleaks differiscono dalla scansione dei segreti o se un passo fallito non fa fallire il job.
+La prova passa se il workflow si attiva su `pull_request`, sui `push` al solo branch `main`, su `workflow_dispatch` e su `workflow_call`, senza filtri `paths` o `paths-ignore`; se il job `Satellite checks` usa `ubuntu-24.04`, Node.js `24` e `BRANCH: ${{ github.head_ref || github.ref_name }}`; se esegue il checkout del repository con `path: workspace/ambrogio-satellite` e `fetch-depth: 0`, scarica `ambrogio-model` in `workspace/ambrogio-model` sul branch `BRANCH` se esiste e altrimenti su `main`, ed esegue nell'ordine `workspace/ambrogio-model/scripts/checkout-workspace workspace "$BRANCH"` e `workspace/ambrogio-model/scripts/model-checks --workspace workspace`, senza un numero di versione di Reqvire nel workflow; se dichiara `COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'`, esegue `corepack enable` con `packageManager` uguale a `pnpm@12.11.2` nel `package.json` del satellite ed esegue in `workspace/ambrogio-backend` `pnpm install --frozen-lockfile` e `pnpm build`; se i passi del satellite girano in `workspace/ambrogio-satellite` con `pnpm install --frozen-lockfile`, `ONNXRUNTIME_NODE_INSTALL: skip` e `ORT_DISABLE_TELEMETRY: '1'`, seguito da `pnpm audit --audit-level high`; se installa gitleaks con la versione e lo SHA-256 di `.github/workflows/secret-scan.yml`, dallo stesso archivio della release ufficiale, ed esegue `sha256sum --check --strict` prima dell'estrazione; se esegue nell'ordine `pnpm audit --audit-level high`, `pnpm typecheck`, `pnpm test`, `pnpm build` e `pnpm test:backend`, con l'installazione di gitleaks prima di `pnpm test`; e se nessun workflow o passo usa `continue-on-error`. Fallisce se manca un controllo, se l'ordine differisce, se un attivatore manca o è filtrato per percorso, se la versione o l'impronta di gitleaks differiscono dalla scansione dei segreti o se un passo fallito non fa fallire il job.
 
 #### Metadata
   * type: test-verification
@@ -744,6 +826,23 @@ La prova passa se ogni `uses:` di un'azione esterna indica uno SHA di 40 caratte
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [workflows.test.ts](../../test/repository/workflows.test.ts)
   * verify: [Privilegi e durata limitati dei workflow GitHub Actions](../Requirements/VoiceSatellite.md#privilegi-e-durata-limitati-dei-workflow-github-actions)
+---
+
+### Prova delle regole di architettura centrali del satellite
+
+Eseguire ogni regola di `test/architecture/architecture-rules.ts` sui file TypeScript di `src` e `test` che Git vede, poi sulla fixture negativa di ciascuna regola; leggere l'elenco delle eccezioni e applicarne una a una fixture con due violazioni della stessa regola.
+
+#### Details
+La prova passa se l'analisi legge anche gli import di soli tipi e risolve ogni import relativo in un file analizzato, non riporta violazioni non eccettuate nel repository, ogni fixture negativa fallisce soltanto con il nome della propria regola, ogni eccezione nomina una regola esistente, un file, un import e un motivo e corrisponde a una sola violazione reale, e un'eccezione elimina soltanto la propria violazione. Fallisce se una regola non riporta la violazione della propria fixture, se una violazione è riportata con un altro nome, se un'eccezione non corrisponde a una violazione o ne elimina altre.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [architecture-rules.ts](../../test/architecture/architecture-rules.ts)
+  * satisfiedBy: [import-boundaries.test.ts](../../test/architecture/import-boundaries.test.ts)
+  * verify: [Regole di architettura centrali del satellite](../Requirements/VoiceSatellite.md#regole-di-architettura-centrali-del-satellite)
 ---
 
 ### Prova delle scadenze indipendenti dal runtime
