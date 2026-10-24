@@ -81,4 +81,11 @@ describe('Compose example', () => {
     expect(compose).not.toMatch(/:-/);
     expect(compose).not.toMatch(/\/config|--config|\.ts\b/);
   });
+
+  // «Tempo massimo dell'arresto del processo»: Docker waits longer than the satellite's own 5000 ms limit.
+  it('grants the container a stop grace period of at least 10 seconds', () => {
+    const period = /^\s+stop_grace_period:\s*(\d+)s\s*$/m.exec(text('compose.example.yaml'));
+    expect(period).not.toBeNull();
+    expect(Number(period![1])).toBeGreaterThanOrEqual(10);
+  });
 });

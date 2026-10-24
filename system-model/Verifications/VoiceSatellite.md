@@ -480,11 +480,11 @@ La prova passa se il modello personalizzato è scoperto e caricato dal mount sen
 ### Prova del ciclo di arresto del satellite
 
 #### Details
-Iniettare risorse controllate e fallimenti: durante ascolto, chiamata e riproduzione, l'arresto deve bloccare nuovi eventi e interrompere i dispositivi senza attendere una risposta. Chiamare stop ripetutamente e in parallelo: una sola chiusura nativa per risorsa, stesso esito. Far fallire una chiusura: tutte le altre devono essere tentate e l'errore originale deve restare disponibile. Fallire l'avvio dopo acquisizioni parziali e interrompere un'acquisizione pendente: tutte le risorse ottenute devono essere rilasciate. Provare rilascio ONNX parziale e inferenza in corso, cancellazione del tono di errore e SIGINT/SIGTERM nel confine di processo.
+Iniettare risorse controllate e fallimenti: durante ascolto, chiamata e riproduzione, l'arresto deve bloccare nuovi eventi e interrompere i dispositivi senza attendere una risposta. Chiamare la chiusura ripetutamente e in parallelo: una sola chiusura nativa per risorsa, in ordine inverso di acquisizione (microfono, sessione vocale, chiamata e canale, attività vocale, wake word), stesso esito. Far fallire una chiusura: tutte le altre devono essere tentate e il guasto, incapsulato in un errore del progetto che nomina la risorsa, deve conservare l'originale come causa; due guasti devono restare distinti in un `LifecycleError` nell'ordine osservato. Fallire l'avvio dopo acquisizioni parziali e interrompere un'acquisizione pendente: tutte le risorse ottenute devono essere rilasciate. Provare rilascio ONNX parziale e inferenza in corso, cancellazione del tono di errore e SIGINT/SIGTERM nel confine di processo.
 
-Nel confine di processo, con una scadenza controllata dalla prova, inviare SIGINT o SIGTERM a un satellite la cui chiusura non si risolve mai, poi a un avvio che non termina dopo l'interruzione, inviando un secondo segnale durante l'attesa; ripetere con un arresto che termina prima della scadenza. Con il timer predefinito basato su Node.js verificare che la scadenza non trattenga il processo. Acquisire la riga reale di Pino dell'evento di scadenza.
+Nel confine di processo, con una scadenza controllata dalla prova, inviare SIGINT o SIGTERM a un satellite la cui chiusura non si risolve mai, poi a un avvio che non termina dopo l'interruzione, inviando un secondo segnale durante l'attesa; ripetere con un arresto che termina prima della scadenza. Con il timer predefinito basato su Node.js verificare che la scadenza non trattenga il processo. Ripetere la scadenza dopo che una chiusura è già fallita. Acquisire la riga reale di Pino dell'evento di scadenza e leggere l'esempio Compose del repository.
 
-La prova passa se ogni condizione precedente è rispettata; se, alla scadenza di 5000 ms dal primo segnale, il confine di processo registra una sola volta `satellite_shutdown_timeout` e termina con codice 1; se il secondo segnale non riavvia la scadenza; se un arresto concluso prima annulla la scadenza senza registrare l'evento né forzare l'uscita; se il timer predefinito non mantiene attivo l'event loop; e se la riga è di livello `error` con soltanto le chiavi `level`, `time`, `event` e `timeoutMs` uguale a 5000. Fallisce se una risorsa resta aperta, se una chiusura è ripetuta, se l'errore originale si perde, se una chiusura che non si risolve lascia il processo attivo oltre la scadenza, se l'uscita forzata avviene dopo un arresto concluso o con codice diverso da 1, o se la riga contiene altre chiavi. I test automatici usano risorse simulate; non attestano periferiche reali.
+La prova passa se ogni condizione precedente è rispettata; se, alla scadenza di 5000 ms dal primo segnale, il confine di processo registra una sola volta `satellite_shutdown_timeout` e termina con codice 1; se il secondo segnale non riavvia la scadenza; se un arresto concluso prima annulla la scadenza senza registrare l'evento né forzare l'uscita; se il timer predefinito non mantiene attivo l'event loop; se la riga è di livello `error` con soltanto le chiavi `level`, `time`, `event` e `timeoutMs` uguale a 5000, più `err` con i guasti già osservati quando ve ne sono; se un arresto con una chiusura fallita produce una sola riga `satellite_process_failed` e codice 1; e se l'esempio Compose dichiara `stop_grace_period` di almeno 10 secondi. Fallisce se una risorsa resta aperta, se una chiusura è ripetuta, se l'errore originale si perde, se una chiusura che non si risolve lascia il processo attivo oltre la scadenza, se l'uscita forzata avviene dopo un arresto concluso o con codice diverso da 1, o se la riga contiene altre chiavi. I test automatici usano risorse simulate; non attestano periferiche reali.
 
 #### Metadata
   * type: test-verification
@@ -496,9 +496,11 @@ La prova passa se ogni condizione precedente è rispettata; se, alla scadenza di
   * satisfiedBy: [onnx-wake-word.lifecycle.spec.ts](../../src/adapters/out/onnx-wake-word.lifecycle.spec.ts)
   * satisfiedBy: [silero-vad.spec.ts](../../src/adapters/out/silero-vad.spec.ts)
   * satisfiedBy: [satellite.spec.ts](../../src/composition/satellite.spec.ts)
+  * satisfiedBy: [lifecycle.spec.ts](../../src/runtime/lifecycle.spec.ts)
   * satisfiedBy: [satellite-process.spec.ts](../../src/runtime/satellite-process.spec.ts)
+  * satisfiedBy: [environment-files.spec.ts](../../test/repository/environment-files.spec.ts)
   * verify: [Arresto immediato del processo satellite](../Requirements/VoiceSatellite.md#arresto-immediato-del-processo-satellite)
-  * verify: [Idempotenza dell'arresto del satellite](../Requirements/VoiceSatellite.md#idempotenza-dellarresto-del-satellite)
+  * verify: [Arresto unico e ordinato del satellite](../Requirements/VoiceSatellite.md#arresto-unico-e-ordinato-del-satellite)
   * verify: [Rilascio completo delle risorse del satellite](../Requirements/VoiceSatellite.md#rilascio-completo-delle-risorse-del-satellite)
   * verify: [Tempo massimo dell'arresto del processo](../Requirements/VoiceSatellite.md#tempo-massimo-dellarresto-del-processo)
 ---
@@ -531,6 +533,40 @@ Controllare proiezioni osservabili durante attesa, apertura, registrazione, risp
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [voice-session.use-case.spec.ts](../../src/application/voice-session.use-case.spec.ts)
   * verify: [Contratti Application indipendenti dal Domain](../Requirements/VoiceSatellite.md#contratti-application-indipendenti-dal-domain)
+---
+
+### Prova del logger minimo del satellite
+
+Creare il logger di base del satellite su un flusso di prova, derivarne due logger con campi diversi ed emettere eventi con campi sensibili annidati e nomi di variabili delle credenziali; costruire il catalogo degli eventi, la chiamata conversazionale e la riproduzione con un logger di prova che registra le chiamate. Eseguire la regola di architettura che limita Pino al modulo del logger.
+
+#### Details
+La prova passa se le righe dei logger derivati contengono ciascuna soltanto i propri campi fissi e il logger di base resta invariato; se i valori dei campi sensibili sono sostituiti da `[redacted]` a ogni profondità senza modificare gli oggetti originali; se gli eventi dei componenti arrivano al logger iniettato; e se nessun file di produzione fuori da `src/runtime/logger.ts` importa Pino. Fallisce se un componente usa un logger globale o un'istanza Pino propria, se un valore sensibile compare in una riga o se un logger derivato altera il logger di base.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [diagnostics.spec.ts](../../src/adapters/out/diagnostics.spec.ts)
+  * satisfiedBy: [logger.spec.ts](../../src/runtime/logger.spec.ts)
+  * satisfiedBy: [import-boundaries.spec.ts](../../test/repository/import-boundaries.spec.ts)
+  * verify: [Logger minimo del satellite](../Requirements/VoiceSatellite.md#logger-minimo-del-satellite)
+---
+
+### Prova del percorso fatale del satellite
+
+In un processo Node.js figlio che installa il percorso fatale del satellite, provocare separatamente un'eccezione non catturata e un rifiuto di promessa non gestito, entrambi con un messaggio marcatore e una proprietà marcatore; catturare `stdout`, `stderr` e codice di uscita. Leggere `main.ts` del satellite.
+
+#### Details
+La prova passa se in entrambi i casi `stderr` contiene soltanto `Ambrogio satellite stopped after a fatal error.`, `stdout` è vuoto, il codice di uscita è 1 e nessun marcatore compare negli output; e se `main.ts` installa il percorso fatale prima di caricare con import dinamici il codice dell'applicazione. Fallisce se il processo continua, termina con successo, serializza il valore sollevato o scrive su `stdout`.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [fatal-path.spec.ts](../../src/runtime/fatal-path.spec.ts)
+  * verify: [Percorso fatale del satellite](../Requirements/VoiceSatellite.md#percorso-fatale-del-satellite)
 ---
 
 ### Prova del riepilogo della pubblicazione del satellite
@@ -823,9 +859,26 @@ La prova passa se la scansione si attiva su `push` senza filtri di branch o perc
   * verify: [Scansione dei segreti prima della pubblicazione](../Requirements/VoiceSatellite.md#scansione-dei-segreti-prima-della-pubblicazione)
 ---
 
+### Prova della costruzione separata dall'attivazione del satellite
+
+Costruire il satellite con risorse simulate e controllare che dopo la costruzione microfono, attenuazione e sessione con il backend non siano stati avviati; attivarlo, poi ripetere chiudendolo senza attivarlo. Eseguire il runner del processo con un satellite simulato e un arresto richiesto durante la costruzione.
+
+#### Details
+La prova passa se la costruzione carica i modelli e prepara la sessione senza ripristinare l'attenuazione, avviare il microfono o aprire il canale; se questi avvengono soltanto all'attivazione decisa dal runner, che registra `satellite_ready` dopo di essa; se la chiusura senza attivazione rilascia i modelli; e se un arresto richiesto durante la costruzione non attiva il satellite e termina con codice 0. Fallisce se la costruzione attiva un dispositivo o la sessione, o se l'attivazione avviene fuori dal runner.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [satellite.spec.ts](../../src/composition/satellite.spec.ts)
+  * satisfiedBy: [satellite-process.spec.ts](../../src/runtime/satellite-process.spec.ts)
+  * verify: [Costruzione del satellite separata dall'attivazione](../Requirements/VoiceSatellite.md#costruzione-del-satellite-separata-dallattivazione)
+---
+
 ### Prova della diagnostica Pino
 
-Acquisire le righe reali di Pino: JSON, event stabili, nessun dato sensibile da message, name, stack, code, cause o proprietà aggiuntive. Controllare identità e immutabilità degli originali, valori lanciati non Error, cause cicliche, getter e aggregati. Iniettare un guasto di interazione e uno di riproduzione del tono di errore: un evento distinto per ciascun guasto e tono di errore indipendente dalla diagnosi. Verificare avvio e rifiuti di configurazione senza log automatici di errore. Con il trasporto `ambrogio.v1`, verificare che nessun componente emetta su console messaggi ricevuti o errori grezzi fuori dal logger applicativo.
+Acquisire le righe reali di Pino del logger di base: JSON, event stabili; per un `ProjectError` con causa esterna la vista contiene tipo, messaggio e stack senza la causa; per errori esterni, valori lanciati non Error, cause cicliche, getter e aggregati la vista è la descrizione costante, senza message, name, stack, code, cause o proprietà aggiuntive di origine; per un `LifecycleError` `faults` elenca nell'ordine le viste dei guasti raccolti. Controllare identità e immutabilità degli originali. Iniettare un guasto di interazione e uno di riproduzione del tono di errore: un evento distinto per ciascun guasto e tono di errore indipendente dalla diagnosi. Verificare avvio e rifiuti di configurazione senza log automatici di errore. Con il trasporto `ambrogio.v1`, verificare che nessun componente emetta su console messaggi ricevuti o errori grezzi fuori dal logger applicativo.
 
 #### Metadata
   * type: test-verification
@@ -834,6 +887,7 @@ Acquisire le righe reali di Pino: JSON, event stabili, nessun dato sensibile da 
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [diagnostics.spec.ts](../../src/adapters/out/diagnostics.spec.ts)
   * satisfiedBy: [voice-session.use-case.spec.ts](../../src/application/voice-session.use-case.spec.ts)
+  * satisfiedBy: [logger.spec.ts](../../src/runtime/logger.spec.ts)
   * verify: [Conservazione della causa dei guasti](../Requirements/VoiceSatellite.md#conservazione-della-causa-dei-guasti)
   * verify: [Eventi diagnostici stabili](../Requirements/VoiceSatellite.md#eventi-diagnostici-stabili)
   * verify: [Log tecnici JSON su stdout](../Requirements/VoiceSatellite.md#log-tecnici-json-su-stdout)
@@ -841,6 +895,24 @@ Acquisire le righe reali di Pino: JSON, event stabili, nessun dato sensibile da 
   * verify: [Serializzazione protetta dei guasti](../Requirements/VoiceSatellite.md#serializzazione-protetta-dei-guasti)
   * verify: [Unicità della diagnosi definitiva](../Requirements/VoiceSatellite.md#unicità-della-diagnosi-definitiva)
   * verify: [Uso di Pino per la diagnostica](../Requirements/VoiceSatellite.md#uso-di-pino-per-la-diagnostica)
+---
+
+### Prova della diagnostica del mancato avvio del satellite
+
+Con risorse simulate far fallire separatamente il caricamento del modello della wake word, quello del modello dell'attività vocale e l'avvio del microfono, con un messaggio marcatore nel guasto esterno; ripetere con una chiusura di pulizia che fallisce. Avviare il processo compilato con un modello di wake word presente ma non valido. Catturare `stdout`, `stderr` e codice di uscita.
+
+#### Details
+La prova passa se ogni caso produce una sola riga JSON di livello `error` con `event` `satellite_startup_failed`, il messaggio `Satellite startup failed` ed `err` con il messaggio fisso della fase; se con la pulizia fallita `err` è un `LifecycleError` con il guasto dell'avvio al primo posto; se `stderr` contiene `Unable to start Ambrogio satellite.`, il codice di uscita è 1 e `satellite_ready` non compare. Fallisce se manca l'evento o ne compaiono più di uno, se il marcatore del guasto esterno compare in un output, se la fase non è identificabile o se il processo termina con successo.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [satellite.spec.ts](../../src/composition/satellite.spec.ts)
+  * satisfiedBy: [main.e2e.spec.ts](../../src/main.e2e.spec.ts)
+  * satisfiedBy: [satellite-process.spec.ts](../../src/runtime/satellite-process.spec.ts)
+  * verify: [Diagnostica del mancato avvio del satellite](../Requirements/VoiceSatellite.md#diagnostica-del-mancato-avvio-del-satellite)
 ---
 
 ### Prova della selezione dei dispositivi audio

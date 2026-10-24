@@ -19,12 +19,11 @@ vi.mock('./decibri-audio.js', () => ({
 }));
 
 const info = vi.hoisted(() => vi.fn());
-vi.mock('./diagnostics.js', () => ({ diagnostics: { info, failure: vi.fn() } }));
 
 beforeEach(() => { f.plays.length = 0; f.gate = undefined; info.mockClear(); });
 
 function playback(failed = vi.fn()) {
-  return new ResponsePlayback({ failed });
+  return new ResponsePlayback({ failed, diagnostics: { info } });
 }
 
 test('plays transmissions one after the other at their declared sample rate', async () => {

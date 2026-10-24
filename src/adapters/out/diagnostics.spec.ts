@@ -2,59 +2,55 @@ import { expect, test } from 'vitest';
 import { readSatelliteConfig } from './configuration.js';
 import { createDiagnostics, normalizeDiagnosticError } from './diagnostics.js';
 
+type Call = Readonly<{ level: string; fields: Record<string, unknown>; message?: string }>;
+
+/** A structural logger recording the calls: the catalog receives the logger from the composition root. */
 function capture() {
-  const lines: string[] = [];
-  const log = createDiagnostics({ write(line: string) { lines.push(line); } });
-  return { log, lines, records: () => lines.map(line => JSON.parse(line)) };
+  const calls: Call[] = [];
+  const record = (level: string) => (fields: Record<string, unknown>, message?: string) => {
+    calls.push({ level, fields, ...(message === undefined ? {} : { message }) });
+  };
+  const logger = { debug: record('debug'), info: record('info'), warn: record('warn'), error: record('error'),
+    child: () => logger };
+  return { log: createDiagnostics(logger), calls };
 }
 
-test('serializes real Pino JSON without exposing external error fields or mutating causes', () => {
-  const cause = Object.freeze(Object.assign(new Error('secret-cause'), { name: 'secret-name', code: 'secret-code' }));
-  const error = Object.freeze(Object.assign(new Error('secret-message', { cause }), {
-    stack: 'secret-stack', audio: 'secret-audio', toJSON() { throw new Error('must not run'); },
-  }));
-  const { log, lines, records } = capture();
+test('a failure passes the original Error by identity, without mutating it or its cause', () => {
+  const cause = Object.freeze(new Error('secret-cause'));
+  const error = Object.freeze(new Error('secret-message', { cause }));
+  const { log, calls } = capture();
   log.failure('satellite_failure', error);
-  expect(normalizeDiagnosticError(error)).toBe(error);
+  expect(calls).toEqual([{ level: 'error', fields: { event: 'satellite_failure', err: error },
+    message: 'Satellite operation failed' }]);
+  expect(calls[0]!.fields.err).toBe(error);
   expect(error.cause).toBe(cause);
-  expect(error.stack).toBe('secret-stack');
-  expect(lines).toHaveLength(1);
-  expect(lines[0].trim().split('\n')).toHaveLength(1);
-  expect(lines[0]).not.toContain('secret');
-  expect(records()[0]).toMatchObject({ level: 'error', event: 'satellite_failure',
-    err: { type: 'Error', stack: '[redacted]', cause: { type: 'Error', stack: '[redacted]' } } });
-  expect(Object.keys(records()[0]).sort()).toEqual(['err', 'event', 'level', 'msg', 'time']);
 });
 
-test('preserves non-Error identity without string conversion or getter execution', () => {
+test('a non-Error value is wrapped once, with the value as cause, without string conversion or getters', () => {
   const value = { toString() { throw new Error('must not run'); },
     get cause() { throw new Error('must not run'); } };
   expect(normalizeDiagnosticError(value).cause).toBe(value);
-  const { log, records } = capture();
+  const { log, calls } = capture();
   log.failure('satellite_process_failed', value);
-  expect(records()[0].err.cause).toEqual({ type: 'Error', message: 'Unexpected satellite failure', stack: '[redacted]' });
+  const err = calls[0]!.fields.err as Error;
+  expect(err).toBeInstanceOf(Error);
+  expect(err.message).toBe('Unexpected satellite failure');
+  expect(err.cause).toBe(value);
 });
 
-test('bounds cyclic causes and aggregate fanout', () => {
-  const cyclic = new Error('secret'); Object.defineProperty(cyclic, 'cause', { value: cyclic });
-  const aggregate = new AggregateError(Array.from({ length: 100 }, () => cyclic), 'secret');
-  const { log, lines, records } = capture();
-  log.failure('satellite_process_failed', aggregate);
-  expect(records()[0].err.errors).toHaveLength(10);
-  expect(records()[0].err.truncated).toBe(true);
-  expect(records()[0].err.errors[0].cause.truncated).toBe(true);
-  expect(lines[0]).not.toContain('secret');
-  expect(aggregate.errors).toHaveLength(100);
+test('a failed start is one error event with the startup message', () => {
+  const failure = new Error('phase');
+  const { log, calls } = capture();
+  log.startupFailed(failure);
+  expect(calls).toEqual([{ level: 'error', fields: { event: 'satellite_startup_failed', err: failure },
+    message: 'Satellite startup failed' }]);
 });
 
 test('expected startup outcomes are informative and have no err or input data', () => {
-  const { log, records } = capture();
+  const { log, calls } = capture();
   log.info('invalid_arguments'); log.info('satellite_ready');
-  expect(records().map(row => row.event)).toEqual(['invalid_arguments', 'satellite_ready']);
-  for (const record of records()) {
-    expect(record.level).toBe('info');
-    expect(Object.keys(record).sort()).toEqual(['event', 'level', 'time']);
-  }
+  expect(calls).toEqual([{ level: 'info', fields: { event: 'invalid_arguments' } },
+    { level: 'info', fields: { event: 'satellite_ready' } }]);
 });
 
 const valid = { AMBROGIO_ENV: 'production', AMBROGIO_BACKEND_URL: 'http://ambrogio.test:3000' };
@@ -63,11 +59,11 @@ const models = new Set(['hey_jarvis']);
 function rejectionRecord(environment: Readonly<Record<string, string>>) {
   const loaded = readSatelliteConfig(environment, models, 'secret-host');
   if (loaded.ok || loaded.error.kind !== 'invalid_configuration') throw new Error('expected a rejected configuration');
-  const { log, lines, records } = capture();
+  const { log, calls } = capture();
   log.configurationRejected(loaded.error);
-  expect(lines).toHaveLength(1);
-  expect(lines[0]).not.toContain('secret');
-  return records()[0];
+  expect(calls).toHaveLength(1);
+  expect(JSON.stringify(calls)).not.toContain('secret');
+  return calls[0]!;
 }
 
 test.each([
@@ -88,22 +84,29 @@ test.each([
   [{ ...valid, AMBROGIO_REPLY_TIMEOUT_MS: '-1' }, 'AMBROGIO_REPLY_TIMEOUT_MS', 'invalid'],
 ])('a rejected configuration names only the variable and the condition: %j', (environment, variable, condition) => {
   const record = rejectionRecord(environment);
-  expect(record).toEqual({ level: 'info', time: expect.any(Number), event: 'invalid_configuration', variable, condition });
+  expect(record).toEqual({ level: 'info', fields: { event: 'invalid_configuration', variable, condition } });
 });
 
 test('a wake word detection logs only its rounded score and consecutive chunks', () => {
-  const { log, lines, records } = capture();
+  const { log, calls } = capture();
   log.wakeDetected(0.912345, 3);
-  expect(lines).toHaveLength(1);
-  expect(records()[0]).toMatchObject({ level: 'info', event: 'satellite_wake_detected', score: 0.912, chunks: 3 });
-  expect(Object.keys(records()[0]).sort()).toEqual(['chunks', 'event', 'level', 'score', 'time']);
+  expect(calls).toEqual([{ level: 'info', fields: { event: 'satellite_wake_detected', score: 0.912, chunks: 3 } }]);
 });
 
-test('a shutdown timeout logs one error line with the deadline only', () => {
-  const { log, lines, records } = capture();
+test('a shutdown timeout logs the deadline, and the faults already observed only when there are some', () => {
+  const { log, calls } = capture();
   log.shutdownTimeout(5_000);
-  expect(lines).toHaveLength(1);
-  expect(lines[0].trim().split('\n')).toHaveLength(1);
-  expect(records()[0]).toMatchObject({ level: 'error', event: 'satellite_shutdown_timeout', timeoutMs: 5_000 });
-  expect(Object.keys(records()[0]).sort()).toEqual(['event', 'level', 'time', 'timeoutMs']);
+  const fault = new Error('close failed');
+  log.shutdownTimeout(5_000, fault);
+  expect(calls).toEqual([
+    { level: 'error', fields: { event: 'satellite_shutdown_timeout', timeoutMs: 5_000 } },
+    { level: 'error', fields: { event: 'satellite_shutdown_timeout', timeoutMs: 5_000, err: fault } },
+  ]);
+});
+
+test('an attenuation failure logs only the operation and the reason', () => {
+  const { log, calls } = capture();
+  log.attenuationFailed('restore', 'timeout');
+  expect(calls).toEqual([{ level: 'warn', fields: { event: 'satellite_attenuation_failed', operation: 'restore',
+    reason: 'timeout' } }]);
 });

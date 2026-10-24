@@ -1,7 +1,7 @@
 import type { VoiceSessionPorts } from '../../application/conversation-call.port.js';
 import type { ConversationChannel } from './conversation-channel.js';
 import { playPcm16 } from './decibri-audio.js';
-import { diagnostics } from './diagnostics.js';
+import type { Diagnostics } from './diagnostics.js';
 import { errorToneSamples, readyCueSamples } from './ready-cue.js';
 import type { ResponsePlayback } from './response-playback.js';
 import type { SileroVad, SpeechEvents } from './silero-vad.js';
@@ -18,8 +18,9 @@ export function createConversationCallAdapter(options: Readonly<{
   speaker?: string;
   wake: Readonly<{ waitUntilIdle(): Promise<void>; reset(): void }>;
   isStopping(): boolean;
+  diagnostics: Pick<Diagnostics, 'failure'>;
 }>): VoiceSessionPorts & Readonly<{ shutdown(): Promise<void> }> {
-  const { channel, vad, playback, wake } = options;
+  const { channel, vad, playback, wake, diagnostics } = options;
   const errorToneAbort = new AbortController();
   let cueAbort: AbortController | undefined;
   let cueWork: Promise<void> | undefined;

@@ -38,6 +38,25 @@ Origine: baseline Reqvire «Interruption of active operations on shutdown», ado
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Arresto unico e ordinato del satellite
+
+Quando riceve `SIGINT` o `SIGTERM`, anche ripetuti o concorrenti, il satellite deve avviare un solo arresto, bloccare nuove attivazioni, interrompere riproduzione e interazione in corso e poi chiudere, ciascuno una sola volta e in ordine inverso di acquisizione, l'acquisizione dal microfono, la sessione vocale, il canale conversazionale, il rilevatore di attività vocale e il modello della wake word, tentando le altre chiusure quando una fallisce.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Ciclo di vita dei processi di servizio con Node.js](../../../ambrogio-model/system-model/Contracts/HomelabInstallation.md#ciclo-di-vita-dei-processi-di-servizio-con-nodejs)
+  * [Ciclo di arresto e rilascio delle risorse](../Contracts/VoiceSatellite.md#ciclo-di-arresto-e-rilascio-delle-risorse)
+
+#### Relations
+  * derivedFrom: [Arresto unico, ordinato e limitato nel tempo](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#arresto-unico-ordinato-e-limitato-nel-tempo)
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
+  * satisfiedBy: [lifecycle.ts](../../src/runtime/lifecycle.ts)
+  * satisfiedBy: [satellite-process.ts](../../src/runtime/satellite-process.ts)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
+---
+
 ### Ascolto locale della wake word
 
 Mentre attende una nuova interazione, il satellite deve acquisire continuamente il segnale del microfono e riconoscere la wake word esclusivamente in locale.
@@ -420,6 +439,24 @@ Quando si crea un commit in un clone del satellite che ha abilitato l'hook versi
   * specify: [Sviluppo governato dal modello](../../../ambrogio-model/system-model/Capabilities/Engineering.md#sviluppo-governato-dal-modello)
 ---
 
+### Costruzione del satellite separata dall'attivazione
+
+La costruzione del satellite deve caricare i modelli della wake word e dell'attività vocale e preparare canale, chiamata e sessione vocale restituendo le funzioni di attivazione e di chiusura, senza ripristinare l'attenuazione, avviare l'acquisizione dal microfono o aprire la sessione con il backend, e l'entrypoint del processo deve attivare il satellite e deciderne l'esito.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Ciclo di vita dei processi di servizio con Node.js](../../../ambrogio-model/system-model/Contracts/HomelabInstallation.md#ciclo-di-vita-dei-processi-di-servizio-con-nodejs)
+
+#### Relations
+  * derivedFrom: [Costruzione separata dall'attivazione](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#costruzione-separata-dallattivazione)
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
+  * satisfiedBy: [main.ts](../../src/main.ts)
+  * satisfiedBy: [satellite-process.ts](../../src/runtime/satellite-process.ts)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
+---
+
 ### Delimitazione locale dei turni vocali
 
 Durante un'interazione vocale attiva, il satellite deve riconoscere localmente l'inizio e la fine del parlato della famiglia e consegnare al backend il turno risultante, preservando anche le risposte brevi e le richieste con pause interne.
@@ -437,6 +474,25 @@ Durante un'interazione vocale attiva, il satellite deve riconoscere localmente l
 #### Relations
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Diagnostica del mancato avvio del satellite
+
+Se il caricamento dei modelli o l'attivazione del satellite falliscono prima che attenda la wake word, il processo deve emettere un unico log diagnostico definitivo `satellite_startup_failed` che identifichi la fase fallita senza riprodurre valori segreti, comunicare il mancato avvio su stderr e terminare con codice di uscita 1, secondo il contratto «Evento diagnostico del mancato avvio del satellite».
+
+#### Details
+Il rifiuto della configurazione e degli argomenti di avvio resta l'esito previsto di «Rifiuto della configurazione invalida», con il proprio evento informativo e il codice di uscita 2.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * derivedFrom: [Diagnostica del mancato avvio](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#diagnostica-del-mancato-avvio)
+  * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
+  * satisfiedBy: [main.ts](../../src/main.ts)
+  * satisfiedBy: [satellite-process.ts](../../src/runtime/satellite-process.ts)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
 ### Distribuzione Docker facoltativa
@@ -599,6 +655,7 @@ Quando l’installazione richiede conservazione, rotazione o inoltro dei log tec
 #### Relations
   * derivedFrom: [Log affidati al deployment](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#log-affidati-al-deployment)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
+  * satisfiedBy: [logger.ts](../../src/runtime/logger.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
@@ -613,24 +670,6 @@ I chiamanti delle porte e dei casi d’uso devono gestire esplicitamente tutte l
   * derivedFrom: [Gestione esplicita dei rifiuti previsti](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#gestione-esplicita-dei-rifiuti-previsti)
   * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
----
-
-### Idempotenza dell'arresto del satellite
-
-Quando riceve richieste ripetute o concorrenti di arresto, il satellite deve condividere la stessa operazione di arresto senza duplicare il rilascio delle risorse native.
-
-#### Details
-Origine: baseline Reqvire «Single ordered shutdown», adattata: le risorse indipendenti si chiudono in parallelo invece che in ordine inverso di acquisizione.
-
-#### Metadata
-  * type: requirement
-
-#### Contract References
-  * [Ciclo di arresto e rilascio delle risorse](../Contracts/VoiceSatellite.md#ciclo-di-arresto-e-rilascio-delle-risorse)
-
-#### Relations
-  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
 ### Identificazione del satellite nella sessione
@@ -736,6 +775,28 @@ Il satellite deve emettere ogni evento diagnostico tecnico su stdout.
   * derivedFrom: [Log tecnici JSON con Pino](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#log-tecnici-json-con-pino)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * satisfiedBy: [main.ts](../../src/main.ts)
+  * satisfiedBy: [logger.ts](../../src/runtime/logger.ts)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
+---
+
+### Logger minimo del satellite
+
+I componenti tecnici del satellite che registrano eventi diagnostici devono ricevere dalla composition root il logger minimo, o il catalogo degli eventi del satellite costruito su di esso, creato una sola volta da `main.ts` con Pino al livello minimo `info`, senza importare un'istanza globale del logger.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Profilo del logger con Pino](../../../ambrogio-model/system-model/Contracts/CodeArchitecture.md#profilo-del-logger-con-pino)
+
+#### Relations
+  * derivedFrom: [Interfaccia minima del logger con un solo logger di base](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#interfaccia-minima-del-logger-con-un-solo-logger-di-base)
+  * satisfiedBy: [conversation-call.adapter.ts](../../src/adapters/out/conversation-call.adapter.ts)
+  * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
+  * satisfiedBy: [response-playback.ts](../../src/adapters/out/response-playback.ts)
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
+  * satisfiedBy: [main.ts](../../src/main.ts)
+  * satisfiedBy: [logger.ts](../../src/runtime/logger.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
@@ -793,6 +854,23 @@ Quando la famiglia attiva il satellite con la wake word, il satellite deve inizi
   * satisfiedBy: [conversation-call.adapter.ts](../../src/adapters/out/conversation-call.adapter.ts)
   * satisfiedBy: [conversation-channel.ts](../../src/adapters/out/conversation-channel.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Percorso fatale del satellite
+
+Quando un errore sfugge a ogni confine controllato del processo satellite, compreso un rifiuto di promessa non gestito, il processo deve scrivere su stderr soltanto la riga fissa `Ambrogio satellite stopped after a fatal error.` e terminare con codice di uscita 1, senza serializzare il valore sollevato né emettere log ordinari.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Ciclo di vita dei processi di servizio con Node.js](../../../ambrogio-model/system-model/Contracts/HomelabInstallation.md#ciclo-di-vita-dei-processi-di-servizio-con-nodejs)
+
+#### Relations
+  * derivedFrom: [Percorso fatale separato](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#percorso-fatale-separato)
+  * satisfiedBy: [main.ts](../../src/main.ts)
+  * satisfiedBy: [fatal-path.ts](../../src/runtime/fatal-path.ts)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
 ### Perimetro iniziale dei segnali di osservabilità del satellite
@@ -958,18 +1036,23 @@ Quando la configurazione è invalida, il satellite deve impedirne l’avvio oper
 
 ### Rilascio completo delle risorse del satellite
 
-Quando termina o fallisce durante un avvio parziale, il satellite deve tentare il rilascio di tutte le risorse già acquisite, anche se una chiusura fallisce, conservando i guasti per la diagnosi al confine responsabile.
+Quando termina o fallisce durante un avvio parziale, il satellite deve tentare il rilascio di tutte le risorse già acquisite, anche se una chiusura fallisce, conservando il guasto dell'avvio e i guasti di pulizia distinti, nell'ordine in cui sono osservati e senza presentarli come cause l'uno dell'altro, per la diagnosi al confine responsabile, e deve terminare con stato di uscita non riuscito quando una chiusura fallisce.
 
 #### Details
-Origine: baseline Reqvire «Lifecycle outcome preserved across failures», adottata; «Ordered startup before accepting work», adottata; «Single ordered shutdown», adattata: le risorse indipendenti si chiudono in parallelo invece che in ordine inverso di acquisizione.
+Origine: baseline Reqvire «Ordered startup before accepting work», adottata.
 
 #### Metadata
   * type: requirement
 
+#### Contract References
+  * [Ciclo di vita dei processi di servizio con Node.js](../../../ambrogio-model/system-model/Contracts/HomelabInstallation.md#ciclo-di-vita-dei-processi-di-servizio-con-nodejs)
+
 #### Relations
-  * definedBy: [Ciclo di arresto e rilascio delle risorse](../Contracts/VoiceSatellite.md#ciclo-di-arresto-e-rilascio-delle-risorse)
+  * derivedFrom: [Esito del ciclo di vita conservato nei guasti](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#esito-del-ciclo-di-vita-conservato-nei-guasti)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * satisfiedBy: [lifecycle.ts](../../src/runtime/lifecycle.ts)
+  * satisfiedBy: [satellite-process.ts](../../src/runtime/satellite-process.ts)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
 ### Ripristino dell'attenuazione all'avvio e all'arresto
@@ -1164,14 +1247,19 @@ Il satellite deve separare regole e stati in Domain, coordinamento e porte in Ap
 
 ### Serializzazione protetta dei guasti
 
-Quando registra un guasto inatteso, il satellite deve passare al logger il campo err con l’Error originale o un Error con causa originale per valori diversi, serializzando soltanto una vista sicura senza modificare il guasto in memoria.
+Quando registra un guasto inatteso, il satellite deve passare al logger il campo `err` con l'`Error` originale, o con un `Error` che ha come causa il valore originale quando questo non è un `Error`, e la riga JSON deve rappresentarlo secondo il profilo controllato di serializzazione, con `ProjectError` come errore del progetto e `Unexpected satellite failure` come descrizione costante di ogni altro valore, senza modificare il guasto in memoria.
 
 #### Metadata
   * type: requirement
 
+#### Contract References
+  * [Profilo controllato di serializzazione di err](../../../ambrogio-model/system-model/Contracts/CodeArchitecture.md#profilo-controllato-di-serializzazione-di-err)
+
 #### Relations
-  * derivedFrom: [Diagnosi definitiva unica dei guasti inattesi](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#diagnosi-definitiva-unica-dei-guasti-inattesi)
+  * derivedFrom: [Serializzazione controllata di err](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#serializzazione-controllata-di-err)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
+  * satisfiedBy: [logger.ts](../../src/runtime/logger.ts)
+  * satisfiedBy: [project-error.ts](../../src/runtime/project-error.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
@@ -1221,12 +1309,10 @@ Il satellite deve essere eseguibile su Linux x86_64 e arm64 senza richiedere uno
 
 ### Tempo massimo dell'arresto del processo
 
-Se l'arresto ordinato avviato da SIGINT o SIGTERM non termina entro il tempo massimo di arresto, il satellite deve registrare un evento diagnostico e terminare il processo con stato di uscita non riuscito.
+Se l'arresto ordinato avviato da SIGINT o SIGTERM non termina entro il tempo massimo di arresto, il satellite deve registrare un evento diagnostico con i guasti già osservati e terminare il processo con stato di uscita non riuscito, e l'esempio Compose del repository deve concedere al container un periodo di arresto più lungo del tempo massimo.
 
 #### Details
 Una chiusura nativa che non restituisce mai il controllo non deve lasciare attivo il processo: il gestore dei servizi o il runtime dei container attende la sua terminazione.
-
-Origine: baseline Reqvire «Bounded shutdown window», adattata: allo scadere il satellite registra soltanto `timeoutMs`, senza i guasti già osservati, e la finestra del supervisore non è dichiarata.
 
 #### Metadata
   * type: requirement
@@ -1236,9 +1322,11 @@ Origine: baseline Reqvire «Bounded shutdown window», adattata: allo scadere il
   * [Profilo diagnostico Pino](../Contracts/VoiceSatellite.md#profilo-diagnostico-pino)
 
 #### Relations
+  * derivedFrom: [Arresto unico, ordinato e limitato nel tempo](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#arresto-unico-ordinato-e-limitato-nel-tempo)
+  * satisfiedBy: [compose.example.yaml](../../compose.example.yaml)
   * satisfiedBy: [main.ts](../../src/main.ts)
   * satisfiedBy: [satellite-process.ts](../../src/runtime/satellite-process.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+  * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
 ### Tono di errore per backend irraggiungibile
@@ -1336,6 +1424,7 @@ Il satellite deve emettere i propri log tecnici mediante Pino al confine respons
 #### Relations
   * derivedFrom: [Log tecnici JSON con Pino](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#log-tecnici-json-con-pino)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
+  * satisfiedBy: [logger.ts](../../src/runtime/logger.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 

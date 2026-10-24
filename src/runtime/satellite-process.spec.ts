@@ -1,6 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { expect, test, vi } from 'vitest';
-import { runSatelliteProcess, SHUTDOWN_TIMEOUT_MS, unrefShutdownTimer } from './satellite-process.js';
+import { LifecycleError, ProjectError } from './project-error.js';
+import { runSatelliteProcess, SHUTDOWN_TIMEOUT_MS, unrefShutdownTimer, type BuiltSatellite } from './satellite-process.js';
 
 /** Deadlines advanced by the test instead of Node.js timers. */
 function manualTimer() {
@@ -16,21 +17,41 @@ function manualTimer() {
   };
 }
 
-function processOptions(signals: EventEmitter, timer = manualTimer()) {
+function processOptions(signals = new EventEmitter(), timer = manualTimer()) {
   return {
-    timer,
-    options: { signals, timer: timer.timer, reportShutdownTimeout: vi.fn(), exit: vi.fn() },
+    signals, timer,
+    options: { signals, timer: timer.timer, ready: vi.fn(), startupFailed: vi.fn(), shutdownFailed: vi.fn(),
+      shutdownTimeout: vi.fn(), stderr: vi.fn() },
   };
+}
+
+function satellite(overrides: Partial<{ activate(): Promise<void>; close(): Promise<void>; faults: unknown[] }> = {}) {
+  const value = { faults: overrides.faults ?? [], activate: vi.fn(overrides.activate ?? (async () => {})),
+    close: vi.fn(overrides.close ?? (async () => {})) } satisfies BuiltSatellite;
+  return value;
 }
 
 const flush = () => new Promise(resolve => setImmediate(resolve));
 
+test('builds, then activates, reports ready only after activation and exits with 0 after a clean shutdown', async () => {
+  const { signals, options } = processOptions();
+  const built = satellite();
+  const running = runSatelliteProcess(async () => built, options);
+  await flush();
+  expect(built.activate).toHaveBeenCalledOnce();
+  expect(options.ready).toHaveBeenCalledOnce();
+  expect(built.activate.mock.invocationCallOrder[0]).toBeLessThan(options.ready.mock.invocationCallOrder[0]!);
+  expect(built.close).not.toHaveBeenCalled();
+  signals.emit('SIGTERM');
+  expect(await running).toEqual({ exitCode: 0, force: false });
+  expect(built.close).toHaveBeenCalledOnce();
+  expect(options.shutdownFailed).not.toHaveBeenCalled();
+});
+
 for (const name of ['SIGINT', 'SIGTERM']) {
-  test(`${name} interrupts startup and repeated signals share cleanup`, async () => {
-    const signals = new EventEmitter();
-    const { options, timer } = processOptions(signals);
-    let ready!: (value: { stop(): Promise<void> }) => void;
-    const stop = vi.fn(async () => {});
+  test(`${name} during construction skips activation, and repeated signals share one shutdown`, async () => {
+    const { signals, options, timer } = processOptions();
+    let ready!: (value: BuiltSatellite) => void;
     let signal!: AbortSignal;
     const running = runSatelliteProcess(s => {
       signal = s;
@@ -38,73 +59,95 @@ for (const name of ['SIGINT', 'SIGTERM']) {
     }, options);
     signals.emit(name); signals.emit(name);
     expect(signal.aborted).toBe(true);
-    ready({ stop });
-    await running;
-    expect(stop).toHaveBeenCalledOnce();
+    const built = satellite();
+    ready(built);
+    expect(await running).toEqual({ exitCode: 0, force: false });
+    expect(built.activate).not.toHaveBeenCalled();
+    expect(built.close).toHaveBeenCalledOnce();
+    expect(options.ready).not.toHaveBeenCalled();
     expect(signals.listenerCount(name)).toBe(0);
     expect(timer.timer).toHaveBeenCalledOnce();
     expect(timer.pending.size).toBe(0);
-    expect(options.reportShutdownTimeout).not.toHaveBeenCalled();
-    expect(options.exit).not.toHaveBeenCalled();
   });
 
-  test(`${name} forces exit 1 after ${SHUTDOWN_TIMEOUT_MS} ms when a close never returns`, async () => {
-    const signals = new EventEmitter();
-    const { options, timer } = processOptions(signals);
-    // The close never returns on its own; it is released only to end the test.
-    let release!: () => void;
-    const stop = vi.fn(() => new Promise<void>(resolve => { release = resolve; }));
-    const running = runSatelliteProcess(async () => ({ stop }), options);
+  test(`${name} forces exit 1 after ${SHUTDOWN_TIMEOUT_MS} ms with the faults already observed`, async () => {
+    const { signals, options, timer } = processOptions();
+    const observed = new ProjectError('Microphone could not be closed');
+    const built = satellite({ close: vi.fn(() => new Promise<void>(() => { /* never returns */ })), faults: [observed] });
+    const running = runSatelliteProcess(async () => built, options);
     await flush();
     signals.emit(name);
     await flush();
     signals.emit(name);
-    expect(stop).toHaveBeenCalledOnce();
-    expect(timer.timer).toHaveBeenCalledOnce();
-    expect(timer.timer).toHaveBeenCalledWith(5_000, expect.any(Function));
-    expect(options.exit).not.toHaveBeenCalled();
+    expect(built.close).toHaveBeenCalledOnce();
+    expect(timer.timer).toHaveBeenCalledExactlyOnceWith(5_000, expect.any(Function));
     timer.expire();
-    expect(options.reportShutdownTimeout).toHaveBeenCalledExactlyOnceWith(5_000);
-    expect(options.exit).toHaveBeenCalledExactlyOnceWith(1);
-    expect(options.reportShutdownTimeout.mock.invocationCallOrder[0])
-      .toBeLessThan(options.exit.mock.invocationCallOrder[0]!);
-    release();
-    await running;
-    expect(options.exit).toHaveBeenCalledOnce();
+    expect(await running).toEqual({ exitCode: 1, force: true });
+    expect(options.shutdownTimeout).toHaveBeenCalledExactlyOnceWith(5_000, observed);
+    expect(options.shutdownFailed).not.toHaveBeenCalled();
   });
 }
 
-test('the deadline also bounds a startup that never ends after the interruption', async () => {
-  const signals = new EventEmitter();
-  const { options, timer } = processOptions(signals);
-  let abandon!: (error: unknown) => void;
-  const running = runSatelliteProcess(() => new Promise((_resolve, reject) => { abandon = reject; }), options);
-  signals.emit('SIGINT');
-  timer.expire();
-  expect(options.reportShutdownTimeout).toHaveBeenCalledExactlyOnceWith(5_000);
-  expect(options.exit).toHaveBeenCalledExactlyOnceWith(1);
-  abandon(new DOMException('aborted', 'AbortError'));
-  await running;
+test('the timeout reports several observed faults as one LifecycleError, and none when there is none', async () => {
+  for (const faults of [[], [new Error('a'), new Error('b')]]) {
+    const { signals, options, timer } = processOptions();
+    const running = runSatelliteProcess(async () => satellite({ close: () => new Promise<void>(() => {}), faults }), options);
+    await flush();
+    signals.emit('SIGTERM');
+    timer.expire();
+    await running;
+    const fault = options.shutdownTimeout.mock.calls[0]![1];
+    if (faults.length === 0) expect(fault).toBeUndefined();
+    else expect((fault as LifecycleError).faults).toEqual(faults);
+  }
 });
 
-test('no deadline is armed without a signal', async () => {
-  const signals = new EventEmitter();
-  const { options, timer } = processOptions(signals);
-  const failure = new Error('start failed');
-  await expect(runSatelliteProcess(async () => { throw failure; }, options)).rejects.toBe(failure);
+test('the deadline also bounds a construction that never ends after the interruption', async () => {
+  const { signals, options, timer } = processOptions();
+  const running = runSatelliteProcess(() => new Promise(() => { /* never */ }), options);
+  signals.emit('SIGINT');
+  timer.expire();
+  expect(await running).toEqual({ exitCode: 1, force: true });
+  expect(options.shutdownTimeout).toHaveBeenCalledExactlyOnceWith(5_000, undefined);
+});
+
+test('a failed construction is one startup event, one stderr line and exit 1, with no deadline', async () => {
+  const { options, timer } = processOptions();
+  const failure = new ProjectError('Wake word model could not be loaded');
+  expect(await runSatelliteProcess(async () => { throw failure; }, options)).toEqual({ exitCode: 1, force: false });
+  expect(options.startupFailed).toHaveBeenCalledExactlyOnceWith(failure);
+  expect(options.stderr).toHaveBeenCalledExactlyOnceWith('Unable to start Ambrogio satellite.\n');
+  expect(options.ready).not.toHaveBeenCalled();
   expect(timer.timer).not.toHaveBeenCalled();
 });
 
-test('reports cleanup failure to the process boundary and removes both signal handlers', async () => {
-  const signals = new EventEmitter(); const failure = new Error('stop failed');
-  const { options, timer } = processOptions(signals);
-  const running = runSatelliteProcess(async () => ({ stop: async () => { throw failure; } }), options);
+test('a failed activation releases the resources and keeps the startup failure before the cleanup faults', async () => {
+  const { options } = processOptions();
+  const startup = new ProjectError('Microphone could not be started');
+  const cleanup = new ProjectError('Wake word model could not be closed');
+  const built = satellite({ activate: vi.fn(async () => { throw startup; }),
+    close: vi.fn(async () => { throw cleanup; }), faults: [cleanup] });
+  expect(await runSatelliteProcess(async () => built, options)).toEqual({ exitCode: 1, force: false });
+  expect(built.close).toHaveBeenCalledOnce();
+  const reported = options.startupFailed.mock.calls[0]![0] as LifecycleError;
+  expect(reported).toBeInstanceOf(LifecycleError);
+  expect(reported.message).toBe('Satellite startup failed');
+  expect(reported.faults).toEqual([startup, cleanup]);
+  expect(reported.faults[0]).toBe(startup);
+  expect(options.ready).not.toHaveBeenCalled();
+});
+
+test('a failed shutdown is reported once and exits with 1, removing both signal handlers', async () => {
+  const { signals, options, timer } = processOptions();
+  const failure = new ProjectError('Microphone could not be closed');
+  const running = runSatelliteProcess(async () => satellite({ close: async () => { throw failure; } }), options);
+  await flush();
   signals.emit('SIGTERM');
-  await expect(running).rejects.toBe(failure);
+  expect(await running).toEqual({ exitCode: 1, force: false });
+  expect(options.shutdownFailed).toHaveBeenCalledExactlyOnceWith(failure);
   expect(signals.listenerCount('SIGINT')).toBe(0);
   expect(signals.listenerCount('SIGTERM')).toBe(0);
   expect(timer.pending.size).toBe(0);
-  expect(options.exit).not.toHaveBeenCalled();
 });
 
 test('the default shutdown timer runs once, can be cancelled and does not keep the event loop alive', async () => {

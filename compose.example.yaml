@@ -4,6 +4,8 @@ services:
   satellite:
     image: ghcr.io/ambrogio-app/ambrogio-satellite:${AMBROGIO_SATELLITE_VERSION:?Set AMBROGIO_SATELLITE_VERSION}
     network_mode: host
+    # Longer than the satellite's own 5-second shutdown limit, so Docker never kills it first.
+    stop_grace_period: 10s
     devices:
       - /dev/snd:/dev/snd
     environment:

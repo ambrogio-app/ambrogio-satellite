@@ -1,9 +1,18 @@
 #!/usr/bin/env node
-import { runSatelliteProcess } from './runtime/satellite-process.js';
-import { parseStartupArguments } from './adapters/in/startup-arguments.js';
-import { readSatelliteConfig } from './adapters/out/configuration.js';
-import { availableWakeWordIds } from './adapters/out/wake-word-catalog.js';
-import { diagnostics } from './adapters/out/diagnostics.js';
+import { installFatalPath } from './runtime/fatal-path.js';
+
+// The fatal path comes first: application code is loaded only afterwards, with dynamic imports.
+installFatalPath('Ambrogio satellite stopped after a fatal error.');
+
+const [{ createBaseLogger }, { createDiagnostics }, { parseStartupArguments }, { readSatelliteConfig },
+  { availableWakeWordIds }, { runSatelliteProcess }] = await Promise.all([
+  import('./runtime/logger.js'), import('./adapters/out/diagnostics.js'), import('./adapters/in/startup-arguments.js'),
+  import('./adapters/out/configuration.js'), import('./adapters/out/wake-word-catalog.js'),
+  import('./runtime/satellite-process.js'),
+]);
+
+// The single base logger of the process, shared by every component through the composition root.
+const diagnostics = createDiagnostics(createBaseLogger());
 
 const args = parseStartupArguments(process.argv.slice(2));
 if (!args.ok) {
@@ -30,19 +39,15 @@ if (!args.ok) {
   } else {
     // ONNX Runtime reads this before the first runtime import.
     process.env.ORT_DISABLE_TELEMETRY = '1';
-    try {
-      const { startSatellite } = await import('./composition/satellite.js');
-      await runSatelliteProcess(async signal => {
-        const satellite = await startSatellite(config.value, signal);
-        if (!signal.aborted) diagnostics.info('satellite_ready');
-        return satellite;
-      }, {
-        reportShutdownTimeout: timeoutMs => diagnostics.shutdownTimeout(timeoutMs),
-      });
-    } catch (error) {
-      diagnostics.failure('satellite_process_failed', error);
-      process.exitCode = 1;
-    }
+    const { createSatellite } = await import('./composition/satellite.js');
+    const outcome = await runSatelliteProcess(signal => createSatellite(config.value, diagnostics, signal), {
+      ready: () => diagnostics.info('satellite_ready'),
+      startupFailed: error => diagnostics.startupFailed(error),
+      shutdownFailed: error => diagnostics.failure('satellite_process_failed', error),
+      shutdownTimeout: (timeoutMs, fault) => diagnostics.shutdownTimeout(timeoutMs, fault),
+    });
+    if (outcome.force) process.exit(outcome.exitCode);
+    process.exitCode = outcome.exitCode;
   }
 }
 

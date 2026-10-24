@@ -2,7 +2,7 @@
 
 ### Adapter audio con Decibri
 
-Il satellite usa Decibri 5.8.0, fissato esattamente nel lockfile, negli adapter tecnici del processo Node.js per acquisire audio dal microfono e riprodurre le risposte sullo speaker. Se la configurazione indica un selettore `AMBROGIO_MICROPHONE` o `AMBROGIO_SPEAKER`, l'adapter usa il dispositivo corrispondente; in assenza del selettore usa il dispositivo predefinito del sistema. Un selettore che inizia con `alsa:` è passato a Decibri come identificatore stabile del dispositivo; ogni altro selettore è passato come nome, che Decibri confronta come parte del nome del dispositivo senza distinguere maiuscole e minuscole. Una selezione esplicita non è mai sostituita dal dispositivo predefinito: se il dispositivo selezionato non è disponibile, l'apertura fallisce. Un microfono non disponibile impedisce l'avvio del processo, che rilascia le risorse acquisite, registra `satellite_process_failed` e termina con stato 1; uno speaker non disponibile fa fallire la riproduzione come guasto dell'interazione secondo le regole del satellite. La stessa selezione logica vale su host e nel container; gli identificatori fisici disponibili dipendono dalla macchina. Domain e Application vedono soltanto le porte audio, senza importare tipi o oggetti Decibri.
+Il satellite usa Decibri 5.8.0, fissato esattamente nel lockfile, negli adapter tecnici del processo Node.js per acquisire audio dal microfono e riprodurre le risposte sullo speaker. Se la configurazione indica un selettore `AMBROGIO_MICROPHONE` o `AMBROGIO_SPEAKER`, l'adapter usa il dispositivo corrispondente; in assenza del selettore usa il dispositivo predefinito del sistema. Un selettore che inizia con `alsa:` è passato a Decibri come identificatore stabile del dispositivo; ogni altro selettore è passato come nome, che Decibri confronta come parte del nome del dispositivo senza distinguere maiuscole e minuscole. Una selezione esplicita non è mai sostituita dal dispositivo predefinito: se il dispositivo selezionato non è disponibile, l'apertura fallisce. Un microfono non disponibile impedisce l'avvio del processo, che rilascia le risorse acquisite, registra `satellite_startup_failed` con il messaggio `Microphone could not be started` e termina con stato 1; uno speaker non disponibile fa fallire la riproduzione come guasto dell'interazione secondo le regole del satellite. La stessa selezione logica vale su host e nel container; gli identificatori fisici disponibili dipendono dalla macchina. Domain e Application vedono soltanto le porte audio, senza importare tipi o oggetti Decibri.
 
 L'adapter di uscita conserva l'ordine dei blocchi audio e considera completata una risposta soltanto dopo che i campioni accodati sono stati effettivamente riprodotti. Chiude o rilascia lo speaker al termine di ogni riproduzione, senza lasciare aperta un'uscita ALSA inattiva. Errori di apertura, disconnessione o riproduzione attraversano le porte come esiti o guasti appropriati secondo le regole del satellite.
 
@@ -59,12 +59,15 @@ La frase selezionata per `alexa` è «Alexa», senza «Hey». Il modello openWak
 
 ### Ciclo di arresto e rilascio delle risorse
 
-SIGINT e SIGTERM bloccano nuovi eventi, annullano timer e riproduzione (compresi il segnale di ascolto e il tono di errore), chiudono il canale e l'acquisizione e rilasciano le sessioni ONNX. Non si attende la risposta completa del backend. La normale attesa della risposta resta valida fuori dall'arresto.
+SIGINT e SIGTERM bloccano nuovi eventi, annullano timer e riproduzione (compresi il segnale di ascolto e il tono di errore), chiudono l'acquisizione e il canale e rilasciano le sessioni ONNX. Non si attende la risposta completa del backend. La normale attesa della risposta resta valida fuori dall'arresto.
 
-La composition root possiede il ciclo di vita delle risorse. Tutte le chiusure indipendenti sono tentate anche in presenza di errori. Le operazioni native in corso vengono terminate o attese quanto necessario per un rilascio sicuro; il lavoro accodato viene scartato e nessuna chiamata viene riaperta. Risorse acquisite dopo una richiesta di arresto durante l'avvio vengono subito rilasciate. Un avvio parziale fallito conserva il guasto originale e gli eventuali guasti di pulizia. Richieste concorrenti condividono lo stesso arresto, anche se fallisce; nessun doppio rilascio nativo. I guasti raggiungono il confine di processo per una diagnosi sicura e un codice di uscita non riuscito.
+La composition root possiede il ciclo di vita delle risorse e ne registra la chiusura subito dopo l'acquisizione: modello della wake word, rilevatore di attività vocale, chiamata conversazionale con il suo canale, sessione vocale e, all'attivazione, acquisizione dal microfono. All'arresto, dopo aver annullato la riproduzione, le chiude in ordine inverso: microfono, sessione vocale, chiamata e canale, rilevatore di attività vocale, modello della wake word. Ogni chiusura è tentata anche quando una precedente fallisce, e il suo guasto è incapsulato in un `ProjectError` che nomina la risorsa: `Microphone could not be closed`, `Voice session could not be stopped`, `Conversation channel could not be closed`, `Voice activity model could not be closed`, `Wake word model could not be closed`; l'annullamento della riproduzione fallito diventa `Playback could not be cancelled`. Le operazioni native in corso vengono terminate o attese quanto necessario per un rilascio sicuro; il lavoro accodato viene scartato e nessuna chiamata viene riaperta. Risorse acquisite dopo una richiesta di arresto durante l'avvio vengono subito rilasciate. Un avvio parziale fallito conserva il guasto originale e gli eventuali guasti di pulizia in un `LifecycleError`, con il guasto dell'avvio al primo posto. Richieste concorrenti condividono lo stesso arresto, anche se fallisce; nessun doppio rilascio nativo. Un arresto fallito produce una sola riga `satellite_process_failed` di livello `error` con `err` e codice di uscita 1; un arresto riuscito termina con codice 0.
 
 #### Metadata
   * type: specification
+
+#### Relations
+  * define: [Rilascio completo delle risorse del satellite](../Requirements/VoiceSatellite.md#rilascio-completo-delle-risorse-del-satellite)
 ---
 
 ### Condizioni del catalogo non commerciale
@@ -154,6 +157,19 @@ Il tipo locale è `type Result<T, E> = Readonly<{ ok: true; value: T }> | Readon
 
 #### Relations
   * define: [Esiti previsti come valori tipizzati nel satellite](../Requirements/VoiceSatellite.md#esiti-previsti-come-valori-tipizzati-nel-satellite)
+---
+
+### Evento diagnostico del mancato avvio del satellite
+
+Il runner del processo satellite è il confine definitivo dei guasti avvenuti prima che il satellite attenda la wake word: quando il caricamento dei modelli o l'attivazione falliscono, emette una sola riga JSON su `stdout` con livello `error`, `event: "satellite_startup_failed"`, il messaggio fisso `Satellite startup failed` e il campo `err`, poi scrive su `stderr` la riga invariata `Unable to start Ambrogio satellite.` e termina con codice di uscita `1` senza emettere `satellite_ready`. Il satellite non resta attivo e non emette altri log definitivi per lo stesso guasto.
+
+Il campo `err` segue il profilo controllato di serializzazione. Le fasi incapsulano i guasti esterni in un `ProjectError` con un messaggio fisso che nomina la fase e conserva l'originale come `cause`: `Wake word model could not be loaded` per i modelli della wake word, `Voice activity model could not be loaded` per il modello dell'attività vocale e `Microphone could not be started` per l'acquisizione dal microfono. Se anche la pulizia delle risorse già acquisite fallisce, `err` è un `LifecycleError` con il messaggio fisso `Satellite startup failed` e `faults` che elenca il guasto dell'avvio seguito dai guasti di pulizia. I messaggi non contengono valori letti dall'ambiente, percorsi, nomi di dispositivi, URL o messaggi di librerie.
+
+#### Metadata
+  * type: input-output
+
+#### Relations
+  * define: [Diagnostica del mancato avvio del satellite](../Requirements/VoiceSatellite.md#diagnostica-del-mancato-avvio-del-satellite)
 ---
 
 ### Evento diagnostico dell'attivazione locale
@@ -278,7 +294,7 @@ Il workflow `.github/workflows/publish-image.yml` pubblica `ghcr.io/ambrogio-app
 
 ### Profilo diagnostico Pino
 
-Pino emette una riga JSON su stdout, con livello testuale, timestamp ed event costante. Nessuna acquisizione automatica di configurazione, audio, messaggi, hostname o dati ricevuti. I rifiuti previsti di avvio sono eventi informativi, senza err; i guasti di processo, interazione e riproduzione del tono di errore hanno eventi distinti. La normalizzazione al confine conserva l’identità di Error e incapsula gli altri valori con messaggio costante e cause originale, senza conversione a stringa. La vista JSON di err usa descrizioni costanti, nasconde name, message, stack, code e proprietà aggiuntive; conserva soltanto la struttura delle cause e degli AggregateError con limiti di profondità e numerosità, senza invocare getter o modificare gli originali. Il tono di errore resta indipendente dalla diagnosi. Domain e Application non importano logger.
+Il logger di base del satellite emette con Pino una riga JSON su stdout, con livello testuale, timestamp ed event costante, senza i campi `pid` e `hostname`. Nessuna acquisizione automatica di configurazione, audio, messaggi, hostname o dati ricevuti. I rifiuti previsti di avvio sono eventi informativi, senza err; il mancato avvio, il guasto dell'arresto, i guasti dell'interazione e della riproduzione del tono di errore hanno eventi distinti. La normalizzazione al confine conserva l'identità di Error e incapsula gli altri valori con il messaggio costante `Unexpected satellite failure` e cause originale, senza conversione a stringa. La vista JSON di err segue il profilo controllato di serializzazione: `ProjectError` e `LifecycleError` sono le classi del progetto in `src/runtime/project-error.ts`, e ogni altro valore riceve la descrizione costante `Unexpected satellite failure`. Il tono di errore resta indipendente dalla diagnosi. Domain e Application non importano logger.
 
 #### Details
 Nessuna dipendenza di trasporto emette direttamente su console i messaggi ricevuti o gli errori grezzi: il trasporto `ambrogio.v1` usa il `WebSocket` integrato in Node.js e diagnostica i propri guasti soltanto attraverso il logger applicativo.
@@ -354,6 +370,7 @@ Sono file di produzione i file di `src` che non terminano con `.spec.ts`; i file
 - `composition-root-assembly`: fra il codice di produzione, soltanto la composition root importa come valore i file `*.use-case.ts` e `*.adapter.ts`; serve «Assemblaggio delle risorse nella composition root».
 - `layer-test-imports`: ogni file di test di `src` e `test` si chiama `*.spec.ts`, e ogni test di `src` ha accanto il file che verifica; fra il codice di produzione, i test accanto a un file Domain importano soltanto Domain, quelli accanto a un file Application soltanto Application e Domain, quelli accanto a un adapter inbound soltanto l'adapter che verificano e Application, quelli accanto a un adapter outbound soltanto adapter outbound, Application e Domain; serve «Confini degli import nei test».
 - `no-backend-imports`: ogni import del codice di produzione si risolve dentro `src`, in un modulo Node.js o in una dipendenza di esecuzione del satellite; serve «Uso delle sole interfacce pubbliche del backend nel satellite».
+- `pino-only-in-logger`: fra il codice di produzione, soltanto `src/runtime/logger.ts` importa `pino`; serve «Logger minimo del satellite».
 
 Un'eccezione è una voce dell'elenco `exceptions` del modulo centrale con il nome della regola, il file, lo specificatore dell'import ammesso e il motivo, e corrisponde a una voce di questo contratto. L'elenco è vuoto: il satellite non ha eccezioni alle regole di architettura.
 
@@ -410,9 +427,11 @@ Il ruleset `main` del repository del satellite segue il «Ruleset del branch pri
 
 ### Scadenza dell'arresto del processo
 
-Al primo SIGINT o SIGTERM il confine di processo avvia, insieme all'arresto ordinato del contratto «Ciclo di arresto e rilascio delle risorse», un tempo massimo di 5000 ms. I segnali successivi non lo riavviano né lo prolungano. Se l'arresto ordinato, compresa l'interruzione di un avvio in corso, non è terminato alla scadenza, per esempio perché una chiusura nativa non restituisce mai il controllo, il satellite emette una sola riga Pino di livello `error` con `event: "satellite_shutdown_timeout"` e `timeoutMs: 5000`, e termina subito il processo con codice di uscita 1 senza attendere le chiusure pendenti. La riga contiene soltanto le chiavi `level`, `time`, `event` e `timeoutMs`: nessun `err`, messaggio di librerie, configurazione, percorso o dato della sessione.
+Al primo SIGINT o SIGTERM il confine di processo avvia, insieme all'arresto ordinato del contratto «Ciclo di arresto e rilascio delle risorse», un tempo massimo di 5000 ms. I segnali successivi non lo riavviano né lo prolungano. Se l'arresto ordinato, compresa l'interruzione di un avvio in corso, non è terminato alla scadenza, per esempio perché una chiusura nativa non restituisce mai il controllo, il satellite emette una sola riga Pino di livello `error` con `event: "satellite_shutdown_timeout"` e `timeoutMs: 5000` e, quando l'arresto ha già osservato guasti di chiusura, `err` con quei guasti secondo il profilo controllato di serializzazione, e termina subito il processo con codice di uscita 1 senza attendere le chiusure pendenti. La riga contiene soltanto le chiavi `level`, `time`, `event`, `timeoutMs` e, soltanto in quel caso, `err`: nessun messaggio di librerie, configurazione, percorso o dato della sessione.
 
 Se l'arresto ordinato termina prima della scadenza, il tempo massimo è annullato, non trattiene il processo e non produce la riga; il codice di uscita resta quello dell'arresto ordinato.
+
+L'esempio Compose del repository dichiara `stop_grace_period: 10s`, così che il runtime dei container non termini il processo con `SIGKILL` prima della scadenza; con `docker run` lo stesso periodo si indica con `--stop-timeout 10`.
 
 #### Metadata
   * type: behavior

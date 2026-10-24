@@ -1,5 +1,5 @@
 import { playPcm16 } from './decibri-audio.js';
-import { diagnostics } from './diagnostics.js';
+import type { Diagnostics } from './diagnostics.js';
 import { errorToneSamples } from './ready-cue.js';
 
 /** Ordered PCM16 chunks of one transmission; iteration ends once the transmission ends. */
@@ -43,6 +43,7 @@ export class ResponsePlayback {
   constructor(private readonly options: Readonly<{
     speaker?: string;
     failed(error: unknown): void;
+    diagnostics: Pick<Diagnostics, 'info'>;
   }>) {}
 
   start(stream: number, content: PlaybackContent): void {
@@ -53,7 +54,7 @@ export class ResponsePlayback {
       this.queues.set(stream, queue);
       sampleRate = content.sampleRate;
     } else {
-      diagnostics.info('satellite_voice_unavailable');
+      this.options.diagnostics.info('satellite_voice_unavailable');
       queue.push(errorToneSamples());
       queue.end();
     }

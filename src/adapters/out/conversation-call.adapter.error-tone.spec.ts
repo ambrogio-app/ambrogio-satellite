@@ -15,7 +15,6 @@ vi.mock('./decibri-audio.js', () => ({
     await f.play?.(signal);
   },
 }));
-vi.mock('./diagnostics.js', () => ({ diagnostics: { info: vi.fn(), failure: f.failure } }));
 
 beforeEach(() => { f.plays.length = 0; f.play = undefined; f.failure.mockClear(); });
 
@@ -28,6 +27,7 @@ function adapter() {
     speaker: 'test-speaker',
     wake: { waitUntilIdle: async () => {}, reset: vi.fn() },
     isStopping: () => false,
+    diagnostics: { failure: f.failure },
   });
 }
 

@@ -18,7 +18,7 @@ const filesOf = (prefix: string) => workspace.files.filter(path => path.startsWi
 const negativeFixtures: Record<RuleName, Readonly<Record<string, string>>> = {
   'production-layer-classification': { 'src/helpers/format.ts': 'export const format = (text: string) => text;\n' },
   'core-layer-imports': {
-    'src/domain/turn.ts': "import type { Logger } from 'pino';\nexport type Turn = { logger: Logger };\n",
+    'src/domain/turn.ts': "import type { ParsedPath } from 'node:path';\nexport type Turn = { path: ParsedPath };\n",
   },
   'composition-root-assembly': {
     'src/application/voice-session.use-case.ts': 'export class VoiceSession {}\n',
@@ -32,6 +32,9 @@ const negativeFixtures: Record<RuleName, Readonly<Record<string, string>>> = {
       "import type { VoiceSession } from '../application/voice-session.use-case.js';\nexport type Seen = VoiceSession;\n",
     'src/domain/missing.spec.ts': 'export {};\n',
     'test/domain/voice-turn.test.ts': 'export {};\n',
+  },
+  'pino-only-in-logger': {
+    'src/adapters/out/diagnostics.ts': "import pino from 'pino';\nexport const logger = pino();\n",
   },
   'no-backend-imports': {
     'src/composition/satellite.ts': "import { reply } from '@ambrogio/conversations/application';\nexport { reply };\n",

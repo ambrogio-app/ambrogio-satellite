@@ -156,6 +156,11 @@ export const rules = {
     const reason = backendReach(edge.from, edge.specifier, dependencies);
     return reason === undefined ? [] : [{ from: edge.from, specifier: edge.specifier, message: reason }];
   }),
+  /** Only the base logger module imports Pino: the components receive the minimal logger interface. */
+  'pino-only-in-logger': ({ imports }) => imports
+    .filter(edge => isProductionFile(edge.from) && edge.from !== 'src/runtime/logger.ts'
+      && (edge.specifier === 'pino' || edge.specifier.startsWith('pino/')))
+    .map(edge => ({ from: edge.from, specifier: edge.specifier, message: 'only src/runtime/logger.ts imports pino' })),
 } satisfies Record<string, Rule>;
 
 export type RuleName = keyof typeof rules;
