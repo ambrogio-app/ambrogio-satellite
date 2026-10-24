@@ -23,9 +23,6 @@ L'attenuazione si configura con tre variabili, tutte presenti o tutte assenti: `
 
 L'adapter esegue `amixer -D <device> -q sset <control> <livello>%` con l'esecuzione diretta del programma, senza shell, e un tempo massimo di 2 secondi: con il livello di `AMBROGIO_ATTENUATION_LEVEL` alla wake word, prima del segnale acustico di disponibilità, e con `100` al ritorno in attesa della wake word, all'avvio e durante l'arresto controllato. ALSA crea il controllo `softvol` alla prima apertura del dispositivo che lo usa: se `amixer` segnala che il controllo non esiste, nessun flusso lo ha ancora attraversato e non c'è nulla da attenuare, senza evento di guasto. Ogni altro errore, l'uscita con codice diverso da zero o la scadenza del tempo massimo producono l'evento diagnostico `satellite_attenuation_failed` con l'operazione, attenuazione o ripristino, e il motivo selezionato; l'interazione e l'attesa proseguono. L'immagine container include `amixer` dal pacchetto `alsa-utils`; per l'esecuzione sull'host è una dipendenza documentata.
 
-#### Alternative e conseguenze
-Sono state considerate l'attenuazione per ruolo dei flussi con PipeWire e WirePlumber e la regolazione del volume del player tramite Music Assistant. PipeWire avrebbe evitato codice nel satellite, ma attenua soltanto mentre il satellite riproduce un suono: durante il parlato della persona, quando la musica disturba di più la trascrizione, il volume sarebbe tornato pieno; richiede inoltre un server audio più pesante sul Raspberry Pi 3B e la sostituzione della configurazione ALSA. Music Assistant avrebbe richiesto che il satellite o il backend conoscessero un'estensione specifica, contro la decisione che il satellite comunica soltanto con il backend e che il backend resta indipendente dai connettori, con un ritardo di rete e nessuna attenuazione se il servizio non risponde. La regolazione locale con `amixer` richiede un campo di configurazione e l'esecuzione di un programma esterno, resta immediata e non dipende dalla rete. Una libreria Node per i controlli ALSA è stata scartata per non aggiungere una dipendenza nativa.
-
 #### Metadata
   * type: behavior
 
@@ -150,7 +147,7 @@ La fase di build dell'immagine installa le dipendenze secondo «Profilo di insta
 
 ### Esiti e diagnostica del satellite
 
-Il tipo locale è `type Result<T, E> = Readonly<{ ok: true; value: T }> | Readonly<{ ok: false; error: E }>`. I rifiuti previsti sono tipi nominati immutabili, distinti mediante `kind`, senza classi o instanceof. Ogni porta e caso d’uso dichiara i propri rifiuti; non esiste un catalogo globale. Application interpreta gli esiti delle porte e restituisce le proprie varianti, gestite esaustivamente dagli adapter inbound. I guasti inattesi sono Error; un nuovo Error aggiunge contesto soltanto quando utile, preservando l’originale con cause. Il confine tecnico responsabile produce la diagnosi definitiva; i passaggi intermedi propagano senza log duplicati. Gli esiti previsti non producono automaticamente log di errore. Il messaggio pubblico resta separato dalla diagnosi tecnica. Il logger tecnico è Pino. Le varianti concrete e le politiche di recupero ancora aperte restano da specificare.
+Il tipo locale è `type Result<T, E> = Readonly<{ ok: true; value: T }> | Readonly<{ ok: false; error: E }>`. I rifiuti previsti sono tipi nominati immutabili, distinti mediante `kind`, senza classi o instanceof. Ogni porta e caso d’uso dichiara i propri rifiuti; non esiste un catalogo globale. Application interpreta gli esiti delle porte e restituisce le proprie varianti, gestite esaustivamente dagli adapter inbound. I guasti inattesi sono Error; un nuovo Error aggiunge contesto soltanto quando utile, preservando l’originale con cause. Il confine tecnico responsabile produce la diagnosi definitiva; i passaggi intermedi propagano senza log duplicati. Gli esiti previsti non producono automaticamente log di errore. Il messaggio pubblico resta separato dalla diagnosi tecnica. Il logger tecnico è Pino.
 
 #### Metadata
   * type: specification
@@ -258,10 +255,7 @@ GitHub Actions esegue il job stabile `Satellite checks` del workflow `.github/wo
 
 ### Profilo della scansione dei segreti del satellite
 
-Il workflow `.github/workflows/secret-scan.yml` del satellite realizza nel job `Secret scan` la scansione in CI del «Profilo di scansione dei segreti con gitleaks» di `ambrogio-model`, con la versione, l'archivio, l'impronta e il comando di quel profilo. Permessi, tempo massimo e azioni fissate seguono il contratto «Protezioni dei workflow GitHub Actions».
-
-#### Alternative e conseguenze
-Sono state considerate l'azione ufficiale `gitleaks/gitleaks-action`, che è gratuita per gli account personali ma richiede una licenza quando il repository appartiene a un'organizzazione, il solo controllo in CI, che lascia entrare un segreto nella storia locale fino al push, e il solo hook locale, che dipende dall'attivazione in ogni clone e non protegge il repository remoto. Il binario fissato per versione e impronta non dipende da licenze né da azioni di terze parti; l'aggiornamento di versione richiede di aggiornare insieme versione e impronta.
+Il workflow `.github/workflows/secret-scan.yml` del satellite realizza nel job `Secret scan` la scansione in CI del «Profilo di scansione dei segreti con gitleaks» di `ambrogio-model`, con la versione, l'archivio, l'impronta e il comando di quel profilo. Un aggiornamento di gitleaks aggiorna insieme versione e impronta. Permessi, tempo massimo e azioni fissate seguono il contratto «Protezioni dei workflow GitHub Actions».
 
 #### Metadata
   * type: specification
@@ -407,7 +401,7 @@ Il processo satellite emette i log applicativi JSON su stdout. Nell’esecuzione
 
 ### Responsabilità interne del satellite
 
-Domain contiene stati e regole dell’interazione locale. Application coordina i casi d’uso e dichiara porte nei termini delle capacità richieste. Gli adapter inbound invocano Application; gli adapter outbound realizzano le porte. Audio, wake word e trasporto restano negli adapter; Domain e Application non importano librerie tecniche, neppure soltanto per i tipi. La composition root costruisce risorse e collega le porte. Il satellite resta un solo progetto nel proprio repository, senza workspace multipackage, e usa pnpm per installazione e lockfile. Non si introducono contenitori generici shared, common o utils senza una decisione esplicita. Nomi delle cartelle, versioni e librerie restano da scegliere.
+Domain contiene stati e regole dell’interazione locale. Application coordina i casi d’uso e dichiara porte nei termini delle capacità richieste. Gli adapter inbound invocano Application; gli adapter outbound realizzano le porte. Audio, wake word e trasporto restano negli adapter; Domain e Application non importano librerie tecniche, neppure soltanto per i tipi. La composition root costruisce risorse e collega le porte. Il satellite resta un solo progetto nel proprio repository, senza workspace multipackage, e usa pnpm per installazione e lockfile. Non si introducono contenitori generici shared, common o utils senza una decisione esplicita.
 
 #### Metadata
   * type: specification
