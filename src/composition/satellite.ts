@@ -11,7 +11,7 @@ import { OnnxWakeWord } from '../adapters/out/onnx-wake-word.js';
 import { ResponsePlayback } from '../adapters/out/response-playback.js';
 import { SileroVad } from '../adapters/out/silero-vad.js';
 import { wakeWordFiles } from '../adapters/out/wake-word-catalog.js';
-import type { SatelliteConfig } from '../adapters/out/configuration.js';
+import type { SatelliteConfig } from '../runtime/configuration.js';
 import { combineFaults, createResourceStack, faultOutcome } from '../runtime/lifecycle.js';
 import { ProjectError } from '../runtime/project-error.js';
 

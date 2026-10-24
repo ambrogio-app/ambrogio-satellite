@@ -83,7 +83,7 @@ try {
     '--interactive', '--entrypoint', 'node', image, '--input-type=module', '-'], `
 import assert from 'node:assert/strict';
 const { availableWakeWordIds, wakeWordFiles } = await import('./dist/adapters/out/wake-word-catalog.js');
-const { readSatelliteConfig } = await import('./dist/adapters/out/configuration.js');
+const { readSatelliteConfig } = await import('./dist/runtime/configuration.js');
 const ids = availableWakeWordIds();
 assert.deepEqual([...ids], ['personalizzato']);
 const config = readSatelliteConfig({ AMBROGIO_ENV: 'production', AMBROGIO_BACKEND_URL: 'http://localhost:3000',

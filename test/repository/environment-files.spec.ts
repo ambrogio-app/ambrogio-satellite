@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { configurationVariables, defaultedVariables } from '../../src/adapters/out/configuration.js';
+import { configurationVariables, defaultedVariables } from '../../src/runtime/configuration.js';
 
 // «Caricamento esplicito del file d'ambiente locale del satellite» and «Valori predefiniti del satellite
 // applicati dal modulo di configurazione»: the example files list the variables without repeating defaults,

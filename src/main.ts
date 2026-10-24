@@ -7,7 +7,7 @@ installFatalPath('Ambrogio satellite stopped after a fatal error.');
 const [{ createBaseLogger }, { createDiagnostics }, { parseStartupArguments }, { readSatelliteConfig },
   { availableWakeWordIds }, { runSatelliteProcess }] = await Promise.all([
   import('./runtime/logger.js'), import('./adapters/out/diagnostics.js'), import('./adapters/in/startup-arguments.js'),
-  import('./adapters/out/configuration.js'), import('./adapters/out/wake-word-catalog.js'),
+  import('./runtime/configuration.js'), import('./adapters/out/wake-word-catalog.js'),
   import('./runtime/satellite-process.js'),
 ]);
 

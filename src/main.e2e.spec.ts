@@ -35,6 +35,12 @@ describe('compiled process', () => {
     return { status: result.status, lines, record: JSON.parse(lines[0]!), stderr: result.stderr };
   }
 
+  /** The stderr lines of the satellite, without the native log lines of ONNX Runtime (`[W:onnxruntime…`, `[E:onnxruntime…`). */
+  function satelliteLines(stderr: string): string[] {
+    const nativeOnnxRuntime = /^(?:\u001b\[[0-9;]*m)?[^[]*\[[WE]:onnxruntime[:,]/;
+    return stderr.split('\n').filter(line => line !== '' && !nativeOnnxRuntime.test(line));
+  }
+
   test('exits with 2 and one rejection line for an invalid configuration', () => {
     const { status, lines, record } = run({ AMBROGIO_ENV: 'production', AMBROGIO_BACKEND_URL: 'ftp://secret.example.test' });
     expect(status).toBe(2);
@@ -67,7 +73,9 @@ describe('compiled process', () => {
     expect(lines).toHaveLength(1);
     expect(record).toMatchObject({ level: 'error', event: 'satellite_startup_failed', msg: 'Satellite startup failed',
       err: { type: 'ProjectError', message: 'Wake word model could not be loaded' } });
-    expect(stderr).toBe('Unable to start Ambrogio satellite.\n');
+    // ONNX Runtime can write its own native log lines on stderr, for example a device discovery warning on CI
+    // runners: they are not lines of the satellite, which writes exactly one.
+    expect(satelliteLines(stderr)).toEqual(['Unable to start Ambrogio satellite.']);
     expect(`${lines.join('')}${stderr}`).not.toContain('secret');
   });
 });

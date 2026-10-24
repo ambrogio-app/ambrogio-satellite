@@ -98,6 +98,23 @@ const testLayers: Readonly<Record<string, readonly string[]>> = {
   'adapters/out': ['adapters/out', 'application', 'domain'],
 };
 
+/**
+ * Outbound adapter files that belong to the adapter of a verified file: the file itself and the outbound adapter
+ * files it imports directly, the modules in which that adapter is split.
+ */
+function ownOutboundAdapter(verified: string, imports: readonly ImportEdge[]): ReadonlySet<string> {
+  return new Set([verified, ...imports.filter(edge => edge.from === verified && edge.target !== undefined
+    && layerOf(edge.target) === 'adapters/out').map(edge => edge.target!)]);
+}
+
+/** The technical factories of the runtime («Factory tecniche del satellite senza conoscenza business»). */
+export const technicalFactories: readonly string[] = ['src/runtime/fatal-path.ts', 'src/runtime/lifecycle.ts',
+  'src/runtime/logger.ts', 'src/runtime/satellite-process.ts'];
+
+/** Dependency injection containers: the composition root is written by hand («Composizione del satellite scritta a mano»). */
+export const dependencyContainers: readonly string[] = ['awilix', 'inversify', 'tsyringe', 'typedi', 'injection-js',
+  '@nestjs/core'];
+
 type Finding = Readonly<{ from: string; specifier: string; message: string }>;
 type Rule = (workspace: Workspace) => Finding[];
 
@@ -146,6 +163,9 @@ export const rules = {
       if (layer === 'adapters/in' && target === 'adapters/in' && edge.target !== verified) {
         return [{ from: edge.from, specifier: edge.specifier, message: 'an inbound adapter test imports only its own adapter' }];
       }
+      if (layer === 'adapters/out' && target === 'adapters/out' && !ownOutboundAdapter(verified!, imports).has(edge.target!)) {
+        return [{ from: edge.from, specifier: edge.specifier, message: 'an outbound adapter test imports only its own adapter' }];
+      }
       return [];
     }),
   ],
@@ -156,6 +176,16 @@ export const rules = {
     const reason = backendReach(edge.from, edge.specifier, dependencies);
     return reason === undefined ? [] : [{ from: edge.from, specifier: edge.specifier, message: reason }];
   }),
+  /** The technical factories of the runtime import only Node.js modules, dependencies and other runtime files. */
+  'technical-factory-imports': ({ imports }) => imports
+    .filter(edge => technicalFactories.includes(edge.from) && edge.target !== undefined && layerOf(edge.target) !== 'runtime')
+    .map(edge => ({ from: edge.from, specifier: edge.specifier, message: 'a technical factory imports no business, composition or adapter code' })),
+
+  /** No file imports a dependency injection container. */
+  'no-dependency-container': ({ imports }) => imports
+    .filter(edge => dependencyContainers.some(name => edge.specifier === name || edge.specifier.startsWith(`${name}/`)))
+    .map(edge => ({ from: edge.from, specifier: edge.specifier, message: 'the composition is written by hand, without a container' })),
+
   /** Only the base logger module imports Pino: the components receive the minimal logger interface. */
   'pino-only-in-logger': ({ imports }) => imports
     .filter(edge => isProductionFile(edge.from) && edge.from !== 'src/runtime/logger.ts'

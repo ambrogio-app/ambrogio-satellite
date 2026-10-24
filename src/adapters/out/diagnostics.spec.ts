@@ -1,5 +1,4 @@
 import { expect, test } from 'vitest';
-import { readSatelliteConfig } from './configuration.js';
 import { createDiagnostics, normalizeDiagnosticError } from './diagnostics.js';
 
 type Call = Readonly<{ level: string; fields: Record<string, unknown>; message?: string }>;
@@ -53,38 +52,20 @@ test('expected startup outcomes are informative and have no err or input data', 
     { level: 'info', fields: { event: 'satellite_ready' } }]);
 });
 
-const valid = { AMBROGIO_ENV: 'production', AMBROGIO_BACKEND_URL: 'http://ambrogio.test:3000' };
-const models = new Set(['hey_jarvis']);
-
-function rejectionRecord(environment: Readonly<Record<string, string>>) {
-  const loaded = readSatelliteConfig(environment, models, 'secret-host');
-  if (loaded.ok || loaded.error.kind !== 'invalid_configuration') throw new Error('expected a rejected configuration');
-  const { log, calls } = capture();
-  log.configurationRejected(loaded.error);
-  expect(calls).toHaveLength(1);
-  expect(JSON.stringify(calls)).not.toContain('secret');
-  return calls[0]!;
-}
+type Rejection = Parameters<ReturnType<typeof createDiagnostics>['configurationRejected']>[0];
 
 test.each([
-  [{ AMBROGIO_BACKEND_URL: 'http://secret.test' }, 'AMBROGIO_ENV', 'missing'],
-  [{ ...valid, AMBROGIO_ENV: 'secret' }, 'AMBROGIO_ENV', 'invalid'],
-  [{ AMBROGIO_ENV: 'test' }, 'AMBROGIO_BACKEND_URL', 'missing'],
-  [{ ...valid, AMBROGIO_BACKEND_URL: 'ftp://secret.test' }, 'AMBROGIO_BACKEND_URL', 'invalid'],
-  [{ ...valid, AMBROGIO_CLIENT_ID: ' ' }, 'AMBROGIO_CLIENT_ID', 'invalid'],
-  [{ ...valid, AMBROGIO_CLIENT_NAME: ' ' }, 'AMBROGIO_CLIENT_NAME', 'invalid'],
-  [{ ...valid, AMBROGIO_MICROPHONE: ' secret' }, 'AMBROGIO_MICROPHONE', 'invalid'],
-  [{ ...valid, AMBROGIO_SPEAKER: 'secret ' }, 'AMBROGIO_SPEAKER', 'invalid'],
-  [{ ...valid, AMBROGIO_ATTENUATION_DEVICE: 'secret' }, 'AMBROGIO_ATTENUATION_CONTROL', 'missing'],
-  [{ ...valid, AMBROGIO_ATTENUATION_DEVICE: 'secret', AMBROGIO_ATTENUATION_CONTROL: 'Music',
-    AMBROGIO_ATTENUATION_LEVEL: '101' }, 'AMBROGIO_ATTENUATION_LEVEL', 'invalid'],
-  [{ ...valid, AMBROGIO_WAKE_WORD_MODEL: 'secret_word' }, 'AMBROGIO_WAKE_WORD_MODEL', 'invalid'],
-  [{ ...valid, AMBROGIO_WAKE_WORD_THRESHOLD: '2' }, 'AMBROGIO_WAKE_WORD_THRESHOLD', 'invalid'],
-  [{ ...valid, AMBROGIO_WAKE_WORD_PATIENCE: '0' }, 'AMBROGIO_WAKE_WORD_PATIENCE', 'invalid'],
-  [{ ...valid, AMBROGIO_REPLY_TIMEOUT_MS: '-1' }, 'AMBROGIO_REPLY_TIMEOUT_MS', 'invalid'],
-])('a rejected configuration names only the variable and the condition: %j', (environment, variable, condition) => {
-  const record = rejectionRecord(environment);
-  expect(record).toEqual({ level: 'info', fields: { event: 'invalid_configuration', variable, condition } });
+  ['AMBROGIO_ENV', 'missing'],
+  ['AMBROGIO_BACKEND_URL', 'invalid'],
+  ['AMBROGIO_ATTENUATION_LEVEL', 'invalid'],
+  ['AMBROGIO_WAKE_WORD_MODEL', 'invalid'],
+] as const)('a rejected configuration names only the variable and the condition: %s %s', (variable, condition) => {
+  // The rejection carries an extra field with a value: the diagnostics select their fields explicitly.
+  const rejection = { kind: 'invalid_configuration', variable, condition, value: 'secret-value' } as Rejection;
+  const { log, calls } = capture();
+  log.configurationRejected(rejection);
+  expect(calls).toEqual([{ level: 'info', fields: { event: 'invalid_configuration', variable, condition } }]);
+  expect(JSON.stringify(calls)).not.toContain('secret');
 });
 
 test('a wake word detection logs only its rounded score and consecutive chunks', () => {

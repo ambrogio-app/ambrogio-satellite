@@ -1,6 +1,6 @@
 import { hostname } from 'node:os';
 import { sessionWebSocketUrl } from './backend-url.js';
-import { isWakeWordId } from './wake-word-catalog.js';
+import { isWakeWordId } from '../adapters/out/wake-word-catalog.js';
 
 /** Every environment variable read by the configuration module of the satellite. */
 export const configurationVariables = [

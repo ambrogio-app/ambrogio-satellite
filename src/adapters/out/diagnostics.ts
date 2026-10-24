@@ -1,5 +1,5 @@
 import type { Logger } from '../../runtime/logger.js';
-import type { InvalidConfiguration } from './configuration.js';
+import type { InvalidConfiguration } from '../../runtime/configuration.js';
 
 type FailureEvent = 'satellite_process_failed' | 'satellite_failure' | 'satellite_error_tone_failed'
   | 'satellite_ready_cue_failed';

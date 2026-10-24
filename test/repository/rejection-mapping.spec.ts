@@ -36,7 +36,7 @@ test('the unmodified copy compiles', () => {
 }, 60_000);
 
 test('a new configuration rejection is caught by the exhaustive mapping of the entry point', () => {
-  addVariant('src/adapters/out/configuration.ts',
+  addVariant('src/runtime/configuration.ts',
     'export type ConfigurationRejection = InvalidConfiguration;',
     "export type ConfigurationRejection = InvalidConfiguration | Readonly<{ kind: 'added_rejection' }>;");
   const { status, output } = compile();
@@ -54,3 +54,13 @@ test('a new startup argument rejection is caught by the exhaustive mapping of th
   expect(output).toMatch(/^src\/main\.ts\(\d+,\d+\): error TS2345: .*'never'/m);
   expect(output.trim().split('\n')).toHaveLength(1);
 }, 60_000);
+
+test('every default branch of the entry point mappings passes the switched value to assertNever', () => {
+  // With a single variant TypeScript narrows only the literal `kind` to `never`, not the variant object, so the
+  // mapping passes the `kind` it switches on («Mapping esaustivo dei rifiuti previsti nel satellite»).
+  const source = readFileSync(join(root, 'src', 'main.ts'), 'utf8');
+  const switches = [...source.matchAll(/switch \(([\w.]+)\) \{[\s\S]*?default:\s*\n\s*assertNever\(([\w.]+)\);/g)];
+  expect(switches.map(([, switched, passed]) => [switched, passed])).toEqual([
+    ['args.error.kind', 'args.error.kind'], ['config.error.kind', 'config.error.kind']]);
+  expect(source.match(/default:/g)).toHaveLength(2);
+});

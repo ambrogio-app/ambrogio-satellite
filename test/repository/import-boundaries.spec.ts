@@ -32,6 +32,19 @@ const negativeFixtures: Record<RuleName, Readonly<Record<string, string>>> = {
       "import type { VoiceSession } from '../application/voice-session.use-case.js';\nexport type Seen = VoiceSession;\n",
     'src/domain/missing.spec.ts': 'export {};\n',
     'test/domain/voice-turn.test.ts': 'export {};\n',
+    'src/adapters/out/ready-cue.ts': 'export const cue = 1;\n',
+    'src/adapters/out/response-playback.ts': "import { cue } from './ready-cue.js';\nexport const play = () => cue;\n",
+    'src/adapters/out/silero-vad.ts': 'export const vad = 1;\n',
+    'src/adapters/out/response-playback.spec.ts':
+      "import { play } from './response-playback.js';\nimport { cue } from './ready-cue.js';\nimport { vad } from './silero-vad.js';\nexport const seen = [play, cue, vad];\n",
+  },
+  'technical-factory-imports': {
+    'src/application/voice-session.use-case.ts': 'export class VoiceSession {}\n',
+    'src/runtime/satellite-process.ts':
+      "import type { VoiceSession } from '../application/voice-session.use-case.js';\nexport type Seen = VoiceSession;\n",
+  },
+  'no-dependency-container': {
+    'test/support/container.ts': "import { createContainer } from 'awilix';\nexport const container = createContainer();\n",
   },
   'pino-only-in-logger': {
     'src/adapters/out/diagnostics.ts': "import pino from 'pino';\nexport const logger = pino();\n",
