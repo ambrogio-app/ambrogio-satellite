@@ -262,6 +262,9 @@ Il satellite deve mettere a disposizione modelli di wake word distribuiti e supp
 #### Metadata
   * type: requirement
 
+#### Contract References
+  * [Modelli openWakeWord distribuiti](../Contracts/ExternalContracts.md#modelli-openwakeword-distribuiti)
+
 #### Relations
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -1359,6 +1362,9 @@ Quando carica la configurazione, il satellite deve selezionare il modello di wak
 
 #### Metadata
   * type: requirement
+
+#### Contract References
+  * [Modelli openWakeWord distribuiti](../Contracts/ExternalContracts.md#modelli-openwakeword-distribuiti)
 
 #### Relations
   * satisfiedBy: [wake-word-catalog.ts](../../src/adapters/out/wake-word-catalog.ts)
