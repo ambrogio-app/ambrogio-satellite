@@ -134,6 +134,10 @@ Dove la configurazione indica un controllo di attenuazione, quando riconosce la 
 #### Details
 L'interazione comprende le repliche richieste dal backend: l'attenuazione resta attiva finché il satellite non torna in attesa della wake word, dopo la risposta, per inattività, dopo un fallimento o per la perdita della sessione durante l'interazione. Il controllo attenua soltanto gli altri flussi audio locali che lo attraversano, come un player musicale; la voce del satellite non lo attraversa.
 
+Alternative: l'attenuazione per ruolo dei flussi con PipeWire e WirePlumber (attenua soltanto mentre il satellite riproduce un suono e non durante il parlato della persona, quando la musica disturba di più la trascrizione; richiede un server audio più pesante su un Raspberry Pi 3B e la sostituzione della configurazione ALSA); la regolazione del volume del player tramite Music Assistant (il satellite o il backend conoscono un'estensione specifica, contro un satellite che comunica soltanto con il backend e un backend indipendente dai connettori; aggiunge un ritardo di rete e nessuna attenuazione avviene se il servizio non risponde); una libreria Node per i controlli ALSA (aggiunge una dipendenza nativa).
+
+Motivo: la regolazione locale con `amixer` è immediata e non dipende dalla rete, al costo di un campo di configurazione e dell'esecuzione di un programma esterno.
+
 #### Concept References
   * [Interazione vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#interazione-vocale)
   * [Dispositivo audio](../Thesaurus/Lessico.md#dispositivo-audio)
@@ -1279,6 +1283,11 @@ Quando dopo una risposta che attende replica scade l'intervallo locale di inatti
 ### Scansione dei segreti nella storia del repository
 
 Quando una modifica viene inviata a qualunque branch del repository del satellite o proposta tramite pull request, il job `Secret scan` del satellite deve eseguire la scansione comune dei segreti sull'intera storia del repository.
+
+#### Details
+Alternative: l'azione ufficiale `gitleaks/gitleaks-action` (gratuita per gli account personali, ma richiede una licenza quando il repository appartiene a un'organizzazione); il solo controllo in CI (un segreto entra nella storia locale fino al push); il solo hook locale (dipende dall'attivazione in ogni clone e non protegge il repository remoto).
+
+Motivo: il binario fissato per versione e impronta non dipende da licenze né da azioni di terze parti, e l'hook locale insieme alla scansione in CI blocca il segreto prima del commit e lo rileva comunque nel repository remoto.
 
 #### Metadata
   * type: requirement
