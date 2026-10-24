@@ -160,7 +160,7 @@ try {
 
   // The archive holds the transcribed requests of each conversation.
   const history = async id => {
-    const response = await fetch(`${server.origin}/api/conversations/${id}`);
+    const response = await fetch(`${server.origin}/api/v1/conversations/${id}`);
     assert.equal(response.status, 200);
     return response.json();
   };
