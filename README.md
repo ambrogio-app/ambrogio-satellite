@@ -76,7 +76,7 @@ The satellite reads its settings only from environment variables, once at startu
 For Docker Compose, use [`compose.example.yaml`](compose.example.yaml), which sets only the two required values:
 
 ```bash
-AMBROGIO_SATELLITE_VERSION=v0.6.0 AMBROGIO_BACKEND_URL=http://ambrogio.example.test:3000 \
+AMBROGIO_SATELLITE_VERSION=v0.7.0 AMBROGIO_BACKEND_URL=http://ambrogio.example.test:3000 \
   docker compose -f compose.example.yaml up -d
 ```
 
