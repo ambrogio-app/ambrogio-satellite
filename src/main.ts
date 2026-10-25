@@ -5,9 +5,9 @@ import { installFatalPath } from './runtime/fatal-path.js';
 installFatalPath('Ambrogio satellite stopped after a fatal error.');
 
 const [{ createBaseLogger }, { createDiagnostics }, { parseStartupArguments }, { readSatelliteConfig },
-  { availableWakeWordIds }, { runSatelliteProcess }] = await Promise.all([
+  { installedWakeWordVocabulary }, { runSatelliteProcess }] = await Promise.all([
   import('./runtime/logger.js'), import('./adapters/out/diagnostics.js'), import('./adapters/in/startup-arguments.js'),
-  import('./runtime/configuration.js'), import('./adapters/out/wake-word-catalog.js'),
+  import('./runtime/configuration.js'), import('./adapters/out/voice-models.js'),
   import('./runtime/satellite-process.js'),
 ]);
 
@@ -26,7 +26,7 @@ if (!args.ok) {
   process.exitCode = 2;
 } else {
   // The configuration is read once, from the process environment, before any resource is built.
-  const config = readSatelliteConfig(process.env, availableWakeWordIds());
+  const config = readSatelliteConfig(process.env, installedWakeWordVocabulary());
   if (!config.ok) {
     switch (config.error.kind) {
       case 'invalid_configuration':
@@ -37,8 +37,6 @@ if (!args.ok) {
     }
     process.exitCode = 2;
   } else {
-    // ONNX Runtime reads this before the first runtime import.
-    process.env.ORT_DISABLE_TELEMETRY = '1';
     const { createSatellite } = await import('./composition/satellite.js');
     const outcome = await runSatelliteProcess(signal => createSatellite(config.value, diagnostics, signal), {
       ready: () => diagnostics.info('satellite_ready'),

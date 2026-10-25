@@ -7,16 +7,16 @@ import { AudioReserve } from '../adapters/out/audio-reserve.js';
 import { ConversationChannel } from '../adapters/out/conversation-channel.js';
 import type { Diagnostics } from '../adapters/out/diagnostics.js';
 import { MicrophoneInput } from '../adapters/out/microphone-input.js';
-import { OnnxWakeWord } from '../adapters/out/onnx-wake-word.js';
 import { ResponsePlayback } from '../adapters/out/response-playback.js';
-import { SileroVad } from '../adapters/out/silero-vad.js';
-import { wakeWordFiles } from '../adapters/out/wake-word-catalog.js';
+import { SherpaSpeechDetector } from '../adapters/out/sherpa-speech-detector.js';
+import { SherpaWakeWord } from '../adapters/out/sherpa-wake-word.js';
 import type { SatelliteConfig } from '../runtime/configuration.js';
 import { combineFaults, createResourceStack, faultOutcome } from '../runtime/lifecycle.js';
 import { ProjectError } from '../runtime/project-error.js';
 
 const WAKE_COOLDOWN_MS = 2_000;
-const WAKE_MAX_QUEUED_CHUNKS = 32;
+/** A wake word detection counts only with speech in the 1500 ms that end with it. */
+const WAKE_SPEECH_WINDOW_MS = 1_500;
 /** 1500 ms of 16 kHz audio kept before confirmed speech. */
 const AUDIO_RESERVE_SAMPLES = 1_500 * 16;
 const ANSWER_TIMEOUT_MS = 60_000;
@@ -49,8 +49,8 @@ export async function createSatellite(config: SatelliteConfig, diagnostics: Diag
   signal?: AbortSignal): Promise<Satellite> {
   let session: VoiceSession | undefined;
   let stopping = signal?.aborted ?? false;
-  let wake: OnnxWakeWord | undefined;
-  let vad: SileroVad | undefined;
+  let wake: SherpaWakeWord | undefined;
+  let vad: SherpaSpeechDetector | undefined;
   let closed: Promise<void> | undefined;
   const resources = createResourceStack();
   const cancelFaults: unknown[] = [];
@@ -89,21 +89,22 @@ export async function createSatellite(config: SatelliteConfig, diagnostics: Diag
   }
   try {
     checkStopping();
-    const opened = await phase('Wake word model could not be loaded', () => OnnxWakeWord.open(wakeWordFiles(config.wakeWord.model), {
+    const opened = await phase('Wake word model could not be loaded', async () => SherpaWakeWord.open({
+      wakeWord: config.wakeWord.text,
       threshold: config.wakeWord.threshold,
-      patience: config.wakeWord.patience,
+      speechWindowMs: WAKE_SPEECH_WINDOW_MS,
       cooldownMs: WAKE_COOLDOWN_MS,
-      maxQueuedChunks: WAKE_MAX_QUEUED_CHUNKS,
-      detected: (score, chunks) => {
-        diagnostics.wakeDetected(score, chunks);
+      detected: () => {
+        diagnostics.wakeDetected();
         events.wakeDetected();
       },
+      rejected: () => diagnostics.wakeRejected(),
       failed: events.failed,
     }));
     wake = opened;
     resources.defer('Wake word model could not be closed', () => opened.close());
     checkStopping();
-    const activity = await phase('Voice activity model could not be loaded', () => SileroVad.open());
+    const activity = await phase('Voice activity model could not be loaded', async () => SherpaSpeechDetector.open());
     vad = activity;
     resources.defer('Voice activity model could not be closed', () => activity.close());
     checkStopping();

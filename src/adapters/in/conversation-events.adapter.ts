@@ -3,14 +3,14 @@ import type { RequestEvents, TurnOutcome } from '../../adapters/out/ambrogio-ses
 import type { AudioReserve } from '../../adapters/out/audio-reserve.js';
 import type { ConversationChannel } from '../../adapters/out/conversation-channel.js';
 import type { ResponsePlayback } from '../../adapters/out/response-playback.js';
-import type { SileroVad, SpeechEvents } from '../../adapters/out/silero-vad.js';
+import type { SherpaSpeechDetector, SpeechEvents } from '../../adapters/out/sherpa-speech-detector.js';
 
 /** Translates microphone, speech detection and `ambrogio.v1` events into the session use case. */
 export function createConversationEventsAdapter(options: Readonly<{
   getSession(): VoiceSession | undefined;
   isStopping(): boolean;
   channel(): ConversationChannel | undefined;
-  vad(): SileroVad | undefined;
+  vad(): SherpaSpeechDetector | undefined;
   reserve: AudioReserve;
   playback: ResponsePlayback;
   pushWakeFrames(frames: Float32Array): void;

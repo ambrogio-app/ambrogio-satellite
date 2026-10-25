@@ -125,7 +125,7 @@ describe('CI workflow', () => {
     expect(workflows.ci).not.toMatch(/paths(-ignore)?:/);
   });
 
-  it('uses the pinned runner, Node.js, pnpm through Corepack, frozen lockfile and ONNX Runtime settings', () => {
+  it('uses the pinned runner, Node.js, pnpm through Corepack and the frozen lockfile', () => {
     expect(checks).toMatch(/^ {4}runs-on: ubuntu-24\.04$/m);
     expect(step(checks, 'Set up Node.js')).toMatch(/^ {10}node-version: '24'$/m);
     expect(manifest('../../package.json').packageManager).toBe('pnpm@12.11.2');
@@ -136,7 +136,7 @@ describe('CI workflow', () => {
     expect(install).toMatch(/^ {8}working-directory: workspace\/ambrogio-satellite$/m);
     expect(install).toMatch(/run: pnpm install --frozen-lockfile$/m);
     expect(section(checks, 'env', 4)).toBe('    env:\n      BRANCH: ${{ github.head_ref || github.ref_name }}\n'
-      + "      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'\n      ONNXRUNTIME_NODE_INSTALL: skip\n      ORT_DISABLE_TELEMETRY: '1'");
+      + "      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'");
   });
 
   it('checks out the workspace side by side and checks its model without a Reqvire version of its own', () => {

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { readSatelliteConfig, type ConfigurationVariable } from './configuration.js';
 
-const distributedModels = new Set(['alexa', 'hey_jarvis', 'hey_mycroft']);
+/** A vocabulary that represents every word except those with the letter Q. */
+const distributedModels = { tokens: (text: string) => /q/i.test(text) ? undefined : [text] };
 const base = { AMBROGIO_ENV: 'production', AMBROGIO_BACKEND_URL: 'http://localhost:3000' };
 
 const rejection = (variable: ConfigurationVariable, condition: 'missing' | 'invalid') =>
@@ -61,30 +62,30 @@ describe('satellite configuration', () => {
       backend: { baseUrl: new URL('http://localhost:3000'), sessionUrl: new URL('ws://localhost:3000/api/session') },
       client: { clientId: 'satellite-host-a', name: 'host-a' },
       audio: {},
-      wakeWord: { model: 'hey_jarvis', threshold: 0.5, patience: 2 },
+      wakeWord: { text: 'Alexa', threshold: 0.25 },
       interaction: { replyTimeoutMs: 15_000 },
     } });
   });
 
   it('treats empty variables as absent', () => {
     const result = readSatelliteConfig({ ...base, AMBROGIO_CLIENT_ID: '', AMBROGIO_MICROPHONE: '',
-      AMBROGIO_WAKE_WORD_MODEL: '', AMBROGIO_REPLY_TIMEOUT_MS: '', AMBROGIO_ATTENUATION_DEVICE: '' },
+      AMBROGIO_WAKE_WORD: '', AMBROGIO_WAKE_WORD_THRESHOLD: '', AMBROGIO_REPLY_TIMEOUT_MS: '', AMBROGIO_ATTENUATION_DEVICE: '' },
     distributedModels, 'host-a');
     expect(result.ok && result.value.client.clientId).toBe('satellite-host-a');
     expect(result.ok && result.value.audio).toEqual({});
-    expect(result.ok && result.value.wakeWord.model).toBe('hey_jarvis');
+    expect(result.ok && result.value.wakeWord).toEqual({ text: 'Alexa', threshold: 0.25 });
     expect(result.ok && result.value.interaction.replyTimeoutMs).toBe(15_000);
   });
 
-  it.each(['alexa', 'hey_mycroft'])('preserves explicit audio devices, %s model and timeout', model => {
+  it.each(['Hey Siri', "Don't stop"])('preserves explicit audio devices, the wake word %j and timeout', text => {
     const result = readSatelliteConfig({ ...base, AMBROGIO_BACKEND_URL: 'https://example.org/ambrogio',
-      AMBROGIO_MICROPHONE: 'alsa:mic-1', AMBROGIO_SPEAKER: 'USB Speaker', AMBROGIO_WAKE_WORD_MODEL: model,
-      AMBROGIO_WAKE_WORD_THRESHOLD: '0.7', AMBROGIO_WAKE_WORD_PATIENCE: '3', AMBROGIO_REPLY_TIMEOUT_MS: '2500' },
+      AMBROGIO_MICROPHONE: 'alsa:mic-1', AMBROGIO_SPEAKER: 'USB Speaker', AMBROGIO_WAKE_WORD: text,
+      AMBROGIO_WAKE_WORD_THRESHOLD: '0.7', AMBROGIO_REPLY_TIMEOUT_MS: '2500' },
     distributedModels);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.audio).toEqual({ microphone: 'alsa:mic-1', speaker: 'USB Speaker' });
-      expect(result.value.wakeWord).toEqual({ model, threshold: 0.7, patience: 3 });
+      expect(result.value.wakeWord).toEqual({ text, threshold: 0.7 });
       expect(result.value.interaction.replyTimeoutMs).toBe(2_500);
       expect(result.value.backend.sessionUrl.href).toBe('wss://example.org/ambrogio/api/session');
     }
@@ -98,20 +99,21 @@ describe('satellite configuration', () => {
     expect(partial.ok && partial.value.client).toEqual({ clientId: 'satellite-host', name: 'Studio' });
   });
 
-  it('accepts an available custom wake word model', () => {
-    const result = readSatelliteConfig({ ...base, AMBROGIO_WAKE_WORD_MODEL: 'custom' },
-      new Set([...distributedModels, 'custom']));
-    expect(result.ok && result.value.wakeWord.model).toBe('custom');
+  it('rejects a wake word that the model vocabulary cannot represent', () => {
+    expect(readSatelliteConfig({ ...base, AMBROGIO_WAKE_WORD: 'Quasar' }, distributedModels))
+      .toEqual(rejection('AMBROGIO_WAKE_WORD', 'invalid'));
   });
 
-  it('rejects an unsafe identifier even if a catalog reports it available', () => {
-    expect(readSatelliteConfig({ ...base, AMBROGIO_WAKE_WORD_MODEL: '../outside' }, new Set(['../outside'])))
-      .toEqual(rejection('AMBROGIO_WAKE_WORD_MODEL', 'invalid'));
+  it('checks only the form of the wake word when the vocabulary cannot be read', () => {
+    const result = readSatelliteConfig({ ...base, AMBROGIO_WAKE_WORD: 'Quasar' }, undefined);
+    expect(result.ok && result.value.wakeWord.text).toBe('Quasar');
+    expect(readSatelliteConfig({ ...base, AMBROGIO_WAKE_WORD: 'Quasar!' }, undefined))
+      .toEqual(rejection('AMBROGIO_WAKE_WORD', 'invalid'));
   });
 
-  it.each(['1', '10'])('accepts %s consecutive wake word chunks', patience => {
-    const result = readSatelliteConfig({ ...base, AMBROGIO_WAKE_WORD_PATIENCE: patience }, distributedModels);
-    expect(result.ok && result.value.wakeWord.patience).toBe(Number(patience));
+  it.each(['0.01', '0.5', '0.99'])('accepts the wake word threshold %s', threshold => {
+    const result = readSatelliteConfig({ ...base, AMBROGIO_WAKE_WORD_THRESHOLD: threshold }, distributedModels);
+    expect(result.ok && result.value.wakeWord.threshold).toBe(Number(threshold));
   });
 
   it.each([
@@ -119,16 +121,16 @@ describe('satellite configuration', () => {
     ['AMBROGIO_CLIENT_NAME', ' \t'],
     ['AMBROGIO_MICROPHONE', ' alsa:mic'],
     ['AMBROGIO_SPEAKER', 'speaker '],
-    ['AMBROGIO_WAKE_WORD_MODEL', 'hey_alexa'],
-    ['AMBROGIO_WAKE_WORD_MODEL', '../outside'],
-    ['AMBROGIO_WAKE_WORD_MODEL', 'melspectrogram'],
+    ['AMBROGIO_WAKE_WORD', 'Hey  Alexa'],
+    ['AMBROGIO_WAKE_WORD', ' Alexa'],
+    ['AMBROGIO_WAKE_WORD', 'Città'],
+    ['AMBROGIO_WAKE_WORD', '../outside'],
+    ['AMBROGIO_WAKE_WORD', 'a'.repeat(65)],
     ['AMBROGIO_WAKE_WORD_THRESHOLD', '0'],
+    ['AMBROGIO_WAKE_WORD_THRESHOLD', '1'],
     ['AMBROGIO_WAKE_WORD_THRESHOLD', '1.2'],
     ['AMBROGIO_WAKE_WORD_THRESHOLD', 'high'],
     ['AMBROGIO_WAKE_WORD_THRESHOLD', '-0.5'],
-    ['AMBROGIO_WAKE_WORD_PATIENCE', '0'],
-    ['AMBROGIO_WAKE_WORD_PATIENCE', '11'],
-    ['AMBROGIO_WAKE_WORD_PATIENCE', '1.5'],
     ['AMBROGIO_REPLY_TIMEOUT_MS', '0'],
     ['AMBROGIO_REPLY_TIMEOUT_MS', '-1'],
     ['AMBROGIO_REPLY_TIMEOUT_MS', '1.5'],

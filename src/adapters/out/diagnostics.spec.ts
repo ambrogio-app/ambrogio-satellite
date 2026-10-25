@@ -58,7 +58,7 @@ test.each([
   ['AMBROGIO_ENV', 'missing'],
   ['AMBROGIO_BACKEND_URL', 'invalid'],
   ['AMBROGIO_ATTENUATION_LEVEL', 'invalid'],
-  ['AMBROGIO_WAKE_WORD_MODEL', 'invalid'],
+  ['AMBROGIO_WAKE_WORD', 'invalid'],
 ] as const)('a rejected configuration names only the variable and the condition: %s %s', (variable, condition) => {
   // The rejection carries an extra field with a value: the diagnostics select their fields explicitly.
   const rejection = { kind: 'invalid_configuration', variable, condition, value: 'secret-value' } as Rejection;
@@ -68,10 +68,12 @@ test.each([
   expect(JSON.stringify(calls)).not.toContain('secret');
 });
 
-test('a wake word detection logs only its rounded score and consecutive chunks', () => {
+test('a confirmed and a rejected wake word detection log only their event', () => {
   const { log, calls } = capture();
-  log.wakeDetected(0.912345, 3);
-  expect(calls).toEqual([{ level: 'info', fields: { event: 'satellite_wake_detected', score: 0.912, chunks: 3 } }]);
+  log.wakeDetected();
+  log.wakeRejected();
+  expect(calls).toEqual([{ level: 'info', fields: { event: 'satellite_wake_detected' } },
+    { level: 'info', fields: { event: 'satellite_wake_rejected' } }]);
 });
 
 test('a shutdown timeout logs the deadline, and the faults already observed only when there are some', () => {

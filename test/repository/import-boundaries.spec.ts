@@ -34,9 +34,9 @@ const negativeFixtures: Record<RuleName, Readonly<Record<string, string>>> = {
     'test/domain/voice-turn.test.ts': 'export {};\n',
     'src/adapters/out/ready-cue.ts': 'export const cue = 1;\n',
     'src/adapters/out/response-playback.ts': "import { cue } from './ready-cue.js';\nexport const play = () => cue;\n",
-    'src/adapters/out/silero-vad.ts': 'export const vad = 1;\n',
+    'src/adapters/out/sherpa-speech-detector.ts': 'export const vad = 1;\n',
     'src/adapters/out/response-playback.spec.ts':
-      "import { play } from './response-playback.js';\nimport { cue } from './ready-cue.js';\nimport { vad } from './silero-vad.js';\nexport const seen = [play, cue, vad];\n",
+      "import { play } from './response-playback.js';\nimport { cue } from './ready-cue.js';\nimport { vad } from './sherpa-speech-detector.js';\nexport const seen = [play, cue, vad];\n",
   },
   'technical-factory-imports': {
     'src/application/voice-session.use-case.ts': 'export class VoiceSession {}\n',

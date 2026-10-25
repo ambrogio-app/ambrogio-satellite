@@ -35,8 +35,8 @@ test('every direct dependency uses the exact version resolved in the lockfile', 
   expect(existsSync(join(root, 'package-lock.json'))).toBe(false);
 });
 
-test('only onnxruntime-node may run build scripts during installation', () => {
-  expect(/^allowBuilds:\n((?: {2}.+\n)*)/m.exec(workspace)?.[1]).toBe('  onnxruntime-node: true\n');
+test('no dependency runs build scripts during installation', () => {
+  expect(workspace).not.toMatch(/^allowBuilds:/m);
 });
 
 test('the minimum release age stays active with the exceptions of the contract, each an exact locked version', () => {

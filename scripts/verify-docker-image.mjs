@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -19,7 +19,7 @@ assert.equal(success(docker(['image', 'inspect', '--format', '{{.Os}}/{{.Archite
 const labels = JSON.parse(success(docker(['image', 'inspect', '--format', '{{json .Config.Labels}}', image])));
 assert.equal(labels['org.opencontainers.image.source'], 'https://github.com/ambrogio-app/ambrogio-satellite');
 assert.equal(labels['org.opencontainers.image.licenses'], 'MIT');
-const run = ['run', '--rm', '--network', 'none', '--platform', `linux/${arch}`, '--env', 'ORT_DISABLE_TELEMETRY=1'];
+const run = ['run', '--rm', '--network', 'none', '--platform', `linux/${arch}`];
 // The image declares no runtime environment and no configuration value: the deployment supplies them.
 const imageEnv = JSON.parse(success(docker(['image', 'inspect', '--format', '{{json .Config.Env}}', image])));
 assert(!imageEnv.some(entry => entry.startsWith('AMBROGIO_')), 'The image must not set AMBROGIO_* variables');
@@ -39,64 +39,55 @@ rejected(['AMBROGIO_ENV=production', 'AMBROGIO_BACKEND_URL=ftp://secret.example.
 success(docker([...run, '--interactive', '--entrypoint', 'node', image, '--input-type=module', '-'], `
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 assert.equal(process.arch, ${JSON.stringify(arch === 'amd64' ? 'x64' : 'arm64')});
 assert.equal(existsSync('/app/.env'), false);
 assert.equal(existsSync('/config'), false);
 await import('decibri');
-await import('onnxruntime-node');
+createRequire(import.meta.url)('sherpa-onnx-node');
 const { errorToneSamples } = await import('./dist/adapters/out/ready-cue.js');
 assert.equal(errorToneSamples().length, 5600);
-const { OnnxWakeWord } = await import('./dist/adapters/out/onnx-wake-word.js');
-const { wakeWordFiles, distributedWakeWordIds } = await import('./dist/adapters/out/wake-word-catalog.js');
-assert(distributedWakeWordIds.size > 0);
-for (const id of distributedWakeWordIds) {
-  const failures = [];
-  const detector = await OnnxWakeWord.open(wakeWordFiles(id), {
-    threshold: 0.5, patience: 1, cooldownMs: 0, maxQueuedChunks: 20,
-    detected() { throw new Error('Wake word detected in silence'); }, failed(error) { failures.push(error); },
-  });
-  try {
-    for (let i = 0; i < 18; i++) assert(detector.push(new Float32Array(1280)));
-    await detector.waitUntilIdle();
-    assert.deepEqual(failures, []);
-  } finally { await detector.close(); }
-}
-const { SileroVad, SILERO_WINDOW_SAMPLES } = await import('./dist/adapters/out/silero-vad.js');
-const vad = await SileroVad.open();
-try {
-  const vadFailures = [];
-  vad.start({ confirmed() { throw new Error('Speech confirmed in silence'); }, ended() {},
-    failed(error) { vadFailures.push(error); } });
-  vad.push(new Float32Array(SILERO_WINDOW_SAMPLES * 8));
-  await new Promise(resolve => setTimeout(resolve, 500));
-  assert.deepEqual(vadFailures, []);
-} finally { await vad.close(); }
+const { SherpaWakeWord } = await import('./dist/adapters/out/sherpa-wake-word.js');
+const outcomes = [];
+const wake = SherpaWakeWord.open({ wakeWord: 'Alexa', threshold: 0.25, speechWindowMs: 1500, cooldownMs: 2000,
+  detected() { outcomes.push('detected'); }, rejected() { outcomes.push('rejected'); },
+  failed(error) { outcomes.push(String(error)); } });
+for (let i = 0; i < 40; i++) assert(wake.push(new Float32Array(1280)));
+await wake.close();
+assert.deepEqual(outcomes, []);
+const { SherpaSpeechDetector } = await import('./dist/adapters/out/sherpa-speech-detector.js');
+const vad = SherpaSpeechDetector.open();
+const vadEvents = [];
+vad.start({ confirmed() { vadEvents.push('confirmed'); }, ended() { vadEvents.push('ended'); },
+  failed(error) { vadEvents.push(String(error)); } });
+for (let i = 0; i < 20; i++) vad.push(new Float32Array(1600));
+await vad.close();
+assert.deepEqual(vadEvents, []);
 `));
-const mountedModels = mkdtempSync(join(tmpdir(), 'ambrogio-wake-models-'));
+const mountedModels = mkdtempSync(join(tmpdir(), 'ambrogio-kws-model-'));
 try {
-  for (const name of ['melspectrogram.onnx', 'embedding_model.onnx']) {
-    copyFileSync(join('models', 'wakeword', name), join(mountedModels, name));
-  }
-  copyFileSync(join('models', 'wakeword', 'alexa_v0.1.onnx'), join(mountedModels, 'personalizzato.onnx'));
+  for (const name of readdirSync(join('models', 'kws'))) copyFileSync(join('models', 'kws', name), join(mountedModels, name));
+  writeFileSync(join(mountedModels, 'mounted-marker.txt'), 'mounted');
   success(docker([...run,
-    '--mount', `type=bind,src=${mountedModels},dst=/app/models/wakeword,readonly`,
+    '--mount', `type=bind,src=${mountedModels},dst=/app/models/kws,readonly`,
     '--interactive', '--entrypoint', 'node', image, '--input-type=module', '-'], `
 import assert from 'node:assert/strict';
-const { availableWakeWordIds, wakeWordFiles } = await import('./dist/adapters/out/wake-word-catalog.js');
+import { readFileSync } from 'node:fs';
+const { installedWakeWordVocabulary, keywordSpotterFiles } = await import('./dist/adapters/out/voice-models.js');
 const { readSatelliteConfig } = await import('./dist/runtime/configuration.js');
-const ids = availableWakeWordIds();
-assert.deepEqual([...ids], ['personalizzato']);
+// The mount is the directory read: a marker file of the copy is visible inside the container.
+assert.equal(readFileSync('/app/models/kws/mounted-marker.txt', 'utf8'), 'mounted');
+assert(keywordSpotterFiles().encoder.startsWith('/app/models/kws/'));
+const vocabulary = installedWakeWordVocabulary();
+assert.deepEqual(vocabulary.tokens('Alexa'), ['▁A', 'LE', 'X', 'A']);
 const config = readSatelliteConfig({ AMBROGIO_ENV: 'production', AMBROGIO_BACKEND_URL: 'http://localhost:3000',
-  AMBROGIO_WAKE_WORD_MODEL: 'personalizzato' }, ids);
+  AMBROGIO_WAKE_WORD: 'Hey Siri' }, vocabulary);
 assert.equal(config.ok, true);
-const { OnnxWakeWord } = await import('./dist/adapters/out/onnx-wake-word.js');
-const detector = await OnnxWakeWord.open(wakeWordFiles('personalizzato'), {
-  threshold: 0.5, patience: 1, cooldownMs: 0, maxQueuedChunks: 20,
-  detected() { throw new Error('Unexpected detection in silence'); },
-  failed(error) { throw error; },
-});
-try { assert(detector.push(new Float32Array(1280))); await detector.waitUntilIdle(); }
-finally { await detector.close(); }
+const { SherpaWakeWord } = await import('./dist/adapters/out/sherpa-wake-word.js');
+const wake = SherpaWakeWord.open({ wakeWord: 'Hey Siri', threshold: 0.25, speechWindowMs: 1500, cooldownMs: 2000,
+  detected() { throw new Error('Unexpected detection in silence'); }, rejected() {}, failed(error) { throw error; } });
+assert(wake.push(new Float32Array(1280)));
+await wake.close();
 `));
 } finally { rmSync(mountedModels, { recursive: true, force: true }); }
-console.log(`Verified ${image}: ${arch}, labels, native imports, models, error tone and safe startup without configuration or with an invalid environment variable.`);
+console.log(`Verified ${image}: ${arch}, labels, native imports, speech models, mounted keyword spotting model, error tone and safe startup without configuration or with an invalid environment variable.`);

@@ -27,8 +27,11 @@ export function createDiagnostics(log: Logger) {
       log.warn({ event: 'satellite_attenuation_failed', operation, reason });
     },
     /** The score of the confirming chunk and the consecutive chunks above the threshold. */
-    wakeDetected(score: number, chunks: number): void {
-      log.info({ event: 'satellite_wake_detected', score: Math.round(score * 1000) / 1000, chunks });
+    wakeDetected(): void {
+      log.info({ event: 'satellite_wake_detected' });
+    },
+    wakeRejected(): void {
+      log.info({ event: 'satellite_wake_rejected' });
     },
     /**
      * The orderly shutdown did not finish in time; the process exits right after this line. `fault` is the

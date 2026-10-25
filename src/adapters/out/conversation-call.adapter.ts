@@ -4,7 +4,7 @@ import { playPcm16 } from './decibri-audio.js';
 import type { Diagnostics } from './diagnostics.js';
 import { errorToneSamples, readyCueSamples } from './ready-cue.js';
 import type { ResponsePlayback } from './response-playback.js';
-import type { SileroVad, SpeechEvents } from './silero-vad.js';
+import type { SherpaSpeechDetector, SpeechEvents } from './sherpa-speech-detector.js';
 
 /**
  * Implements the session's outbound ports on the persistent `ambrogio.v1` channel: an
@@ -12,7 +12,7 @@ import type { SileroVad, SpeechEvents } from './silero-vad.js';
  */
 export function createConversationCallAdapter(options: Readonly<{
   channel: ConversationChannel;
-  vad: SileroVad;
+  vad: SherpaSpeechDetector;
   speech: SpeechEvents;
   playback: ResponsePlayback;
   speaker?: string;

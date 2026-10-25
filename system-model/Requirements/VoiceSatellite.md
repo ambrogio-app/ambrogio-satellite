@@ -74,6 +74,8 @@ Mentre attende una nuova interazione, il satellite deve acquisire continuamente 
   * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
 
 #### Relations
+  * derivedFrom: [Elaborazione vocale locale con sherpa-onnx](../../../ambrogio-model/system-model/Requirements/VoiceConversation.md#elaborazione-vocale-locale-con-sherpa-onnx)
+  * satisfiedBy: [sherpa-wake-word.ts](../../src/adapters/out/sherpa-wake-word.ts)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -251,24 +253,6 @@ Origine: baseline Reqvire «Rejection-specific fields only», adottata.
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
-### Catalogo distribuito delle wake word
-
-Il satellite deve mettere a disposizione modelli di wake word distribuiti e supportati per le frasi «Hey Jarvis», «Hey Mycroft» e «Alexa», con «Hey Jarvis» come scelta predefinita. La configurazione seleziona una sola wake word alla volta.
-
-#### Concept References
-  * [Catalogo delle wake word](../Thesaurus/Lessico.md#catalogo-delle-wake-word)
-  * [Modello di wake word](../Thesaurus/Lessico.md#modello-di-wake-word)
-
-#### Metadata
-  * type: requirement
-
-#### Contract References
-  * [Modelli openWakeWord distribuiti](../Contracts/ExternalContracts.md#modelli-openwakeword-distribuiti)
-
-#### Relations
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
----
-
 ### Comando di verifica completo del satellite
 
 Il satellite deve offrire il comando `pnpm verify`, che esegue in locale i controlli del job `Satellite checks` secondo «Comando di verifica completo con pnpm» e termina con esito non riuscito al primo controllo fallito.
@@ -289,28 +273,32 @@ I comandi successivi all'installazione e all'audit, nell'ordine del job della CI
   * specify: [Sviluppo governato dal modello](../../../ambrogio-model/system-model/Capabilities/Engineering.md#sviluppo-governato-dal-modello)
 ---
 
-### Condizioni di distribuzione dei modelli wake word
+### Condizioni di distribuzione dei modelli vocali del satellite
 
-Il satellite deve distribuire nel proprio catalogo soltanto modelli wake word la cui redistribuzione per l'uso non commerciale previsto è consentita, accompagnando ciascun modello con fonte, licenza e attribuzioni richieste. La licenza dei modelli deve essere indicata separatamente da quella del codice del satellite.
+Il satellite deve distribuire soltanto modelli vocali la cui licenza ne consente la redistribuzione, accompagnando ciascun modello con fonte, licenza e attribuzioni richieste. La licenza dei modelli deve essere indicata separatamente da quella del codice del satellite.
 
 #### Concept References
-  * [Catalogo delle wake word](../Thesaurus/Lessico.md#catalogo-delle-wake-word)
+  * [Rilevamento dell'attività vocale](../Thesaurus/Lessico.md#rilevamento-dellattività-vocale)
   * [Modello di wake word](../Thesaurus/Lessico.md#modello-di-wake-word)
 
 #### Metadata
   * type: requirement
 
 #### Relations
-  * satisfiedBy: [README.md](../../models/wakeword/README.md)
+  * satisfiedBy: [README.md](../../models/README.md)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
-### Conferma della wake word su blocchi consecutivi
+### Conferma della wake word con l'attività vocale
 
-Quando il punteggio di riconoscimento della wake word raggiunge la soglia configurata, il satellite deve avviare l'attivazione locale soltanto se la soglia è stata raggiunta nel numero configurato di blocchi audio consecutivi.
+Quando il keyword spotter rileva la wake word, il satellite deve avviare l'attivazione locale soltanto se il rilevatore dell'attività vocale ha segnalato parlato nei 1500 ms che terminano con il rilevamento, e deve scartare il rilevamento altrimenti.
+
+#### Details
+La conferma riduce le attivazioni causate da rumori che non sono parlato, come colpi, musica senza voce o elettrodomestici. Non elimina quelle causate da conversazioni, televisione o radio, che contengono parlato. È stato scartato il filtro dell'audio con il rilevatore prima del keyword spotting, perché il tempo necessario a confermare il parlato taglierebbe l'inizio della parola.
 
 #### Concept References
   * [Wake word](../Thesaurus/Lessico.md#wake-word)
+  * [Rilevamento dell'attività vocale](../Thesaurus/Lessico.md#rilevamento-dellattività-vocale)
   * [Attivazione locale](../Thesaurus/Lessico.md#attivazione-locale)
 
 #### Metadata
@@ -318,10 +306,10 @@ Quando il punteggio di riconoscimento della wake word raggiunge la soglia config
 
 #### Contract References
   * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
-  * [Motore locale della wake word con ONNX](../Contracts/VoiceSatellite.md#motore-locale-della-wake-word-con-onnx)
+  * [Motore locale della wake word con sherpa-onnx](../Contracts/VoiceSatellite.md#motore-locale-della-wake-word-con-sherpa-onnx)
 
 #### Relations
-  * satisfiedBy: [onnx-wake-word.ts](../../src/adapters/out/onnx-wake-word.ts)
+  * satisfiedBy: [sherpa-wake-word.ts](../../src/adapters/out/sherpa-wake-word.ts)
   * satisfiedBy: [configuration.ts](../../src/runtime/configuration.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -347,8 +335,8 @@ Origine: baseline Reqvire «Configuration module per component reading environme
   * [Profilo dell'ambiente di esecuzione e del file d'ambiente locale](../../../ambrogio-model/system-model/Contracts/HomelabInstallation.md#profilo-dellambiente-di-esecuzione-e-del-file-dambiente-locale)
   * [Adapter audio con Decibri](../Contracts/VoiceSatellite.md#adapter-audio-con-decibri)
   * [Attenuazione locale con softvol e amixer](../Contracts/VoiceSatellite.md#attenuazione-locale-con-softvol-e-amixer)
-  * [Catalogo e selezione dei modelli](../Contracts/VoiceSatellite.md#catalogo-e-selezione-dei-modelli)
   * [Identità del satellite nella sessione](../Contracts/VoiceSatellite.md#identità-del-satellite-nella-sessione)
+  * [Wake word configurata e modello di keyword spotting](../Contracts/VoiceSatellite.md#wake-word-configurata-e-modello-di-keyword-spotting)
 
 #### Relations
   * derivedFrom: [Modulo di configurazione per componente dalle variabili d'ambiente](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#modulo-di-configurazione-per-componente-dalle-variabili-dambiente)
@@ -509,6 +497,9 @@ La costruzione del satellite deve caricare i modelli della wake word e dell'atti
 
 Durante un'interazione vocale attiva, il satellite deve riconoscere localmente l'inizio e la fine del parlato della famiglia e consegnare al backend il turno risultante, preservando anche le risposte brevi e le richieste con pause interne.
 
+#### Details
+`sherpa-onnx-node` 1.13.8 non espone la soglia sotto cui conta il silenzio: è la soglia di parlato ridotta di 0,15. La soglia 0,26 fissa quindi a 0,11 il limite del silenzio e mantiene bassa la soglia di parlato, per non perdere le repliche brevi.
+
 #### Concept References
   * [Rilevamento dell'attività vocale](../Thesaurus/Lessico.md#rilevamento-dellattività-vocale)
   * [Turno vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#turno-vocale)
@@ -520,6 +511,8 @@ Durante un'interazione vocale attiva, il satellite deve riconoscere localmente l
   * [Adapter audio con Decibri](../Contracts/VoiceSatellite.md#adapter-audio-con-decibri)
 
 #### Relations
+  * derivedFrom: [Elaborazione vocale locale con sherpa-onnx](../../../ambrogio-model/system-model/Requirements/VoiceConversation.md#elaborazione-vocale-locale-con-sherpa-onnx)
+  * satisfiedBy: [sherpa-speech-detector.ts](../../src/adapters/out/sherpa-speech-detector.ts)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -548,7 +541,7 @@ Il rifiuto della configurazione e degli argomenti di avvio resta l'esito previst
 Il satellite deve offrire una distribuzione Docker facoltativa per Linux x86_64 e arm64 che esegua la stessa applicazione con lo stesso contratto di configurazione dell’esecuzione diretta; l'immagine non deve contenere valori di configurazione effettivi né dati persistenti, e il contesto di build deve escludere storia Git, dipendenze installate, risultati di build, modello, test, file di database e file d'ambiente.
 
 #### Details
-I modelli di wake word distribuiti sono risorse in sola lettura incluse nell'immagine, non configurazione; chi installa aggiunge i propri modelli secondo «Catalogo e selezione dei modelli».
+I modelli vocali distribuiti sono risorse in sola lettura incluse nell'immagine, non configurazione; chi installa sostituisce il modello di keyword spotting secondo «Wake word configurata e modello di keyword spotting».
 
 Origine: baseline Reqvire «Server distributed as a container image», adottata; «Configuration and data outside the container image», adottata; «Minimal container build context», adottata.
 
@@ -1098,7 +1091,7 @@ Origine: baseline Reqvire «Execution coordination in entrypoints», adottata; �
 
 ### Registrazione delle attivazioni locali
 
-Quando riconosce la wake word, il satellite deve registrare un evento diagnostico informativo con il punteggio di riconoscimento e il numero di blocchi audio consecutivi sopra soglia.
+Quando riconosce la wake word, il satellite deve registrare un evento diagnostico informativo; quando scarta un rilevamento della wake word non confermato dall'attività vocale, deve registrare un evento diagnostico informativo distinto.
 
 #### Concept References
   * [Wake word](../Thesaurus/Lessico.md#wake-word)
@@ -1356,21 +1349,6 @@ Quando la configurazione indica `AMBROGIO_MICROPHONE` o `AMBROGIO_SPEAKER`, il s
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
-### Selezione della wake word configurata
-
-Quando carica la configurazione, il satellite deve selezionare il modello di wake word richiesto dal catalogo distribuito oppure da un file ONNX compatibile presente nella directory dei modelli montata sull'installazione. Deve rifiutare identificatori sconosciuti o che escono dalla directory dei modelli.
-
-#### Metadata
-  * type: requirement
-
-#### Contract References
-  * [Modelli openWakeWord distribuiti](../Contracts/ExternalContracts.md#modelli-openwakeword-distribuiti)
-
-#### Relations
-  * satisfiedBy: [wake-word-catalog.ts](../../src/adapters/out/wake-word-catalog.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
----
-
 ### Selezione esplicita dei dati diagnostici
 
 Il satellite deve includere nei log soltanto campi diagnostici selezionati esplicitamente, escludendo audio, contenuti conversazionali e credenziali.
@@ -1584,6 +1562,23 @@ Il satellite deve emettere i propri log tecnici mediante Pino al confine respons
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
+### Validazione della wake word configurata
+
+Quando carica la configurazione, il satellite deve accettare la wake word soltanto se il testo ha la forma ammessa e la sua scomposizione nei token del modello di keyword spotting, distribuito o montato dall'installazione, è completa, e deve rifiutare la configurazione altrimenti, prima di costruire le risorse audio.
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Modelli sherpa-onnx distribuiti con il satellite](../Contracts/ExternalContracts.md#modelli-sherpa-onnx-distribuiti-con-il-satellite)
+
+#### Relations
+  * satisfiedBy: [keyword-tokens.ts](../../src/adapters/out/keyword-tokens.ts)
+  * satisfiedBy: [voice-models.ts](../../src/adapters/out/voice-models.ts)
+  * satisfiedBy: [configuration.ts](../../src/runtime/configuration.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Validazione prima della costruzione delle risorse
 
 Il satellite deve caricare e validare la configurazione prima di costruire le risorse operative.
@@ -1635,4 +1630,28 @@ Quando la suite automatica del satellite esegue le verifiche del codice e del re
   * satisfiedBy: [package.json](../../package.json)
   * satisfiedBy: [vitest.config.ts](../../vitest.config.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
+---
+
+### Wake word configurabile come testo
+
+Il satellite deve riconoscere come wake word la parola o la frase indicata come testo nella configurazione, con «Alexa» come scelta predefinita, senza richiedere un modello addestrato per quella parola. La configurazione indica una sola wake word.
+
+#### Details
+Il keyword spotting di sherpa-onnx riconosce parole indicate come sequenze di token del proprio vocabolario, senza un addestramento per ciascuna parola. È stato scartato un catalogo chiuso di parole con un modello per ciascuna, perché obbligherebbe chi installa a procurarsi o addestrare un modello per ogni parola diversa da quelle distribuite.
+
+#### Concept References
+  * [Wake word](../Thesaurus/Lessico.md#wake-word)
+  * [Modello di wake word](../Thesaurus/Lessico.md#modello-di-wake-word)
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Modelli sherpa-onnx distribuiti con il satellite](../Contracts/ExternalContracts.md#modelli-sherpa-onnx-distribuiti-con-il-satellite)
+  * [Wake word configurata e modello di keyword spotting](../Contracts/VoiceSatellite.md#wake-word-configurata-e-modello-di-keyword-spotting)
+
+#### Relations
+  * satisfiedBy: [keyword-tokens.ts](../../src/adapters/out/keyword-tokens.ts)
+  * satisfiedBy: [sherpa-wake-word.ts](../../src/adapters/out/sherpa-wake-word.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---

@@ -1,6 +1,7 @@
 import { hostname } from 'node:os';
 import { sessionWebSocketUrl } from './backend-url.js';
-import { isWakeWordId } from '../adapters/out/wake-word-catalog.js';
+import { isWakeWordText } from '../adapters/out/keyword-tokens.js';
+import type { WakeWordVocabulary } from '../adapters/out/voice-models.js';
 
 /** Every environment variable read by the configuration module of the satellite. */
 export const configurationVariables = [
@@ -13,9 +14,8 @@ export const configurationVariables = [
   'AMBROGIO_ATTENUATION_DEVICE',
   'AMBROGIO_ATTENUATION_CONTROL',
   'AMBROGIO_ATTENUATION_LEVEL',
-  'AMBROGIO_WAKE_WORD_MODEL',
+  'AMBROGIO_WAKE_WORD',
   'AMBROGIO_WAKE_WORD_THRESHOLD',
-  'AMBROGIO_WAKE_WORD_PATIENCE',
   'AMBROGIO_REPLY_TIMEOUT_MS',
 ] as const;
 
@@ -26,9 +26,8 @@ export type ConfigurationVariable = typeof configurationVariables[number];
  * `AMBROGIO_CLIENT_NAME` also have defaults, derived from the host name when the configuration is read.
  */
 export const configurationDefaults = {
-  AMBROGIO_WAKE_WORD_MODEL: 'hey_jarvis',
-  AMBROGIO_WAKE_WORD_THRESHOLD: 0.5,
-  AMBROGIO_WAKE_WORD_PATIENCE: 2,
+  AMBROGIO_WAKE_WORD: 'Alexa',
+  AMBROGIO_WAKE_WORD_THRESHOLD: 0.25,
   AMBROGIO_REPLY_TIMEOUT_MS: 15_000,
 } as const;
 
@@ -55,7 +54,7 @@ export type SatelliteConfig = Readonly<{
   client: Readonly<{ clientId: string; name: string }>;
   audio: Readonly<{ microphone?: string; speaker?: string;
     attenuation?: Readonly<{ device: string; control: string; level: number }> }>;
-  wakeWord: Readonly<{ model: string; threshold: number; patience: number }>;
+  wakeWord: Readonly<{ text: string; threshold: number }>;
   interaction: Readonly<{ replyTimeoutMs: number }>;
 }>;
 
@@ -108,7 +107,7 @@ function attenuation(environment: Environment): Result<SatelliteConfig['audio'][
  * The configuration module of the satellite: reads the process environment once, applies the defaults it
  * owns and validates every value before any audio or network resource is built.
  */
-export function readSatelliteConfig(environment: Environment, availableModels: ReadonlySet<string>,
+export function readSatelliteConfig(environment: Environment, vocabulary: WakeWordVocabulary | undefined,
   host: string = hostname()): Result<SatelliteConfig> {
   const runtime = read(environment, 'AMBROGIO_ENV');
   if (runtime === undefined) return reject('AMBROGIO_ENV', 'missing');
@@ -131,16 +130,15 @@ export function readSatelliteConfig(environment: Environment, availableModels: R
   const lowered = attenuation(environment);
   if (!lowered.ok) return lowered;
 
-  const model = read(environment, 'AMBROGIO_WAKE_WORD_MODEL') ?? configurationDefaults.AMBROGIO_WAKE_WORD_MODEL;
-  if (!isWakeWordId(model) || !availableModels.has(model)) return reject('AMBROGIO_WAKE_WORD_MODEL', 'invalid');
+  // Without a readable vocabulary only the form is checked here: loading the model then fails at startup.
+  const text = read(environment, 'AMBROGIO_WAKE_WORD') ?? configurationDefaults.AMBROGIO_WAKE_WORD;
+  if (!isWakeWordText(text) || (vocabulary !== undefined && vocabulary.tokens(text) === undefined)) {
+    return reject('AMBROGIO_WAKE_WORD', 'invalid');
+  }
   const thresholdText = read(environment, 'AMBROGIO_WAKE_WORD_THRESHOLD');
   const threshold = thresholdText === undefined ? configurationDefaults.AMBROGIO_WAKE_WORD_THRESHOLD
     : /^[0-9]+(\.[0-9]+)?$/.test(thresholdText) ? Number(thresholdText) : Number.NaN;
-  if (!(threshold > 0 && threshold <= 1)) return reject('AMBROGIO_WAKE_WORD_THRESHOLD', 'invalid');
-  const patienceText = read(environment, 'AMBROGIO_WAKE_WORD_PATIENCE');
-  const patience = patienceText === undefined ? configurationDefaults.AMBROGIO_WAKE_WORD_PATIENCE
-    : integer(patienceText, 1, 10);
-  if (patience === undefined) return reject('AMBROGIO_WAKE_WORD_PATIENCE', 'invalid');
+  if (!(threshold > 0 && threshold < 1)) return reject('AMBROGIO_WAKE_WORD_THRESHOLD', 'invalid');
   const timeoutText = read(environment, 'AMBROGIO_REPLY_TIMEOUT_MS');
   const replyTimeoutMs = timeoutText === undefined ? configurationDefaults.AMBROGIO_REPLY_TIMEOUT_MS
     : integer(timeoutText, 1, Number.MAX_SAFE_INTEGER);
@@ -154,7 +152,7 @@ export function readSatelliteConfig(environment: Environment, availableModels: R
       ...(speaker === undefined ? {} : { speaker }),
       ...(lowered.value === undefined ? {} : { attenuation: lowered.value }),
     },
-    wakeWord: { model, threshold, patience },
+    wakeWord: { text, threshold },
     interaction: { replyTimeoutMs },
   });
 }

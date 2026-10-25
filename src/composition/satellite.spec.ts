@@ -6,13 +6,13 @@ const f = vi.hoisted(() => ({
   stop: vi.fn(), shutdown: vi.fn(), channelClose: vi.fn(), ensure: vi.fn(),
   wakeClose: vi.fn(), wakeOpen: vi.fn(), vadOpen: vi.fn(), vadClose: vi.fn(),
   micStart: vi.fn(), micClose: vi.fn(), playbackCancel: vi.fn(), info: vi.fn(),
-  wakeDetectedLog: vi.fn(), wakeDetected: vi.fn(), restore: vi.fn(),
+  wakeDetectedLog: vi.fn(), wakeRejectedLog: vi.fn(), wakeDetected: vi.fn(), restore: vi.fn(),
 }));
 vi.mock('../adapters/out/amixer-attenuation.adapter.js', () => ({
   AmixerAttenuation: class { restore = f.restore; attenuate = vi.fn(); },
 }));
-vi.mock('../adapters/out/onnx-wake-word.js', () => ({ OnnxWakeWord: { open: f.wakeOpen } }));
-vi.mock('../adapters/out/silero-vad.js', () => ({ SileroVad: { open: f.vadOpen } }));
+vi.mock('../adapters/out/sherpa-wake-word.js', () => ({ SherpaWakeWord: { open: f.wakeOpen } }));
+vi.mock('../adapters/out/sherpa-speech-detector.js', () => ({ SherpaSpeechDetector: { open: f.vadOpen } }));
 vi.mock('../adapters/out/microphone-input.js', () => ({
   MicrophoneInput: class { start = f.micStart; close = f.micClose; },
 }));
@@ -34,11 +34,11 @@ const config = {
   backend: { sessionUrl: new URL('ws://localhost/api/session'), baseUrl: new URL('http://localhost') },
   client: { clientId: 'satellite-test', name: 'test' },
   audio: { attenuation: { device: 'default', control: 'Music', level: 30 } },
-  wakeWord: { model: 'hey_jarvis', threshold: 0.7, patience: 3 }, interaction: { replyTimeoutMs: 15000 },
+  wakeWord: { text: 'Hey Siri', threshold: 0.7 }, interaction: { replyTimeoutMs: 15000 },
 } as never;
 
 /** The event catalog given by the composition root. */
-const diagnostics = () => ({ info: f.info, failure: vi.fn(), wakeDetected: f.wakeDetectedLog,
+const diagnostics = () => ({ info: f.info, failure: vi.fn(), wakeDetected: f.wakeDetectedLog, wakeRejected: f.wakeRejectedLog,
   attenuationFailed: vi.fn(), startupFailed: vi.fn(), shutdownTimeout: vi.fn(), configurationRejected: vi.fn() });
 
 async function started() {
@@ -56,19 +56,24 @@ beforeEach(() => {
   f.restore.mockResolvedValue(undefined);
 });
 
-test('passes the configured wake word threshold and patience to the recognizer', async () => {
+test('passes the configured wake word, its threshold and the confirmation window to the recognizer', async () => {
   const satellite = await started();
-  expect(f.wakeOpen).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ threshold: 0.7, patience: 3 }));
+  expect(f.wakeOpen).toHaveBeenCalledWith(expect.objectContaining({ wakeWord: 'Hey Siri', threshold: 0.7,
+    speechWindowMs: 1_500, cooldownMs: 2_000 }));
   await satellite.close();
 });
 
 test('logs each wake word detection before forwarding it to the voice session', async () => {
   const satellite = await started();
-  const { detected } = f.wakeOpen.mock.calls[0]![1] as { detected(score: number, chunks: number): void };
-  detected(0.93, 2);
-  expect(f.wakeDetectedLog).toHaveBeenCalledWith(0.93, 2);
+  const { detected, rejected } = f.wakeOpen.mock.calls[0]![0] as { detected(): void; rejected(): void };
+  detected();
+  expect(f.wakeDetectedLog).toHaveBeenCalledOnce();
   expect(f.wakeDetected).toHaveBeenCalledOnce();
   expect(f.wakeDetectedLog.mock.invocationCallOrder[0]).toBeLessThan(f.wakeDetected.mock.invocationCallOrder[0]!);
+  // A rejected detection is logged and never reaches the voice session.
+  rejected();
+  expect(f.wakeRejectedLog).toHaveBeenCalledOnce();
+  expect(f.wakeDetected).toHaveBeenCalledOnce();
   await satellite.close();
 });
 
