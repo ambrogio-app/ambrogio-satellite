@@ -21,7 +21,8 @@ vi.mock('./composition/satellite.js', () => {
 vi.mock('./runtime/fatal-path.js', () => ({ installFatalPath: f.installFatalPath }));
 vi.mock('./runtime/logger.js', () => ({ createBaseLogger: f.createBaseLogger }));
 vi.mock('decibri', () => { f.loaded.push('decibri'); return {}; });
-vi.mock('onnxruntime-node', () => { f.loaded.push('onnxruntime-node'); return {}; });
+// sherpa-onnx-node is required only by this module, when a model is opened.
+vi.mock('./adapters/out/sherpa-engine.js', () => { f.loaded.push('sherpa-onnx'); return {}; });
 vi.mock('./adapters/out/diagnostics.js', () => ({ createDiagnostics: f.createDiagnostics }));
 
 const argv = process.argv;
@@ -52,7 +53,7 @@ test.each([
   [{ AMBROGIO_ENV: 'staging', AMBROGIO_BACKEND_URL: 'http://backend.example.test' }, 'AMBROGIO_ENV', 'invalid'],
   [{ AMBROGIO_ENV: 'production', AMBROGIO_BACKEND_URL: 'ftp://backend.example.test' }, 'AMBROGIO_BACKEND_URL', 'invalid'],
   [{ AMBROGIO_ENV: 'production', AMBROGIO_BACKEND_URL: 'http://backend.example.test',
-    AMBROGIO_WAKE_WORD_MODEL: 'missing_word' }, 'AMBROGIO_WAKE_WORD_MODEL', 'invalid'],
+    AMBROGIO_WAKE_WORD: 'Città' }, 'AMBROGIO_WAKE_WORD', 'invalid'],
 ])('an invalid configuration exits with 2 before any resource is loaded (%j)', async (environment, variable, condition) => {
   await runMain(environment);
   expect(process.exitCode).toBe(2);
@@ -79,7 +80,6 @@ test('installs the fatal path and builds one base logger for the diagnostics', a
 });
 
 test('a valid configuration reaches the composition root only after validation', async () => {
-  vi.stubEnv('ORT_DISABLE_TELEMETRY', '');
   const failure = new Error('no devices in the test');
   f.start.mockRejectedValue(failure);
   const written: unknown[] = [];
@@ -94,7 +94,7 @@ test('a valid configuration reaches the composition root only after validation',
   const [config, diagnostics, signal] = f.start.mock.calls[0]!;
   expect(config.backend.sessionUrl.href).toBe('wss://backend.example.test/prefix/api/session');
   expect(config.client).toEqual({ clientId: 'satellite-test', name: 'Test' });
-  expect(config.wakeWord.model).toBe('hey_jarvis');
+  expect(config.wakeWord).toEqual({ text: 'Alexa', threshold: 0.25 });
   expect(diagnostics).toBe(f.createDiagnostics.mock.results[0]!.value);
   expect(signal).toBeInstanceOf(AbortSignal);
   expect(f.startupFailed).toHaveBeenCalledExactlyOnceWith(failure);

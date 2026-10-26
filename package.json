@@ -1,6 +1,6 @@
 {
   "name": "ambrogio-satellite",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
   "bin": {
@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "decibri": "5.8.0",
-    "onnxruntime-node": "1.30.0",
-    "pino": "10.4.0"
+    "pino": "10.4.0",
+    "sherpa-onnx-node": "1.13.8"
   }
 }

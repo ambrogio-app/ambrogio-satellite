@@ -34,6 +34,8 @@ function fixture(status = { acceptsWakeWord: false, acceptsSpeechEnd: false, int
   const vad = { push: vi.fn() };
   const wake: Float32Array[] = [];
   const reserve = reserveStub();
+  const diagnostics = { requestTiming: vi.fn() };
+  const clock = { now: 0 };
   const adapter = createConversationEventsAdapter({
     getSession: () => session as unknown as VoiceSession,
     isStopping: () => false,
@@ -42,8 +44,10 @@ function fixture(status = { acceptsWakeWord: false, acceptsSpeechEnd: false, int
     reserve: reserve as unknown as Options['reserve'],
     playback: playback as unknown as Options['playback'],
     pushWakeFrames: frames => wake.push(frames),
+    diagnostics,
+    now: () => clock.now,
   });
-  return { adapter, channel, playback, session, vad, wake, reserve,
+  return { adapter, channel, playback, session, vad, wake, reserve, diagnostics, clock,
     request: () => request!, releaseIdle: () => idle(), setTransmitting: (value: boolean) => { transmitting = value; } };
 }
 
@@ -142,5 +146,62 @@ describe('conversation events adapter', () => {
     const idle = fixture({ acceptsWakeWord: true, acceptsSpeechEnd: false, interactionActive: false });
     idle.adapter.sessionLost();
     expect(idle.session.fail).not.toHaveBeenCalled();
+  });
+});
+
+describe('request timing', () => {
+  // Verification: Prova dell'evento dei tempi della richiesta
+  it('logs the durations of a request once its reply has been played', async () => {
+    const { adapter, request, releaseIdle, diagnostics, clock, playback } = fixture();
+    clock.now = 100;
+    adapter.speech.confirmed();
+    clock.now = 1_300;
+    adapter.speech.ended();
+    request().outputStart(1, { type: 'audio', sampleRate: 22_050 });
+    clock.now = 3_200;
+    request().outputAudio(1, new Int16Array(4));
+    clock.now = 3_400;
+    request().outputAudio(1, new Int16Array(4));
+    request().outputEnd(1);
+    request().outcome({ kind: 'completed', expectsReply: false });
+    expect(diagnostics.requestTiming).not.toHaveBeenCalled();
+    clock.now = 5_000;
+    releaseIdle();
+    await vi.waitFor(() => expect(diagnostics.requestTiming).toHaveBeenCalledOnce());
+    expect(diagnostics.requestTiming).toHaveBeenCalledWith({ speechMs: 1_200, firstAudioMs: 1_900, playedMs: 3_700 });
+    expect(playback.audio).toHaveBeenCalledTimes(2);
+  });
+
+  // Verification: Prova dell'evento dei tempi della richiesta
+  it('leaves out the first audio of a text-only reply', async () => {
+    const { adapter, request, releaseIdle, diagnostics, clock } = fixture();
+    adapter.speech.confirmed();
+    clock.now = 500;
+    adapter.speech.ended();
+    request().outputStart(1, { type: 'text' });
+    request().outputEnd(1);
+    request().outcome({ kind: 'rejected' });
+    clock.now = 900;
+    releaseIdle();
+    await vi.waitFor(() => expect(diagnostics.requestTiming).toHaveBeenCalledOnce());
+    expect(diagnostics.requestTiming).toHaveBeenCalledWith({ speechMs: 500, playedMs: 400 });
+  });
+
+  // Verification: Prova dell'evento dei tempi della richiesta
+  it('logs nothing for an abandoned request or one replaced by a new activation', async () => {
+    const { adapter, request, diagnostics } = fixture();
+    adapter.speech.confirmed();
+    adapter.speech.ended();
+    // No outcome arrives for the first request: a new activation replaces it.
+    const first = request();
+    adapter.speech.confirmed();
+    first.outcome({ kind: 'completed', expectsReply: false });
+    adapter.speech.ended();
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(diagnostics.requestTiming).not.toHaveBeenCalled();
+    // The second request receives its outcome, but its playback never ends.
+    request().outcome({ kind: 'completed', expectsReply: false });
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(diagnostics.requestTiming).not.toHaveBeenCalled();
   });
 });

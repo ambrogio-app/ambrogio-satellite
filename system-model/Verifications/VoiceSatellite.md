@@ -91,7 +91,7 @@ La prova passa se la musica si abbassa prima del segnale di ascolto, resta abbas
 ### Dimostrazione della attivazione locale
 
 #### Details
-Su Linux x86_64 e arm64, con ciascun modello distribuito (Hey Jarvis, Hey Mycroft e Alexa) e microfono reale, pronunciare la wake word e verificare che la pipeline ONNX la riconosca localmente senza servizio esterno e che prima della wake word non si apra alcuna chiamata backend. Pronunciare la wake word e la richiesta senza pausa e verificare che la riserva scorrevole di 1500 ms consegni l'inizio della richiesta dopo la connessione. Saturare la coda d'inferenza di 32 blocchi e verificare un guasto diagnostico senza crescita illimitata. La prova passa se ogni modello attiva il satellite senza servizi esterni, se nessuna chiamata backend precede la wake word, se l'inizio della richiesta arriva al backend e se la coda satura produce un guasto diagnostico; fallisce altrimenti. La prova non misura l'accuratezza del riconoscimento: attivazioni corrette e spurie dipendono dal modello e dalla soglia scelti da chi installa. Non automatizzabile: richiede la voce della persona al microfono reale su ciascuna architettura; la saturazione della coda e il caricamento dei modelli sono coperti anche dalle prove automatiche ONNX.
+Su Linux x86_64 e arm64, con il modello di keyword spotting distribuito, la wake word predefinita «Alexa» e un microfono reale, pronunciare la wake word e verificare che sherpa-onnx la riconosca localmente senza servizio esterno e che prima della wake word non si apra alcuna chiamata backend. Pronunciare la wake word e la richiesta senza pausa e verificare che la riserva scorrevole di 1500 ms consegni l'inizio della richiesta dopo la connessione. Configurare un'altra parola di lettere ASCII e ripetere la prova. Durante l'attesa della wake word misurare il consumo di CPU e di memoria del processo. La prova passa se la wake word predefinita e quella configurata attivano il satellite senza servizi esterni, se nessuna chiamata backend precede la wake word, se l'inizio della richiesta arriva al backend e se l'elaborazione in attesa della wake word resta più veloce del tempo reale su entrambe le architetture; fallisce altrimenti. La prova non misura l'accuratezza del riconoscimento: attivazioni corrette e spurie dipendono dalla parola, dal modello e dalla soglia scelti da chi installa. Non automatizzabile: richiede la voce della persona al microfono reale su ciascuna architettura; il caricamento dei modelli e il riconoscimento su un file di prova sono coperti dalle prove automatiche.
 
 #### Metadata
   * type: demonstration-verification
@@ -100,9 +100,9 @@ Su Linux x86_64 e arm64, con ciascun modello distribuito (Hey Jarvis, Hey Mycrof
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Ascolto locale della wake word](../Requirements/VoiceSatellite.md#ascolto-locale-della-wake-word)
   * verify: [Avvio dopo la wake word](../Requirements/VoiceSatellite.md#avvio-dopo-la-wake-word)
-  * verify: [Catalogo distribuito delle wake word](../Requirements/VoiceSatellite.md#catalogo-distribuito-delle-wake-word)
   * verify: [Conservazione della richiesta continua](../Requirements/VoiceSatellite.md#conservazione-della-richiesta-continua)
-  * verify: [Selezione della wake word configurata](../Requirements/VoiceSatellite.md#selezione-della-wake-word-configurata)
+  * verify: [Validazione della wake word configurata](../Requirements/VoiceSatellite.md#validazione-della-wake-word-configurata)
+  * verify: [Wake word configurabile come testo](../Requirements/VoiceSatellite.md#wake-word-configurabile-come-testo)
 ---
 
 ### Dimostrazione della configurazione
@@ -142,7 +142,7 @@ Con `expectsReply` non booleano non aprire la replica. Provare un turno rifiutat
 ### Dimostrazione della distribuzione Linux
 
 #### Details
-Su host Linux x86_64 e arm64 dotati di microfono e speaker, installare ed eseguire la stessa versione sia direttamente sia in Docker; completare un’interazione vocale in ciascuna combinazione usando lo stesso schema di configurazione. Controllare che `package.json` dichiari ogni dipendenza, di esecuzione e di sviluppo, con la versione esatta risolta in `pnpm-lock.yaml`, senza intervalli di versione. Registrare sistema operativo, periferiche, versioni e dipendenze native, inclusi Decibri, `libasound.so.2`, ONNX Runtime e i file dei modelli caricati. Acquisire dal microfono e riprodurre fino alla fine una risposta sullo speaker configurato in tutte le combinazioni. Accertare che il rilevamento funzioni nel processo satellite sia su host sia nel container. Una build riuscita o una prova sotto emulazione non sostituisce la dimostrazione audio sulle due architetture. Non automatizzabile: richiede host fisici x86_64 e arm64 con microfono e speaker; la CI dispone soltanto di runner x86_64 senza periferiche audio.
+Su host Linux x86_64 e arm64 dotati di microfono e speaker, installare ed eseguire la stessa versione sia direttamente sia in Docker; completare un’interazione vocale in ciascuna combinazione usando lo stesso schema di configurazione. Controllare che `package.json` dichiari ogni dipendenza, di esecuzione e di sviluppo, con la versione esatta risolta in `pnpm-lock.yaml`, senza intervalli di versione. Registrare sistema operativo, periferiche, versioni e dipendenze native, inclusi Decibri, `libasound.so.2`, `sherpa-onnx-node` con il suo pacchetto nativo e i file dei modelli caricati. Acquisire dal microfono e riprodurre fino alla fine una risposta sullo speaker configurato in tutte le combinazioni. Accertare che il rilevamento funzioni nel processo satellite sia su host sia nel container. Una build riuscita o una prova sotto emulazione non sostituisce la dimostrazione audio sulle due architetture. Non automatizzabile: richiede host fisici x86_64 e arm64 con microfono e speaker; la CI dispone soltanto di runner x86_64 senza periferiche audio.
 
 #### Metadata
   * type: demonstration-verification
@@ -172,7 +172,7 @@ Durante interazioni riuscite e fallite controllare scritture su disco e log usan
 ### Dimostrazione della segmentazione vocale
 
 #### Details
-Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare il modello Silero ONNX incluso in Decibri 5.8.0, verificando hash e licenza. Con le soglie del contratto, 0,18 e 0,11, `minSpeechFrames` 4 e `redemptionFrames` 20, provare una richiesta continua dopo la wake word, una replica breve come «sì» e una frase con una pausa interna. Accertare che ogni turno ammesso produca un solo `input.start` alla conferma del parlato, la riserva e i frame PCM16 mono a 16 kHz e un solo `input.end`, senza perdere la replica breve né spezzare la frase alla pausa; un rumore breve non confermato non deve aprire una richiesta. Durante la riproduzione della risposta non devono partire nuovi turni. Registrare tempi di delimitazione e consumo di CPU su entrambe le architetture. Non automatizzabile: la delimitazione di repliche brevi e frasi con pause dipende da parlato reale, e il consumo di CPU va misurato sull'hardware di ciascuna architettura; le soglie con probabilità simulate sono coperte da `silero-vad.spec.ts`.
+Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare il modello Silero VAD distribuito in `models/vad/`, verificandone hash e licenza. Con i parametri del contratto, soglia 0,26, `minSpeechDuration` 128 ms e `minSilenceDuration` 640 ms, provare una richiesta continua dopo la wake word, una replica breve come «sì» e una frase con una pausa interna. Accertare che ogni turno ammesso produca un solo `input.start` alla conferma del parlato, la riserva e i frame PCM16 mono a 16 kHz e un solo `input.end`, senza perdere la replica breve né spezzare la frase alla pausa; un rumore breve non confermato non deve aprire una richiesta. Durante la riproduzione della risposta non devono partire nuovi turni. Registrare tempi di delimitazione e consumo di CPU su entrambe le architetture. Non automatizzabile: la delimitazione di repliche brevi e frasi con pause dipende da parlato reale, e il consumo di CPU va misurato sull'hardware di ciascuna architettura; gli eventi del rilevatore con stati simulati e con file di prova sono coperti da `sherpa-speech-detector.spec.ts`.
 
 #### Metadata
   * type: demonstration-verification
@@ -360,14 +360,14 @@ L'ispezione passa se le istruzioni del satellite rimandano a `ambrogio-model/AGE
 ### Ispezione delle licenze dei modelli distribuiti
 
 #### Details
-Per ogni modello presente nel catalogo confrontare file, origine, versione, licenza, condizioni di redistribuzione e attribuzioni con le fonti del titolare. Verificare che le informazioni necessarie accompagnino sia il pacchetto host sia l'immagine container e che la licenza del codice sia presentata separatamente. Fallire l'ispezione se un modello distribuito non ha condizioni verificabili o manca una delle informazioni richieste. Non automatizzabile: richiede di confrontare licenze e condizioni di redistribuzione con le fonti dei titolari.
+Per ogni modello vocale distribuito con il satellite confrontare file, origine, impronta, licenza, condizioni di redistribuzione e attribuzioni con le fonti del titolare. Verificare che le informazioni necessarie accompagnino sia il pacchetto host sia l'immagine container e che la licenza del codice sia presentata separatamente. Fallire l'ispezione se un modello distribuito non ha condizioni verificabili o manca una delle informazioni richieste. Non automatizzabile: richiede di confrontare licenze e condizioni di redistribuzione con le fonti dei titolari.
 
 #### Metadata
   * type: inspection-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * verify: [Condizioni di distribuzione dei modelli wake word](../Requirements/VoiceSatellite.md#condizioni-di-distribuzione-dei-modelli-wake-word)
+  * verify: [Condizioni di distribuzione dei modelli vocali del satellite](../Requirements/VoiceSatellite.md#condizioni-di-distribuzione-dei-modelli-vocali-del-satellite)
 ---
 
 ### Ispezione delle protezioni dei workflow
@@ -481,30 +481,31 @@ La prova passa se `.env.example` elenca esattamente le variabili del modulo, tut
   * verify: [Valori predefiniti del satellite applicati dal modulo di configurazione](../Requirements/VoiceSatellite.md#valori-predefiniti-del-satellite-applicati-dal-modulo-di-configurazione)
 ---
 
-### Prova dei modelli openWakeWord registrati
+### Prova dei modelli sherpa-onnx registrati
 
-Calcolare l'impronta SHA-256 di ogni file ONNX di `models/wakeword/` e confrontarla con la tabella della fonte «Modelli openWakeWord distribuiti» e con quella di `models/wakeword/README.md`. Caricare ogni classificatore distribuito con i file comuni nella pipeline ONNX del satellite ed elaborare blocchi di silenzio.
+Calcolare l'impronta SHA-256 di ogni file di `models/kws/` e `models/vad/` esclusi i testi delle licenze, e confrontarla con la tabella della fonte «Modelli sherpa-onnx distribuiti con il satellite» e con quella di `models/README.md`. Caricare con `sherpa-onnx-node` il keyword spotter con la wake word predefinita e il rilevatore dell'attività vocale, ed elaborare silenzio e il file di prova `test/support/alexa-it.wav`.
 
 #### Details
-La prova passa se i file distribuiti, la fonte e la nota di provenienza elencano gli stessi cinque file con le stesse impronte, e se ogni classificatore si carica ed elabora il silenzio senza guasti e senza rilevamenti. Fallisce se un file o un'impronta cambia in una sola delle tre, così che una sostituzione dei modelli richieda la modifica esplicita dell'elemento `source`, o se un modello non si carica.
+La prova passa se i file distribuiti, la fonte e la nota di provenienza elencano gli stessi sei file con le stesse impronte, se i modelli si caricano, se il silenzio non produce rilevamenti né parlato e se il file di prova produce un rilevamento della wake word confermato dal parlato. Fallisce se un file o un'impronta cambia in una sola delle tre, così che una sostituzione dei modelli richieda la modifica esplicita dell'elemento `source`, o se un modello non si carica.
 
 #### Metadata
   * type: test-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [wake-word-catalog.onnx.spec.ts](../../src/adapters/out/wake-word-catalog.onnx.spec.ts)
-  * satisfiedBy: [wake-word-models-source.spec.ts](../../test/repository/wake-word-models-source.spec.ts)
-  * verify: [Catalogo distribuito delle wake word](../Requirements/VoiceSatellite.md#catalogo-distribuito-delle-wake-word)
-  * verify: [Condizioni di distribuzione dei modelli wake word](../Requirements/VoiceSatellite.md#condizioni-di-distribuzione-dei-modelli-wake-word)
+  * satisfiedBy: [sherpa-speech-detector.spec.ts](../../src/adapters/out/sherpa-speech-detector.spec.ts)
+  * satisfiedBy: [sherpa-wake-word.spec.ts](../../src/adapters/out/sherpa-wake-word.spec.ts)
+  * satisfiedBy: [voice-models-source.spec.ts](../../test/repository/voice-models-source.spec.ts)
+  * verify: [Condizioni di distribuzione dei modelli vocali del satellite](../Requirements/VoiceSatellite.md#condizioni-di-distribuzione-dei-modelli-vocali-del-satellite)
+  * verify: [Wake word configurabile come testo](../Requirements/VoiceSatellite.md#wake-word-configurabile-come-testo)
 ---
 
 ### Prova del bootstrap della configurazione
 
-Importare il punto di ingresso `src/main.ts` con variabili d'ambiente invalide e poi valide, sostituendo nella prova la composition root, la diagnostica, Decibri e ONNX Runtime con moduli registrati che annotano il proprio caricamento.
+Importare il punto di ingresso `src/main.ts` con variabili d'ambiente invalide e poi valide, sostituendo nella prova la composition root, la diagnostica, Decibri e `sherpa-onnx-node` con moduli registrati che annotano il proprio caricamento.
 
 #### Details
-La prova passa se con le variabili invalide il processo registra il rifiuto, imposta il codice di uscita 2 e non carica la composition root, Decibri né ONNX Runtime; e se con le variabili valide la composition root viene caricata soltanto dopo la validazione e riceve la configurazione validata. Fallisce se una risorsa audio, wake word o di rete viene caricata o costruita con una configurazione invalida o prima della validazione.
+La prova passa se con le variabili invalide il processo registra il rifiuto, imposta il codice di uscita 2 e non carica la composition root, Decibri né `sherpa-onnx-node`; e se con le variabili valide la composition root viene caricata soltanto dopo la validazione e riceve la configurazione validata. Fallisce se una risorsa audio, wake word o di rete viene caricata o costruita con una configurazione invalida o prima della validazione.
 
 #### Metadata
   * type: test-verification
@@ -515,27 +516,10 @@ La prova passa se con le variabili invalide il processo registra il rifiuto, imp
   * verify: [Validazione prima della costruzione delle risorse](../Requirements/VoiceSatellite.md#validazione-prima-della-costruzione-delle-risorse)
 ---
 
-### Prova del catalogo wake word montato
-
-Preparare una directory di modelli con le risorse comuni openWakeWord e un classificatore compatibile chiamato `personalizzato.onnx`. Montarla in sola lettura su `/app/models/wakeword` nell'immagine satellite, impostare `AMBROGIO_WAKE_WORD_MODEL=personalizzato` e caricare il classificatore. Provare anche identificatori inesistenti, nomi dei modelli comuni e tentativi di attraversamento della directory.
-
-#### Details
-La prova passa se il modello personalizzato è scoperto e caricato dal mount senza ricostruire l'immagine, le wake word distribuite continuano a funzionare senza mount e i nomi assenti o non sicuri sono rifiutati. Fallisce se il mount è ignorato, la configurazione accetta un percorso fuori directory o un modello comune come classificatore. La prova non dimostra l'accuratezza acustica di un modello personalizzato.
-
-#### Metadata
-  * type: test-verification
-
-#### Relations
-  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [verify-docker-image.mjs](../../scripts/verify-docker-image.mjs)
-  * satisfiedBy: [wake-word-catalog.spec.ts](../../src/adapters/out/wake-word-catalog.spec.ts)
-  * verify: [Selezione della wake word configurata](../Requirements/VoiceSatellite.md#selezione-della-wake-word-configurata)
----
-
 ### Prova del ciclo di arresto del satellite
 
 #### Details
-Iniettare risorse controllate e fallimenti: durante ascolto, chiamata e riproduzione, l'arresto deve bloccare nuovi eventi e interrompere i dispositivi senza attendere una risposta. Chiamare la chiusura ripetutamente e in parallelo: una sola chiusura nativa per risorsa, in ordine inverso di acquisizione (microfono, sessione vocale, chiamata e canale, attività vocale, wake word), stesso esito. Far fallire una chiusura: tutte le altre devono essere tentate e il guasto, incapsulato in un errore del progetto che nomina la risorsa, deve conservare l'originale come causa; due guasti devono restare distinti in un `LifecycleError` nell'ordine osservato. Fallire l'avvio dopo acquisizioni parziali e interrompere un'acquisizione pendente: tutte le risorse ottenute devono essere rilasciate. Provare rilascio ONNX parziale e inferenza in corso, cancellazione del tono di errore e SIGINT/SIGTERM nel confine di processo.
+Iniettare risorse controllate e fallimenti: durante ascolto, chiamata e riproduzione, l'arresto deve bloccare nuovi eventi e interrompere i dispositivi senza attendere una risposta. Chiamare la chiusura ripetutamente e in parallelo: una sola chiusura nativa per risorsa, in ordine inverso di acquisizione (microfono, sessione vocale, chiamata e canale, attività vocale, wake word), stesso esito. Far fallire una chiusura: tutte le altre devono essere tentate e il guasto, incapsulato in un errore del progetto che nomina la risorsa, deve conservare l'originale come causa; due guasti devono restare distinti in un `LifecycleError` nell'ordine osservato. Fallire l'avvio dopo acquisizioni parziali e interrompere un'acquisizione pendente: tutte le risorse ottenute devono essere rilasciate. Provare la chiusura del riconoscitore e del rilevatore durante l'elaborazione di un blocco, cancellazione del tono di errore e SIGINT/SIGTERM nel confine di processo.
 
 Nel confine di processo, con una scadenza controllata dalla prova, inviare SIGINT o SIGTERM a un satellite la cui chiusura non si risolve mai, poi a un avvio che non termina dopo l'interruzione, inviando un secondo segnale durante l'attesa; ripetere con un arresto che termina prima della scadenza. Con il timer predefinito basato su Node.js verificare che la scadenza non trattenga il processo. Ripetere la scadenza dopo che una chiusura è già fallita. Acquisire la riga reale di Pino dell'evento di scadenza e leggere l'esempio Compose del repository.
 
@@ -548,8 +532,8 @@ La prova passa se ogni condizione precedente è rispettata; se, alla scadenza di
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [decibri-audio.spec.ts](../../src/adapters/out/decibri-audio.spec.ts)
   * satisfiedBy: [diagnostics.spec.ts](../../src/adapters/out/diagnostics.spec.ts)
-  * satisfiedBy: [onnx-wake-word.lifecycle.spec.ts](../../src/adapters/out/onnx-wake-word.lifecycle.spec.ts)
-  * satisfiedBy: [silero-vad.spec.ts](../../src/adapters/out/silero-vad.spec.ts)
+  * satisfiedBy: [sherpa-speech-detector.spec.ts](../../src/adapters/out/sherpa-speech-detector.spec.ts)
+  * satisfiedBy: [sherpa-wake-word.spec.ts](../../src/adapters/out/sherpa-wake-word.spec.ts)
   * satisfiedBy: [satellite.spec.ts](../../src/composition/satellite.spec.ts)
   * satisfiedBy: [lifecycle.spec.ts](../../src/runtime/lifecycle.spec.ts)
   * satisfiedBy: [satellite-process.spec.ts](../../src/runtime/satellite-process.spec.ts)
@@ -622,6 +606,24 @@ La prova passa se le righe dei logger derivati contengono ciascuna soltanto i pr
   * satisfiedBy: [logger.spec.ts](../../src/runtime/logger.spec.ts)
   * satisfiedBy: [import-boundaries.spec.ts](../../test/repository/import-boundaries.spec.ts)
   * verify: [Logger minimo del satellite](../Requirements/VoiceSatellite.md#logger-minimo-del-satellite)
+---
+
+### Prova del modello di keyword spotting montato
+
+Preparare una directory con una copia del modello di keyword spotting distribuito, montarla in sola lettura su `/app/models/kws` nell'immagine satellite al posto di quella inclusa, validare la wake word e caricare il keyword spotter. Con il modulo di scomposizione e con la scoperta dei file provare anche una directory senza `bpe.model`, una con due encoder, wake word con caratteri non ammessi, con spazi doppi o finali, più lunghe di 64 caratteri e con un token assente da `tokens.txt`.
+
+#### Details
+La prova passa se il modello montato è usato senza ricostruire l'immagine, se «Alexa» è scomposta in `▁A LE X A` come nell'esempio di keyword del modello, se le directory non conformi sono rifiutate prima di creare il keyword spotter e se le wake word non conformi o non rappresentabili sono rifiutate dalla configurazione. Fallisce se il mount è ignorato, se una directory non conforme raggiunge sherpa-onnx o se una wake word con un token sconosciuto è accettata. La prova non dimostra l'accuratezza acustica di un modello montato.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [verify-docker-image.mjs](../../scripts/verify-docker-image.mjs)
+  * satisfiedBy: [keyword-tokens.spec.ts](../../src/adapters/out/keyword-tokens.spec.ts)
+  * satisfiedBy: [voice-models.spec.ts](../../src/adapters/out/voice-models.spec.ts)
+  * verify: [Validazione della wake word configurata](../Requirements/VoiceSatellite.md#validazione-della-wake-word-configurata)
 ---
 
 ### Prova del percorso fatale del satellite
@@ -793,9 +795,26 @@ La prova passa se il job `Satellite checks` esegue `pnpm audit --audit-level hig
   * verify: [Audit delle dipendenze nella CI del satellite](../Requirements/VoiceSatellite.md#audit-delle-dipendenze-nella-ci-del-satellite)
 ---
 
+### Prova dell'evento dei tempi della richiesta
+
+Con canale, rilevatore dell'attività vocale e riproduzione simulati, un orologio controllato e un logger di prova, eseguire una richiesta con risposta in audio riprodotta fino alla fine, una richiesta con risposta soltanto testuale, una richiesta abbandonata prima dell'esito e una richiesta seguita da una nuova attivazione prima della fine della riproduzione; registrare le righe emesse.
+
+#### Details
+La prova passa se la richiesta con risposta in audio produce una sola riga di livello `info` con `event` uguale a `satellite_request_timing` e le sole chiavi `level`, `time`, `event`, `speechMs`, `firstAudioMs` e `playedMs`, con durate uguali agli intervalli dell'orologio controllato; se la richiesta con risposta soltanto testuale produce la riga senza `firstAudioMs`; se la richiesta abbandonata e quella sostituita non producono la riga. Fallisce se una riga contiene audio, testi o identificativi, o se una richiesta produce più di una riga.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [conversation-events.adapter.spec.ts](../../src/adapters/in/conversation-events.adapter.spec.ts)
+  * satisfiedBy: [diagnostics.spec.ts](../../src/adapters/out/diagnostics.spec.ts)
+  * verify: [Registrazione dei tempi delle richieste vocali](../Requirements/VoiceSatellite.md#registrazione-dei-tempi-delle-richieste-vocali)
+---
+
 ### Prova dell'evento di attivazione locale
 
-Acquisire la riga reale di Pino prodotta dal rilevamento: livello `info`, `event: "satellite_wake_detected"`, `score` arrotondato a tre decimali e `chunks` intero, con le sole chiavi `level`, `time`, `event`, `score` e `chunks`. Con sessioni ONNX simulate, il riconoscitore consegna al rilevamento il punteggio e il numero di blocchi consecutivi sopra soglia; la composition root registra l'evento e poi inoltra l'attivazione alla sessione vocale.
+Acquisire le righe reali di Pino prodotte dal rilevamento e dallo scarto: livello `info`, `event` uguale a `satellite_wake_detected` o `satellite_wake_rejected`, con le sole chiavi `level`, `time` ed `event`. Con keyword spotter e rilevatore dell'attività vocale simulati, il riconoscitore segnala il rilevamento confermato e quello scartato; la composition root registra l'evento e inoltra alla sessione vocale soltanto l'attivazione confermata.
 
 #### Metadata
   * type: test-verification
@@ -803,7 +822,7 @@ Acquisire la riga reale di Pino prodotta dal rilevamento: livello `info`, `event
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [diagnostics.spec.ts](../../src/adapters/out/diagnostics.spec.ts)
-  * satisfiedBy: [onnx-wake-word.lifecycle.spec.ts](../../src/adapters/out/onnx-wake-word.lifecycle.spec.ts)
+  * satisfiedBy: [sherpa-wake-word.spec.ts](../../src/adapters/out/sherpa-wake-word.spec.ts)
   * satisfiedBy: [satellite.spec.ts](../../src/composition/satellite.spec.ts)
   * verify: [Registrazione delle attivazioni locali](../Requirements/VoiceSatellite.md#registrazione-delle-attivazioni-locali)
 ---
@@ -864,7 +883,7 @@ La prova passa se senza configurazione `clientId` vale `satellite-<nome host>` e
 Leggere come testo `.github/workflows/ci.yml`, gli altri workflow, il `Dockerfile` e `package.json` e confrontarli con il contratto «Profilo di installazione delle dipendenze del satellite»; in CI installare le dipendenze da un checkout pulito.
 
 #### Details
-La prova passa se `packageManager` è `pnpm@12.11.2`; se ogni dipendenza diretta è dichiarata con la versione esatta risolta nel lockfile; se `allowBuilds` ammette soltanto `onnxruntime-node`; se `pnpm-workspace.yaml` non imposta `minimumReleaseAge` ed elenca in `minimumReleaseAgeExclude` soltanto le versioni esatte del contratto, presenti nel lockfile; se il job `Satellite checks` dichiara `COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'` ed esegue `corepack enable` prima delle installazioni; se la fase di build del `Dockerfile` parte da un'immagine `node` 24, dichiara `ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0` ed esegue `corepack enable` prima di copiare il manifest e di `pnpm install --frozen-lockfile`; se nessun workflow né il `Dockerfile` installano pnpm con `npm install --global` o lo eseguono con `npx`; e se l'installazione congelata in CI riesce. Fallisce se una di queste condizioni manca.
+La prova passa se `packageManager` è `pnpm@12.11.2`; se ogni dipendenza diretta è dichiarata con la versione esatta risolta nel lockfile; se `pnpm-workspace.yaml` non dichiara `allowBuilds`; se `pnpm-workspace.yaml` non imposta `minimumReleaseAge` ed elenca in `minimumReleaseAgeExclude` soltanto le versioni esatte del contratto, presenti nel lockfile; se il job `Satellite checks` dichiara `COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'` ed esegue `corepack enable` prima delle installazioni; se la fase di build del `Dockerfile` parte da un'immagine `node` 24, dichiara `ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0` ed esegue `corepack enable` prima di copiare il manifest e di `pnpm install --frozen-lockfile`; se nessun workflow né il `Dockerfile` installano pnpm con `npm install --global` o lo eseguono con `npx`; e se l'installazione congelata in CI riesce. Fallisce se una di queste condizioni manca.
 
 #### Metadata
   * type: test-verification
@@ -876,22 +895,22 @@ La prova passa se `packageManager` è `pnpm@12.11.2`; se ogni dipendenza diretta
   * verify: [Installazione delle dipendenze del satellite con pnpm e Corepack](../Requirements/VoiceSatellite.md#installazione-delle-dipendenze-del-satellite-con-pnpm-e-corepack)
 ---
 
-### Prova della conferma su blocchi consecutivi
+### Prova della conferma con l'attività vocale
 
-Con sessioni ONNX simulate che restituiscono una sequenza controllata di punteggi del classificatore, uno per blocco da 80 ms, e soglia 0,5: con `patience` 2 un solo blocco sopra soglia seguito da uno sotto soglia non produce rilevamenti; due blocchi consecutivi sopra soglia producono un solo rilevamento, sul secondo blocco; due blocchi sopra soglia separati da uno sotto soglia non producono rilevamenti; con `patience` 1 un solo blocco sopra soglia produce un rilevamento. Dopo l'azzeramento della pipeline un blocco sopra soglia non completa un conteggio iniziato prima. Opzioni con `patience` non intero o minore di 1 sono rifiutate all'apertura. La configurazione senza `AMBROGIO_WAKE_WORD_PATIENCE` produce il valore 2, accetta 1 e 10 e rifiuta 0, 11 e valori non interi indicando la variabile `AMBROGIO_WAKE_WORD_PATIENCE`; la composition root passa il valore configurato al riconoscitore.
+Con keyword spotter e rilevatore dell'attività vocale simulati, un blocco alla volta da 80 ms: un rilevamento con parlato segnalato in uno dei blocchi dei 1500 ms che terminano con il rilevamento produce un'attivazione; un rilevamento senza parlato nella finestra è scartato; parlato terminato più di 1500 ms prima del rilevamento non lo conferma; un secondo rilevamento entro 2000 ms dal precedente confermato è ignorato; dopo l'azzeramento al ritorno in attesa della wake word il parlato precedente non conferma un rilevamento. La configurazione senza `AMBROGIO_WAKE_WORD_THRESHOLD` produce 0,25, accetta valori maggiori di 0 e minori di 1 e rifiuta 0, 1 e valori non numerici indicando la variabile; la composition root passa la soglia configurata al keyword spotter.
 
 #### Details
-La prova usa punteggi simulati e non misura attivazioni spurie né parole mancate: l'accuratezza del riconoscimento dipende dal modello e dalla soglia scelti da chi installa.
+La prova usa rilevamenti simulati e non misura attivazioni spurie né parole mancate: l'accuratezza del riconoscimento dipende dalla parola, dal modello e dalla soglia scelti da chi installa.
 
 #### Metadata
   * type: test-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
-  * satisfiedBy: [onnx-wake-word.lifecycle.spec.ts](../../src/adapters/out/onnx-wake-word.lifecycle.spec.ts)
+  * satisfiedBy: [sherpa-wake-word.spec.ts](../../src/adapters/out/sherpa-wake-word.spec.ts)
   * satisfiedBy: [satellite.spec.ts](../../src/composition/satellite.spec.ts)
   * satisfiedBy: [configuration.spec.ts](../../src/runtime/configuration.spec.ts)
-  * verify: [Conferma della wake word su blocchi consecutivi](../Requirements/VoiceSatellite.md#conferma-della-wake-word-su-blocchi-consecutivi)
+  * verify: [Conferma della wake word con l'attività vocale](../Requirements/VoiceSatellite.md#conferma-della-wake-word-con-lattività-vocale)
 ---
 
 ### Prova della configurazione del satellite
@@ -899,7 +918,7 @@ La prova usa punteggi simulati e non misura attivazioni spurie né parole mancat
 Leggere con il modulo di configurazione insiemi di variabili d'ambiente validi e invalidi; avviare il punto di ingresso del processo senza argomenti con variabili valide e invalide e con un argomento di avvio.
 
 #### Details
-La prova passa se un argomento di avvio, compreso `--config`, è rifiutato prima di leggere la configurazione; se variabili valide producono `AMBROGIO_BACKEND_URL`, identità, dispositivi, attenuazione, modello, soglia, blocchi e intervallo locale di inattività configurati; se l'URL base `http:` diventa `ws:` e `https:` diventa `wss:`, conservando l'eventuale prefisso di percorso e aggiungendo una sola volta `api/session`; se senza variabili facoltative l'identità vale `satellite-<nome host>` con il nome host, nessun selettore audio è indicato, il modello è `hey_jarvis`, la soglia 0,5, i blocchi 2 e l'intervallo di 15000 ms; se una variabile vuota equivale a una variabile assente; e se `AMBROGIO_BACKEND_URL` assente o non HTTP(S), selettori con spazi, identità fatta di soli spazi, modello assente dal catalogo disponibile, soglia, blocchi e intervallo fuori intervallo o non numerici sono rifiutati con la variabile e la condizione attese e il processo termina con codice 2 senza avvio operativo. Fallisce se una configurazione invalida è accettata, se un valore predefinito differisce dal contratto, se un valore configurato è ignorato o se il processo prosegue dopo un rifiuto.
+La prova passa se un argomento di avvio, compreso `--config`, è rifiutato prima di leggere la configurazione; se variabili valide producono `AMBROGIO_BACKEND_URL`, identità, dispositivi, attenuazione, wake word, soglia e intervallo locale di inattività configurati; se l'URL base `http:` diventa `ws:` e `https:` diventa `wss:`, conservando l'eventuale prefisso di percorso e aggiungendo una sola volta `api/session`; se senza variabili facoltative l'identità vale `satellite-<nome host>` con il nome host, nessun selettore audio è indicato, la wake word è `Alexa`, la soglia 0,25 e l'intervallo di 15000 ms; se una variabile vuota equivale a una variabile assente; e se `AMBROGIO_BACKEND_URL` assente o non HTTP(S), selettori con spazi, identità fatta di soli spazi, wake word non conforme o non rappresentabile con il vocabolario del modello, soglia e intervallo fuori intervallo o non numerici sono rifiutati con la variabile e la condizione attese e il processo termina con codice 2 senza avvio operativo. Fallisce se una configurazione invalida è accettata, se un valore predefinito differisce dal contratto, se un valore configurato è ignorato o se il processo prosegue dopo un rifiuto.
 
 #### Metadata
   * type: test-verification
@@ -920,7 +939,7 @@ La prova passa se un argomento di avvio, compreso `--config`, è rifiutato prima
 Leggere come testo `.github/workflows/ci.yml` e confrontarlo con il contratto «Profilo CI del satellite», con il contratto «Checkout affiancato dello spazio di lavoro» di `ambrogio-model` e con `.github/workflows/secret-scan.yml`.
 
 #### Details
-La prova passa se il workflow si attiva su `pull_request`, sui `push` al solo branch `main`, su `workflow_dispatch` e su `workflow_call`, senza filtri `paths` o `paths-ignore`; se il job `Satellite checks` usa `ubuntu-24.04`, Node.js `24` e `BRANCH: ${{ github.head_ref || github.ref_name }}`; se esegue il checkout del repository con `path: workspace/ambrogio-satellite` e `fetch-depth: 0`, scarica `ambrogio-model` in `workspace/ambrogio-model` sul branch `BRANCH` se esiste e altrimenti su `main`, ed esegue nell'ordine `workspace/ambrogio-model/scripts/checkout-workspace workspace "$BRANCH"` e `workspace/ambrogio-model/scripts/model-checks --workspace workspace`, senza un numero di versione di Reqvire nel workflow; se dichiara `COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'`, esegue `corepack enable` con `packageManager` uguale a `pnpm@12.11.2` nel `package.json` del satellite ed esegue in `workspace/ambrogio-backend` `pnpm install --frozen-lockfile` e `pnpm build`; se i passi del satellite girano in `workspace/ambrogio-satellite` con `pnpm install --frozen-lockfile`, `ONNXRUNTIME_NODE_INSTALL: skip` e `ORT_DISABLE_TELEMETRY: '1'`, seguito da `pnpm audit --audit-level high`; se installa gitleaks con la versione e lo SHA-256 di `.github/workflows/secret-scan.yml`, dallo stesso archivio della release ufficiale, ed esegue `sha256sum --check --strict` prima dell'estrazione; se esegue nell'ordine `pnpm audit --audit-level high`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build` e `pnpm test:backend`, con l'installazione di gitleaks prima di `pnpm test`; e se nessun workflow o passo usa `continue-on-error`. Fallisce se manca un controllo, se l'ordine differisce, se un attivatore manca o è filtrato per percorso, se la versione o l'impronta di gitleaks differiscono dalla scansione dei segreti o se un passo fallito non fa fallire il job.
+La prova passa se il workflow si attiva su `pull_request`, sui `push` al solo branch `main`, su `workflow_dispatch` e su `workflow_call`, senza filtri `paths` o `paths-ignore`; se il job `Satellite checks` usa `ubuntu-24.04`, Node.js `24` e `BRANCH: ${{ github.head_ref || github.ref_name }}`; se esegue il checkout del repository con `path: workspace/ambrogio-satellite` e `fetch-depth: 0`, scarica `ambrogio-model` in `workspace/ambrogio-model` sul branch `BRANCH` se esiste e altrimenti su `main`, ed esegue nell'ordine `workspace/ambrogio-model/scripts/checkout-workspace workspace "$BRANCH"` e `workspace/ambrogio-model/scripts/model-checks --workspace workspace`, senza un numero di versione di Reqvire nel workflow; se dichiara `COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'`, esegue `corepack enable` con `packageManager` uguale a `pnpm@12.11.2` nel `package.json` del satellite ed esegue in `workspace/ambrogio-backend` `pnpm install --frozen-lockfile` e `pnpm build`; se i passi del satellite girano in `workspace/ambrogio-satellite` con `pnpm install --frozen-lockfile`, seguito da `pnpm audit --audit-level high`; se installa gitleaks con la versione e lo SHA-256 di `.github/workflows/secret-scan.yml`, dallo stesso archivio della release ufficiale, ed esegue `sha256sum --check --strict` prima dell'estrazione; se esegue nell'ordine `pnpm audit --audit-level high`, `pnpm typecheck`, `pnpm test`, `pnpm test:e2e`, `pnpm build` e `pnpm test:backend`, con l'installazione di gitleaks prima di `pnpm test`; e se nessun workflow o passo usa `continue-on-error`. Fallisce se manca un controllo, se l'ordine differisce, se un attivatore manca o è filtrato per percorso, se la versione o l'impronta di gitleaks differiscono dalla scansione dei segreti o se un passo fallito non fa fallire il job.
 
 #### Metadata
   * type: test-verification
@@ -988,10 +1007,10 @@ Acquisire le righe reali di Pino del logger di base: JSON, event stabili; per un
 
 ### Prova della diagnostica del mancato avvio del satellite
 
-Con risorse simulate far fallire separatamente il caricamento del modello della wake word, quello del modello dell'attività vocale e l'avvio del microfono, con un messaggio marcatore nel guasto esterno; ripetere con una chiusura di pulizia che fallisce. Avviare il processo compilato con un modello di wake word presente ma non valido. Catturare `stdout`, `stderr` e codice di uscita.
+Con risorse simulate far fallire separatamente il caricamento del modello della wake word, quello del modello dell'attività vocale e l'avvio del microfono, con un messaggio marcatore nel guasto esterno; ripetere con una chiusura di pulizia che fallisce. Avviare il processo compilato con una directory del modello di keyword spotting senza encoder. Catturare `stdout`, `stderr` e codice di uscita.
 
 #### Details
-La prova passa se ogni caso produce una sola riga JSON di livello `error` con `event` `satellite_startup_failed`, il messaggio `Satellite startup failed` ed `err` con il messaggio fisso della fase; se con la pulizia fallita `err` è un `LifecycleError` con il guasto dell'avvio al primo posto; se le righe di `stderr`, escluse quelle dei log nativi di ONNX Runtime, sono soltanto `Unable to start Ambrogio satellite.`, il codice di uscita è 1 e `satellite_ready` non compare. Fallisce se manca l'evento o ne compaiono più di uno, se il marcatore del guasto esterno compare in un output, se la fase non è identificabile o se il processo termina con successo.
+La prova passa se ogni caso produce una sola riga JSON di livello `error` con `event` `satellite_startup_failed`, il messaggio `Satellite startup failed` ed `err` con il messaggio fisso della fase; se con la pulizia fallita `err` è un `LifecycleError` con il guasto dell'avvio al primo posto; se le righe di `stderr`, escluse quelle dei log nativi di sherpa-onnx, sono soltanto `Unable to start Ambrogio satellite.`, il codice di uscita è 1 e `satellite_ready` non compare. Fallisce se manca l'evento o ne compaiono più di uno, se il marcatore del guasto esterno compare in un output, se la fase non è identificabile o se il processo termina con successo.
 
 #### Metadata
   * type: test-verification
@@ -1094,7 +1113,7 @@ Con una porta controllata verificare scadenza della risposta e della replica ai 
 
 ### Prova software delle immagini del satellite
 
-Su ciascuna immagine verificare architettura, import delle dipendenze native Decibri e ONNX, caricamento e inferenza silenziosa dei modelli wake word distribuiti, caricamento Silero e generazione del tono di errore. Eseguire il processo senza variabili `AMBROGIO_*` e poi con `AMBROGIO_ENV=production` e un `AMBROGIO_BACKEND_URL` invalido: uscita 2 e una sola riga JSON informativa con la variabile rifiutata, nessun avvio audio. Avviare ogni immagine con il solo `docker run`, senza Docker Compose. Verificare che l'immagine non imposti variabili `AMBROGIO_*` e non contenga file di configurazione o d'ambiente, e le etichette dell'immagine: `org.opencontainers.image.source` con l'URL del repository e `org.opencontainers.image.licenses` con `MIT`. Le prove devono funzionare senza rete né periferiche e fallire se manca un artefatto necessario; non sostituiscono le prove audio reali.
+Su ciascuna immagine verificare architettura, import delle dipendenze native Decibri e `sherpa-onnx-node`, caricamento del keyword spotter e del rilevatore dell'attività vocale con i modelli distribuiti ed elaborazione del silenzio senza rilevamenti, e generazione del tono di errore. Eseguire il processo senza variabili `AMBROGIO_*` e poi con `AMBROGIO_ENV=production` e un `AMBROGIO_BACKEND_URL` invalido: uscita 2 e una sola riga JSON informativa con la variabile rifiutata, nessun avvio audio. Avviare ogni immagine con il solo `docker run`, senza Docker Compose. Verificare che l'immagine non imposti variabili `AMBROGIO_*` e non contenga file di configurazione o d'ambiente, e le etichette dell'immagine: `org.opencontainers.image.source` con l'URL del repository e `org.opencontainers.image.licenses` con `MIT`. Le prove devono funzionare senza rete né periferiche e fallire se manca un artefatto necessario; non sostituiscono le prove audio reali.
 
 #### Metadata
   * type: test-verification

@@ -23,17 +23,6 @@ Riconoscimento della wake word sul satellite che avvia il tentativo di aprire un
   * related: [Riserva audio](#riserva-audio)
 ---
 
-### Catalogo delle wake word
-
-Insieme dei modelli di wake word supportati e distribuiti dal progetto, fra i quali la configurazione sceglie quello usato.
-
-#### Metadata
-  * type: concept
-
-#### Relations
-  * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
----
-
 ### Configurazione del satellite
 
 Dati scelti dall'installatore, come variabili d'ambiente del processo, per individuare il backend, i dispositivi audio e il modello di wake word usati dal processo satellite.
@@ -60,14 +49,13 @@ Periferica usata dal satellite per acquisire la voce oppure riprodurre l'audio v
 
 ### Modello di wake word
 
-Risorsa distribuita con il satellite che permette al rilevatore locale di riconoscere una specifica wake word.
+Modello di keyword spotting, distribuito con il satellite o montato dall'installazione, con cui il rilevatore locale riconosce la wake word indicata come testo nella configurazione.
 
 #### Metadata
   * type: concept
 
 #### Relations
   * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
-  * related: [Catalogo delle wake word](#catalogo-delle-wake-word)
 ---
 
 ### Rilevamento dell'attività vocale

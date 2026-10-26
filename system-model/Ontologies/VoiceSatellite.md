@@ -43,12 +43,8 @@ sat:SatelliteConfiguration a owl:Class ;
   rdfs:comment "Selezione delle risorse e del backend usati dal processo satellite." ;
   reqvire:mapsToConcept concept:ConfigurazioneDelSatellite .
 
-sat:WakeWordCatalog a owl:Class ;
-  rdfs:comment "Insieme dei modelli di wake word distribuiti con il satellite." ;
-  reqvire:mapsToConcept concept:CatalogoDelleWakeWord .
-
 sat:WakeWordModel a owl:Class ;
-  rdfs:comment "Risorsa distribuita per riconoscere localmente una wake word." ;
+  rdfs:comment "Modello di keyword spotting con cui il satellite riconosce localmente la wake word configurata come testo." ;
   reqvire:mapsToConcept concept:ModelloDiWakeWord .
 
 sat:LocalActivation a owl:Class ;
@@ -83,16 +79,8 @@ sat:usesOutputDevice a owl:ObjectProperty ;
   rdfs:domain sat:VoiceSatellite ;
   rdfs:range sat:AudioOutputDevice .
 
-sat:hasCatalog a owl:ObjectProperty ;
+sat:usesWakeWordModel a owl:ObjectProperty ;
   rdfs:domain sat:VoiceSatellite ;
-  rdfs:range sat:WakeWordCatalog .
-
-sat:offersModel a owl:ObjectProperty ;
-  rdfs:domain sat:WakeWordCatalog ;
-  rdfs:range sat:WakeWordModel .
-
-sat:selectsModel a owl:ObjectProperty ;
-  rdfs:domain sat:SatelliteConfiguration ;
   rdfs:range sat:WakeWordModel .
 
 sat:opensInteraction a owl:ObjectProperty ;

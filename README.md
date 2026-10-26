@@ -19,21 +19,21 @@
 
 ## How it works
 
-1. Say the wake word (**"Hey Jarvis"** by default) and wait for the short beep.
+1. Say the wake word (**"Alexa"** by default) and wait for the short beep.
 2. Ask your question. The satellite detects when you stop speaking.
 3. Ambrogio answers out loud.
 4. If the answer expects a reply, the beep sounds again and you can respond without repeating the wake word.
 
 ```mermaid
 flowchart LR
-    MIC[🎤 Microphone] --> WW[Wake word<br/>openWakeWord]
-    WW -- detected --> VAD[Speech detection<br/>Silero VAD]
+    MIC[🎤 Microphone] --> WW[Wake word<br/>sherpa-onnx keyword spotting]
+    WW -- detected and confirmed by speech --> VAD[Speech detection<br/>Silero VAD in sherpa-onnx]
     VAD -- your request --> WS[ambrogio.v1 session]
     WS <--> B[ambrogio-backend<br/>speech-to-text · agents · text-to-speech]
     WS -- spoken answer --> SPK[🔊 Speaker]
 ```
 
-- **Local wake word.** Wake word detection runs entirely on the satellite. No audio leaves the device until the wake word is heard, and the satellite never writes captured audio to disk. It also keeps a short audio buffer, so you can say *"Hey Jarvis, …"* as one sentence.
+- **Local wake word.** Wake word detection runs entirely on the satellite. No audio leaves the device until the wake word is heard, and the satellite never writes captured audio to disk. It also keeps a short audio buffer, so you can say *"Alexa, …"* as one sentence.
 - **Backend does the heavy lifting.** The satellite sends raw 16 kHz audio over the backend's `ambrogio.v1` WebSocket session and receives audio back. Transcription, the AI agents and speech synthesis all run on the backend.
 - **Conversations.** Each wake word starts a new conversation, and a follow-up reply continues the same one. The backend decides whether it expects a reply. Conversations are stored on the backend, so you can also read or continue them from the [terminal client](https://github.com/ambrogio-app/ambrogio-cli).
 - **Graceful failures.** If the backend cannot be reached, or voice is not enabled on it, the satellite plays a short error tone (two descending notes) and goes back to listening for the wake word. The logs record the cause.
@@ -53,7 +53,7 @@ stateDiagram-v2
 
 - Linux on x86_64 or arm64
 - Node.js 24 or later, with pnpm. Docker is optional
-- ALSA runtime (`libasound.so.2`) and OpenMP (`libgomp.so.1`)
+- ALSA runtime (`libasound.so.2`)
 - `amixer` from `alsa-utils`, only if you set `AMBROGIO_ATTENUATION_DEVICE` (the Docker image includes it)
 - A microphone and a speaker that the process can access
 - A running [ambrogio-backend](https://github.com/ambrogio-app/ambrogio-backend) with voice enabled
@@ -62,12 +62,12 @@ stateDiagram-v2
 
 | Area | Library |
 |---|---|
-| Microphone, speaker, voice activity detection | [Decibri](https://www.npmjs.com/package/decibri) (includes Silero VAD) |
-| Wake word | [openWakeWord](https://github.com/dscripka/openWakeWord) models on `onnxruntime-node` |
+| Microphone and speaker | [Decibri](https://www.npmjs.com/package/decibri) |
+| Wake word and voice activity detection | [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) keyword spotting and Silero VAD, through `sherpa-onnx-node` |
 | Backend connection | Node's built-in `WebSocket` |
 | Logging | Pino, as JSON lines on stdout |
 
-The wake word models included here are **"Hey Jarvis"**, **"Hey Mycroft"** and **"Alexa"**. You can add your own openWakeWord-compatible model by mounting a models directory.
+The wake word is plain text, **"Alexa"** by default: set `AMBROGIO_WAKE_WORD` to another word or phrase of ASCII letters, with no model training. The bundled keyword spotting model is trained on English speech, so words that sound English are recognized best. A detection counts only if the voice activity detector heard speech in the 1.5 seconds before it, which filters out noises that are not speech. You can replace the keyword spotting model by mounting another sherpa-onnx keyword spotting model.
 
 ## Quick start
 
@@ -165,4 +165,4 @@ Ambrogio is developed model first with [Reqvire](https://reqvire.org/). Ambrogio
 
 The satellite source code is released under the [MIT License](LICENSE).
 
-The wake word and VAD models in [`models/`](models/) are third-party works with their own licenses. In particular, the bundled openWakeWord models are licensed **CC BY-NC-SA 4.0, for non-commercial use only**. See [`models/wakeword/README.md`](models/wakeword/README.md) and [`models/README.md`](models/README.md) for provenance and attribution.
+The keyword spotting and VAD models in [`models/`](models/) are third-party works with their own licenses: Apache License 2.0 for the keyword spotting model and MIT for Silero VAD. See [`models/README.md`](models/README.md) for provenance and attribution. The test clip `test/support/alexa-it.wav` was synthesized with the Kokoro model (Apache License 2.0).

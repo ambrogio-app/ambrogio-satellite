@@ -6,6 +6,9 @@ type FailureEvent = 'satellite_process_failed' | 'satellite_failure' | 'satellit
 type InfoEvent = 'invalid_arguments' | 'satellite_ready' | 'satellite_session_unavailable'
   | 'satellite_voice_unavailable';
 
+/** Durations in milliseconds; `firstAudioMs` only when the reply contained audio. */
+export type RequestTiming = Readonly<{ speechMs: number; firstAudioMs?: number; playedMs: number }>;
+
 /** The `err` of a definitive log: the received Error itself, or a new Error whose cause is the value. */
 export function normalizeDiagnosticError(value: unknown): Error {
   return value instanceof Error ? value : new Error('Unexpected satellite failure', { cause: value });
@@ -27,8 +30,15 @@ export function createDiagnostics(log: Logger) {
       log.warn({ event: 'satellite_attenuation_failed', operation, reason });
     },
     /** The score of the confirming chunk and the consecutive chunks above the threshold. */
-    wakeDetected(score: number, chunks: number): void {
-      log.info({ event: 'satellite_wake_detected', score: Math.round(score * 1000) / 1000, chunks });
+    wakeDetected(): void {
+      log.info({ event: 'satellite_wake_detected' });
+    },
+    wakeRejected(): void {
+      log.info({ event: 'satellite_wake_rejected' });
+    },
+    /** Only the durations of a request whose reply was played: never audio, texts or identifiers. */
+    requestTiming(timing: RequestTiming): void {
+      log.info({ event: 'satellite_request_timing', ...timing });
     },
     /**
      * The orderly shutdown did not finish in time; the process exits right after this line. `fault` is the

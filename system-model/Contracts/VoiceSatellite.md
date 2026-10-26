@@ -6,7 +6,7 @@ Il satellite usa Decibri 5.8.0, fissato esattamente nel lockfile, negli adapter 
 
 L'adapter di uscita conserva l'ordine dei blocchi audio e considera completata una risposta soltanto dopo che i campioni accodati sono stati effettivamente riprodotti. Chiude o rilascia lo speaker al termine di ogni riproduzione, senza lasciare aperta un'uscita ALSA inattiva. Errori di apertura, disconnessione o riproduzione attraversano le porte come esiti o guasti appropriati secondo le regole del satellite.
 
-Decibri fornisce binari nativi per Linux x64 e arm64 e richiede la libreria runtime ALSA `libasound.so.2`: il pacchetto host la documenta come dipendenza e l'immagine container la include. Il pacchetto Decibri contiene anche il modello `models/silero_vad.onnx`. API e dipendenze documentate: https://decibri.com/docs/apis/node .
+Decibri fornisce binari nativi per Linux x64 e arm64 e richiede la libreria runtime ALSA `libasound.so.2`: il pacchetto host la documenta come dipendenza e l'immagine container la include. API e dipendenze documentate: https://decibri.com/docs/apis/node .
 
 #### Metadata
   * type: specification
@@ -32,7 +32,7 @@ L'adapter esegue `amixer -D <device> -q sset <control> <livello>%` con l'esecuzi
 
 ### Attivazione e riserva audio
 
-Il satellite deve accettare la wake word e la richiesta pronunciate nella stessa frase. Il satellite conserva in memoria una riserva scorrevole di 1500 ms di audio a 16 kHz durante il riconoscimento locale, il segnale di ascolto e la conferma del parlato. Quando Silero conferma l'inizio del parlato, la trasmissione della richiesta comincia con la riserva che precede il parlato, seguita dai frame acquisiti fino alla fine del parlato; la riserva non viene inviata se il parlato non è confermato. Il satellite non trasmette audio al backend prima della conferma del parlato né prima che la sessione sia pronta. Se la sessione non è pronta, la richiesta non è trasmessa: il satellite segnala il fallimento e torna alla wake word senza reinvio automatico. La regola vale per qualunque modello della wake word selezionato dal catalogo. La prova su x86_64 e arm64 deve misurare se 1500 ms bastano per la frase continua.
+Il satellite deve accettare la wake word e la richiesta pronunciate nella stessa frase. Il satellite conserva in memoria una riserva scorrevole di 1500 ms di audio a 16 kHz durante il riconoscimento locale, il segnale di ascolto e la conferma del parlato. Quando il rilevatore dell'attività vocale conferma l'inizio del parlato, la trasmissione della richiesta comincia con la riserva che precede il parlato, seguita dai frame acquisiti fino alla fine del parlato; la riserva non viene inviata se il parlato non è confermato. Il satellite non trasmette audio al backend prima della conferma del parlato né prima che la sessione sia pronta. Se la sessione non è pronta, la richiesta non è trasmessa: il satellite segnala il fallimento e torna alla wake word senza reinvio automatico. La regola vale per qualunque wake word configurata. La prova su x86_64 e arm64 deve misurare se 1500 ms bastano per la frase continua.
 
 #### Metadata
   * type: behavior
@@ -41,24 +41,11 @@ Il satellite deve accettare la wake word e la richiesta pronunciate nella stessa
   * define: [Conservazione della richiesta continua](../Requirements/VoiceSatellite.md#conservazione-della-richiesta-continua)
 ---
 
-### Catalogo e selezione dei modelli
-
-La variabile `AMBROGIO_WAKE_WORD_MODEL` seleziona un solo identificatore disponibile. L'identificatore predefinito per Hey Jarvis è `hey_jarvis`. La distribuzione contiene `hey_jarvis`, `hey_mycroft` e `alexa`, associati ai classificatori omonimi della fonte «Modelli openWakeWord distribuiti», con i due file comuni della stessa fonte. File, origine, impronte SHA-256 e licenza dei file distribuiti sono quelli della fonte; `models/wakeword/README.md` li riporta con l'attribuzione e il testo della licenza accompagna i file. L'immagine container include questa directory; un mount in sola lettura su `/app/models/wakeword` la sostituisce. Un file personalizzato `<identificatore>.onnx` nella directory montata aggiunge quell'identificatore al catalogo disponibile, purché il nome sia composto solo da lettere minuscole ASCII, cifre, trattino o sottolineatura, inizi con una lettera o cifra e non sia riservato ai modelli comuni. Il file deve essere un classificatore openWakeWord compatibile; la directory montata deve contenere anche `melspectrogram.onnx` e `embedding_model.onnx`. Un identificatore non disponibile è una configurazione invalida; non si accettano percorsi arbitrari o separatori di directory nella configurazione. La provenienza e la licenza dei modelli personalizzati sono responsabilità di chi li installa.
-
-La frase selezionata per `alexa` è «Alexa», senza «Hey». Il modello openWakeWord è addestrato per questa parola; la documentazione segnala più mancati riconoscimenti possibili per «Hey Alexa» (https://github.com/dscripka/openWakeWord/blob/main/docs/models/alexa.md). L'accuratezza del riconoscimento, attivazioni corrette e spurie comprese, dipende dal modello e dalla soglia scelti da chi installa; il satellite non la misura.
-
-#### Metadata
-  * type: specification
-
-#### Relations
-  * define: [Selezione della wake word configurata](../Requirements/VoiceSatellite.md#selezione-della-wake-word-configurata)
----
-
 ### Ciclo di arresto e rilascio delle risorse
 
-SIGINT e SIGTERM bloccano nuovi eventi, annullano timer e riproduzione (compresi il segnale di ascolto e il tono di errore), chiudono l'acquisizione e il canale e rilasciano le sessioni ONNX. Non si attende la risposta completa del backend. La normale attesa della risposta resta valida fuori dall'arresto.
+SIGINT e SIGTERM bloccano nuovi eventi, annullano timer e riproduzione (compresi il segnale di ascolto e il tono di errore), chiudono l'acquisizione e il canale e fermano il riconoscimento della wake word e il rilevamento dell'attività vocale. Non si attende la risposta completa del backend. La normale attesa della risposta resta valida fuori dall'arresto.
 
-La composition root possiede il ciclo di vita delle risorse e ne registra la chiusura subito dopo l'acquisizione: modello della wake word, rilevatore di attività vocale, chiamata conversazionale con il suo canale, sessione vocale e, all'attivazione, acquisizione dal microfono. All'arresto, dopo aver annullato la riproduzione, le chiude in ordine inverso: microfono, sessione vocale, chiamata e canale, rilevatore di attività vocale, modello della wake word. Ogni chiusura è tentata anche quando una precedente fallisce, e il suo guasto è incapsulato in un `ProjectError` che nomina la risorsa: `Microphone could not be closed`, `Voice session could not be stopped`, `Conversation channel could not be closed`, `Voice activity model could not be closed`, `Wake word model could not be closed`; l'annullamento della riproduzione fallito diventa `Playback could not be cancelled`. Le operazioni native in corso vengono terminate o attese quanto necessario per un rilascio sicuro; il lavoro accodato viene scartato e nessuna chiamata viene riaperta. Risorse acquisite dopo una richiesta di arresto durante l'avvio vengono subito rilasciate. Un avvio parziale fallito conserva il guasto originale e gli eventuali guasti di pulizia in un `LifecycleError`, con il guasto dell'avvio al primo posto. Richieste concorrenti condividono lo stesso arresto, anche se fallisce; nessun doppio rilascio nativo. Un arresto fallito produce una sola riga `satellite_process_failed` di livello `error` con `err` e codice di uscita 1; un arresto riuscito termina con codice 0.
+La composition root possiede il ciclo di vita delle risorse e ne registra la chiusura subito dopo l'acquisizione: riconoscitore della wake word, rilevatore di attività vocale, chiamata conversazionale con il suo canale, sessione vocale e, all'attivazione, acquisizione dal microfono. All'arresto, dopo aver annullato la riproduzione, le chiude in ordine inverso: microfono, sessione vocale, chiamata e canale, rilevatore di attività vocale, riconoscitore della wake word. Ogni chiusura è tentata anche quando una precedente fallisce, e il suo guasto è incapsulato in un `ProjectError` che nomina la risorsa: `Microphone could not be closed`, `Voice session could not be stopped`, `Conversation channel could not be closed`, `Voice activity model could not be closed`, `Wake word model could not be closed`; l'annullamento della riproduzione fallito diventa `Playback could not be cancelled`. Le operazioni native in corso vengono terminate o attese quanto necessario per un rilascio sicuro; il lavoro accodato viene scartato e nessuna chiamata viene riaperta. Risorse acquisite dopo una richiesta di arresto durante l'avvio vengono subito rilasciate. Un avvio parziale fallito conserva il guasto originale e gli eventuali guasti di pulizia in un `LifecycleError`, con il guasto dell'avvio al primo posto. Richieste concorrenti condividono lo stesso arresto, anche se fallisce; nessun doppio rilascio nativo. Un arresto fallito produce una sola riga `satellite_process_failed` di livello `error` con `err` e codice di uscita 1; un arresto riuscito termina con codice 0.
 
 #### Metadata
   * type: specification
@@ -67,17 +54,15 @@ La composition root possiede il ciclo di vita delle risorse e ne registra la chi
   * define: [Rilascio completo delle risorse del satellite](../Requirements/VoiceSatellite.md#rilascio-completo-delle-risorse-del-satellite)
 ---
 
-### Condizioni del catalogo non commerciale
+### Condizioni di distribuzione dei modelli vocali
 
-La distribuzione dei modelli wake word del satellite è destinata all'uso non commerciale. Prima di includere un modello nel catalogo, registrare origine e versione del file, condizioni di redistribuzione, licenza e attribuzioni richieste; consegnare tali informazioni sia con l'installazione host sia con l'immagine container. Non dedurre la licenza del codice del satellite da quella dei modelli.
-
-Il progetto openWakeWord dichiara il proprio codice Apache-2.0 e i modelli preaddestrati inclusi CC BY-NC-SA 4.0: https://github.com/dscripka/openWakeWord#license . Questa è una fonte per valutare i modelli candidati, non una scelta già compiuta del motore o dei file da distribuire. La licenza e la provenienza di ciascun file effettivamente selezionato vanno verificate prima del confezionamento.
+I modelli vocali distribuiti con il satellite, per la wake word e per l'attività vocale, hanno una licenza che ne consente la redistribuzione anche per uso commerciale. Prima di includere un modello, si registrano origine, impronta, licenza e attribuzioni richieste nella fonte «Modelli sherpa-onnx distribuiti con il satellite» e in `models/README.md`, e il testo della licenza accompagna i file sia nell'installazione host sia nell'immagine container. La licenza del codice del satellite non si deduce da quella dei modelli, né viceversa.
 
 #### Metadata
   * type: specification
 
 #### Relations
-  * define: [Condizioni di distribuzione dei modelli wake word](../Requirements/VoiceSatellite.md#condizioni-di-distribuzione-dei-modelli-wake-word)
+  * define: [Condizioni di distribuzione dei modelli vocali del satellite](../Requirements/VoiceSatellite.md#condizioni-di-distribuzione-dei-modelli-vocali-del-satellite)
 ---
 
 ### Configurazione del processo satellite
@@ -92,9 +77,8 @@ Il satellite ha un solo modulo di configurazione, `src/runtime/configuration.ts`
 | `AMBROGIO_CLIENT_NAME` | testo non fatto di soli spazi | il nome host |
 | `AMBROGIO_MICROPHONE`, `AMBROGIO_SPEAKER` | selettore senza spazi iniziali o finali, secondo «Adapter audio con Decibri» | nessuno: si usa il dispositivo predefinito del sistema |
 | `AMBROGIO_ATTENUATION_DEVICE`, `AMBROGIO_ATTENUATION_CONTROL`, `AMBROGIO_ATTENUATION_LEVEL` | secondo «Attenuazione locale con softvol e amixer», tutte presenti o tutte assenti | nessuno: senza le tre variabili non si regola alcun controllo |
-| `AMBROGIO_WAKE_WORD_MODEL` | identificatore disponibile secondo «Catalogo e selezione dei modelli» | `hey_jarvis` |
-| `AMBROGIO_WAKE_WORD_THRESHOLD` | numero decimale maggiore di 0 e non superiore a 1, la soglia di riconoscimento | `0.5` |
-| `AMBROGIO_WAKE_WORD_PATIENCE` | intero da 1 a 10, il numero di blocchi consecutivi da 80 ms in cui il punteggio deve raggiungere la soglia | `2` |
+| `AMBROGIO_WAKE_WORD` | testo secondo «Wake word configurata e modello di keyword spotting» | `Alexa` |
+| `AMBROGIO_WAKE_WORD_THRESHOLD` | numero decimale maggiore di 0 e minore di 1, la soglia di riconoscimento del keyword spotting | `0.25` |
 | `AMBROGIO_REPLY_TIMEOUT_MS` | intero positivo in millisecondi, l'intervallo locale di inattività della replica | `15000` |
 
 I numeri sono scritti in cifre decimali, senza segno né unità. Il satellite deriva il canale conversazionale WebSocket aggiungendo `api/session` al prefisso di percorso di `AMBROGIO_BACKEND_URL`, usando `ws:` per `http:` e `wss:` per `https:`; la configurazione non contiene un percorso WebSocket separato. Il modulo non contiene valori effettivi di un'installazione. Le altre variabili dell'ambiente non sono lette dal modulo; impostazioni aggiuntive richiedono una nuova specificazione.
@@ -132,7 +116,7 @@ VoiceSessionPorts e DeadlineScheduler sono porte a oggetto; ScheduledDeadline è
 
 ### Esecuzione host e container
 
-L'applicazione TypeScript compilata in JavaScript ESM usa Node.js 24 o successivo, come il backend, e funziona direttamente su Linux x86_64 e arm64 con dipendenze e modelli installati. Docker è una modalità facoltativa che confeziona la stessa applicazione per linux/amd64 e linux/arm64. La configurazione ha lo stesso significato in entrambe le modalità. L'immagine container include le dipendenze native richieste dai contratti «Adapter audio con Decibri» e «Attenuazione locale con softvol e amixer» e accede alle periferiche audio soltanto se chi installa le espone esplicitamente al container. ONNX Runtime richiede il proprio pacchetto nativo per la piattaforma.
+L'applicazione TypeScript compilata in JavaScript ESM usa Node.js 24 o successivo, come il backend, e funziona direttamente su Linux x86_64 e arm64 con dipendenze e modelli installati. Docker è una modalità facoltativa che confeziona la stessa applicazione per linux/amd64 e linux/arm64. La configurazione ha lo stesso significato in entrambe le modalità. L'immagine container include le dipendenze native richieste dai contratti «Adapter audio con Decibri» e «Attenuazione locale con softvol e amixer» e accede alle periferiche audio soltanto se chi installa le espone esplicitamente al container. sherpa-onnx richiede il pacchetto nativo della piattaforma, `sherpa-onnx-linux-x64` o `sherpa-onnx-linux-arm64`, installato come dipendenza facoltativa di `sherpa-onnx-node`.
 
 Nel container il processo si avvia con `node dist/main.js`, senza argomenti: chi installa fornisce la configurazione soltanto come variabili d'ambiente del container. L'immagine non imposta variabili `AMBROGIO_*`, `AMBROGIO_ENV` compresa, e non contiene file di configurazione né file d'ambiente. Il file `.dockerignore` esclude dal contesto di build la storia Git, `node_modules` a ogni livello, `dist`, il modello, i test, i file di database e i file d'ambiente `.env`, `*.env` e `*.env.*`. L'immagine finale dichiara le etichette OCI `org.opencontainers.image.source` con l'URL del repository `https://github.com/ambrogio-app/ambrogio-satellite` e `org.opencontainers.image.licenses` con `MIT`, la licenza del codice nel file `LICENSE`. L'immagine si avvia con il solo runtime dei container, per esempio con `docker run`; l'esempio `compose.example.yaml` fornisce le variabili secondo «Configurazione del processo satellite», usa la rete dell'host ed espone `/dev/snd`. Le prove su periferiche reali devono coprire entrambe le architetture.
 
@@ -156,11 +140,28 @@ Il tipo locale è `type Result<T, E> = Readonly<{ ok: true; value: T }> | Readon
   * define: [Esiti previsti come valori tipizzati nel satellite](../Requirements/VoiceSatellite.md#esiti-previsti-come-valori-tipizzati-nel-satellite)
 ---
 
+### Evento diagnostico dei tempi della richiesta
+
+Per ogni richiesta vocale di cui il satellite ha ricevuto l'esito e ha riprodotto la risposta fino alla fine, l'adapter degli eventi della conversazione emette una sola riga Pino di livello `info` con `event: "satellite_request_timing"`. Oltre a `level`, `time` ed `event`, la riga contiene soltanto le durate seguenti, in millisecondi interi non negativi misurati con un orologio monotono:
+
+- `speechMs`: dall'apertura della richiesta, quando il rilevatore dell'attività vocale conferma il parlato, all'invio di `input.end`;
+- `firstAudioMs`: dall'invio di `input.end` alla ricezione del primo frame audio della risposta, presente soltanto se la risposta contiene audio;
+- `playedMs`: dall'invio di `input.end` alla fine della riproduzione della risposta.
+
+Il satellite invia `input.end` quando il rilevatore dell'attività vocale segnala la fine del parlato, dopo il silenzio minimo della segmentazione, oppure quando la richiesta raggiunge il limite di durata. La riga non contiene audio, testi, la wake word, configurazione o identificativi della sessione e della conversazione. Una richiesta abbandonata, interrotta dalla fine dell'interazione o conclusa da un guasto del satellite non produce la riga.
+
+#### Metadata
+  * type: input-output
+
+#### Relations
+  * define: [Registrazione dei tempi delle richieste vocali](../Requirements/VoiceSatellite.md#registrazione-dei-tempi-delle-richieste-vocali)
+---
+
 ### Evento diagnostico del mancato avvio del satellite
 
 Il runner del processo satellite è il confine definitivo dei guasti avvenuti prima che il satellite attenda la wake word: quando il caricamento dei modelli o l'attivazione falliscono, emette una sola riga JSON su `stdout` con livello `error`, `event: "satellite_startup_failed"`, il messaggio fisso `Satellite startup failed` e il campo `err`, poi scrive su `stderr` la propria riga invariata `Unable to start Ambrogio satellite.` e termina con codice di uscita `1` senza emettere `satellite_ready`. Il satellite non resta attivo e non emette altri log definitivi per lo stesso guasto.
 
-Il campo `err` segue il profilo controllato di serializzazione. Le fasi incapsulano i guasti esterni in un `ProjectError` con un messaggio fisso che nomina la fase e conserva l'originale come `cause`: `Wake word model could not be loaded` per i modelli della wake word, `Voice activity model could not be loaded` per il modello dell'attività vocale e `Microphone could not be started` per l'acquisizione dal microfono. Se anche la pulizia delle risorse già acquisite fallisce, `err` è un `LifecycleError` con il messaggio fisso `Satellite startup failed` e `faults` che elenca il guasto dell'avvio seguito dai guasti di pulizia. I messaggi non contengono valori letti dall'ambiente, percorsi, nomi di dispositivi, URL o messaggi di librerie. Le righe che le librerie native scrivono da sé su `stderr`, come gli avvisi di ONNX Runtime che iniziano con un timestamp seguito da `[W:onnxruntime` o `[E:onnxruntime`, non sono righe del satellite.
+Il campo `err` segue il profilo controllato di serializzazione. Le fasi incapsulano i guasti esterni in un `ProjectError` con un messaggio fisso che nomina la fase e conserva l'originale come `cause`: `Wake word model could not be loaded` per i modelli della wake word, `Voice activity model could not be loaded` per il modello dell'attività vocale e `Microphone could not be started` per l'acquisizione dal microfono. Se anche la pulizia delle risorse già acquisite fallisce, `err` è un `LifecycleError` con il messaggio fisso `Satellite startup failed` e `faults` che elenca il guasto dell'avvio seguito dai guasti di pulizia. I messaggi non contengono valori letti dall'ambiente, percorsi, nomi di dispositivi, URL o messaggi di librerie. Le righe che le librerie native scrivono da sé su `stderr`, come i messaggi di sherpa-onnx che iniziano con il percorso di un suo file sorgente, per esempio `/shared/sherpa-onnx/`, non sono righe del satellite.
 
 #### Metadata
   * type: input-output
@@ -171,7 +172,7 @@ Il campo `err` segue il profilo controllato di serializzazione. Le fasi incapsul
 
 ### Evento diagnostico dell'attivazione locale
 
-Per rendere tracciabili le attivazioni spontanee, a ogni rilevamento confermato della wake word il satellite emette una sola riga Pino di livello `info` con `event: "satellite_wake_detected"`, `score`, il punteggio del classificatore nel blocco che conferma il rilevamento arrotondato a tre decimali, e `chunks`, il numero di blocchi consecutivi da 80 ms che hanno raggiunto la soglia fino a quel blocco. L'ora è quella del campo `time` di Pino. La riga non contiene audio, identificatori del modello, configurazione o dati della sessione. Un rilevamento ignorato per l'intervallo minimo fra rilevamenti non produce la riga.
+Per rendere tracciabili le attivazioni spontanee, a ogni rilevamento della wake word confermato dall'attività vocale il satellite emette una sola riga Pino di livello `info` con `event: "satellite_wake_detected"`; a ogni rilevamento scartato perché il rilevatore dell'attività vocale non ha segnalato parlato nella finestra di conferma emette invece una sola riga di livello `info` con `event: "satellite_wake_rejected"`. Le due righe contengono soltanto `level`, `time` ed `event`; l'ora è quella del campo `time` di Pino. Le righe non contengono audio, la wake word, configurazione o dati della sessione. Un rilevamento ignorato per l'intervallo minimo fra rilevamenti non produce righe.
 
 #### Metadata
   * type: input-output
@@ -215,15 +216,13 @@ Le variabili facoltative `AMBROGIO_CLIENT_ID` e `AMBROGIO_CLIENT_NAME` contengon
   * define: [Identificazione del satellite nella sessione](../Requirements/VoiceSatellite.md#identificazione-del-satellite-nella-sessione)
 ---
 
-### Motore locale della wake word con ONNX
+### Motore locale della wake word con sherpa-onnx
 
-La prima versione esegue nel processo TypeScript/Node.js del satellite la pipeline di riconoscimento openWakeWord con modelli ONNX, usando `onnxruntime-node` 1.30.0 fissato nel lockfile. Il riconoscimento della wake word rimane locale al satellite. I modelli e le risorse condivise necessari alla pipeline sono caricati dai file distribuiti con l'applicazione; il satellite non richiede un servizio Wyoming per questa funzione.
+Il satellite riconosce la wake word nel proprio processo Node.js con il keyword spotter di sherpa-onnx, tramite `sherpa-onnx-node` 1.13.8 fissato nel lockfile, e con il modello di «Wake word configurata e modello di keyword spotting»; il riconoscimento resta locale e non richiede servizi esterni. Il keyword spotter riceve l'audio del microfono a 16 kHz in blocchi da 80 ms e usa caratteristiche fbank a 80 dimensioni, 4 percorsi attivi (`maxActivePaths`), 1 blank finale (`numTrailingBlanks`), punteggio di potenziamento 1,0 (`keywordsScore`), la soglia `AMBROGIO_WAKE_WORD_THRESHOLD` come `keywordsThreshold` e un solo thread. Dopo ogni rilevamento il flusso del keyword spotter è azzerato; è azzerato anche al ritorno in attesa della wake word. Una soglia più alta riduce le attivazioni spontanee e aumenta il rischio di parole non riconosciute; la scelta della parola e della soglia, e quindi l'accuratezza del riconoscimento, è responsabilità di chi installa. Documentazione del keyword spotting: https://k2-fsa.github.io/sherpa/onnx/kws/index.html .
 
-I valori predefiniti sono la soglia di riconoscimento e il numero di blocchi consecutivi definiti dal contratto «Configurazione del processo satellite», l'intervallo minimo fra rilevamenti di 2000 ms e al massimo 32 blocchi da 80 ms accodati per l'inferenza. Il superamento del limite è un guasto diagnosticato, non un accumulo illimitato. Il supporto dei binari Node.js per Linux x64 e arm64 è documentato da ONNX Runtime: https://onnxruntime.ai/docs/get-started/with-javascript/node.html .
+Durante l'attesa della wake word lo stesso audio passa anche a un rilevatore dell'attività vocale proprio del riconoscitore, con il modello e i parametri di «Segmentazione dei turni con sherpa-onnx». Un rilevamento del keyword spotter è confermato soltanto se quel rilevatore ha segnalato parlato in corso in almeno un blocco dei 1500 ms che terminano con il blocco del rilevamento; altrimenti è scartato. L'intervallo minimo fra due rilevamenti confermati è di 2000 ms; un rilevamento nell'intervallo è ignorato.
 
-La soglia di riconoscimento è configurabile con `AMBROGIO_WAKE_WORD_THRESHOLD`, perché un modello attiva il satellite anche senza che la parola sia pronunciata. Una soglia più alta riduce le attivazioni spontanee e aumenta il rischio di parole non riconosciute; la scelta del modello e della soglia, e quindi l'accuratezza del riconoscimento, è responsabilità di chi installa.
-
-Un rilevamento richiede che il punteggio del classificatore raggiunga la soglia nel numero di blocchi consecutivi da 80 ms indicato da `AMBROGIO_WAKE_WORD_PATIENCE` da 80 ms, come il parametro `patience` di `Model.predict` di openWakeWord (https://github.com/dscripka/openWakeWord/blob/main/openwakeword/model.py). Un blocco sotto soglia azzera il conteggio; anche l'azzeramento della pipeline al ritorno in attesa della wake word lo azzera. Con 2 blocchi richiesti un impulso sonoro, come un colpo di tosse, che supera la soglia in un solo blocco non attiva il satellite; con 1 basta un solo blocco. Ogni blocco richiesto in più aggiunge circa 80 ms al riconoscimento e aumenta il rischio di parole non riconosciute se la wake word è pronunciata in fretta. L'intervallo minimo fra rilevamenti si applica al rilevamento confermato. Non si introducono il filtro VAD sui punteggi né la soppressione del rumore di openWakeWord.
+Le chiamate di `sherpa-onnx-node` per il keyword spotting e per l'attività vocale sono sincrone: il satellite elabora ciascun blocco del microfono all'arrivo, senza coda d'inferenza, e un errore dell'elaborazione è un guasto dell'interazione. Prima di creare il keyword spotter il satellite verifica che i file del modello siano leggibili e che ogni token della keyword sia presente in `tokens.txt`; prima di creare un rilevatore dell'attività vocale verifica che il file del modello sia leggibile, perché sherpa-onnx non segnala alla creazione un modello assente. Gli oggetti nativi di `sherpa-onnx-node` non hanno una chiusura esplicita: alla chiusura il riconoscitore smette di accettare audio e ne abbandona i riferimenti, e la memoria nativa è liberata dai finalizzatori della libreria.
 
 #### Metadata
   * type: specification
@@ -244,7 +243,7 @@ La composition root fornisce l'adapter Node.js; nei test Application una impleme
 
 ### Profilo CI del satellite
 
-GitHub Actions esegue il job stabile `Satellite checks` del workflow `.github/workflows/ci.yml` su ogni pull request, sui push a main, su richiesta manuale e quando un altro workflow lo richiama come workflow riutilizzabile, senza filtri sui percorsi, con la variabile `BRANCH` uguale a `github.head_ref` per una pull request e altrimenti a `github.ref_name`. Runner Linux Ubuntu 24.04 x86_64 e Node.js 24. Il job esegue il checkout del repository in `workspace/ambrogio-satellite` con `fetch-depth: 0`, scarica `ambrogio-model` in `workspace/ambrogio-model` sul branch `BRANCH` se esiste sul remoto e altrimenti su `main`, ed esegue `workspace/ambrogio-model/scripts/checkout-workspace workspace "$BRANCH"` secondo «Checkout affiancato dello spazio di lavoro», poi `workspace/ambrogio-model/scripts/model-checks --workspace workspace` secondo «Controlli del modello dello spazio di lavoro», con la versione di Reqvire di «Risoluzione della versione di Reqvire». Il job dichiara nel proprio ambiente `COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'` ed esegue poi `corepack enable` secondo «Profilo di installazione con pnpm e Corepack», e prepara il backend affiancato in `workspace/ambrogio-backend` con `pnpm install --frozen-lockfile` e `pnpm build`, alla versione di pnpm dichiarata dal backend. I passi successivi girano in `workspace/ambrogio-satellite`: installazione con lockfile congelato, senza scaricare i binari di ONNX Runtime durante l'installazione e con la telemetria di ONNX Runtime disattivata; `pnpm audit --audit-level high` secondo «Audit delle dipendenze con pnpm»; pnpm typecheck (compreso tsconfig.core.json); installazione di gitleaks; pnpm test; `pnpm test:e2e`; pnpm build; `pnpm test:backend`, la prova di integrazione con il backend affiancato compilato nel job, che avvia il backend soltanto tramite «Ingresso di prova del server conversazionale» e stampa il commit del backend usato. Il job installa la versione di gitleaks del «Profilo di scansione dei segreti con gitleaks» di `ambrogio-model` con lo stesso archivio della release ufficiale e la stessa impronta SHA-256, verificata prima dell'estrazione, perché la suite esegue l'hook pre-commit; se l'impronta non corrisponde il job fallisce. Nessuna credenziale personale è richiesta; permessi, tempo massimo e azioni fissate seguono il contratto «Protezioni dei workflow GitHub Actions». Le prove audio con periferiche e la compatibilità arm64 restano verifiche separate prima del rilascio.
+GitHub Actions esegue il job stabile `Satellite checks` del workflow `.github/workflows/ci.yml` su ogni pull request, sui push a main, su richiesta manuale e quando un altro workflow lo richiama come workflow riutilizzabile, senza filtri sui percorsi, con la variabile `BRANCH` uguale a `github.head_ref` per una pull request e altrimenti a `github.ref_name`. Runner Linux Ubuntu 24.04 x86_64 e Node.js 24. Il job esegue il checkout del repository in `workspace/ambrogio-satellite` con `fetch-depth: 0`, scarica `ambrogio-model` in `workspace/ambrogio-model` sul branch `BRANCH` se esiste sul remoto e altrimenti su `main`, ed esegue `workspace/ambrogio-model/scripts/checkout-workspace workspace "$BRANCH"` secondo «Checkout affiancato dello spazio di lavoro», poi `workspace/ambrogio-model/scripts/model-checks --workspace workspace` secondo «Controlli del modello dello spazio di lavoro», con la versione di Reqvire di «Risoluzione della versione di Reqvire». Il job dichiara nel proprio ambiente `COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'` ed esegue poi `corepack enable` secondo «Profilo di installazione con pnpm e Corepack», e prepara il backend affiancato in `workspace/ambrogio-backend` con `pnpm install --frozen-lockfile` e `pnpm build`, alla versione di pnpm dichiarata dal backend. I passi successivi girano in `workspace/ambrogio-satellite`: installazione con lockfile congelato; `pnpm audit --audit-level high` secondo «Audit delle dipendenze con pnpm»; pnpm typecheck (compreso tsconfig.core.json); installazione di gitleaks; pnpm test; `pnpm test:e2e`; pnpm build; `pnpm test:backend`, la prova di integrazione con il backend affiancato compilato nel job, che avvia il backend soltanto tramite «Ingresso di prova del server conversazionale» e stampa il commit del backend usato. Il job installa la versione di gitleaks del «Profilo di scansione dei segreti con gitleaks» di `ambrogio-model` con lo stesso archivio della release ufficiale e la stessa impronta SHA-256, verificata prima dell'estrazione, perché la suite esegue l'hook pre-commit; se l'impronta non corrisponde il job fallisce. Nessuna credenziale personale è richiesta; permessi, tempo massimo e azioni fissate seguono il contratto «Protezioni dei workflow GitHub Actions». Le prove audio con periferiche e la compatibilità arm64 restano verifiche separate prima del rilascio.
 
 #### Metadata
   * type: specification
@@ -266,7 +265,7 @@ Il workflow `.github/workflows/secret-scan.yml` del satellite realizza nel job `
 
 ### Profilo di installazione delle dipendenze del satellite
 
-Il `package.json` del satellite dichiara `"packageManager": "pnpm@12.11.2"` e ogni dipendenza, di esecuzione e di sviluppo, con la versione esatta risolta in `pnpm-lock.yaml`, senza intervalli di versione. Il job `Satellite checks` e la fase di build del `Dockerfile`, che parte da `node:24-bookworm-slim`, attivano quella versione con Corepack secondo «Profilo di installazione con pnpm e Corepack» e installano con `pnpm install --frozen-lockfile`, con `ONNXRUNTIME_NODE_INSTALL=skip`. La regola di attesa di 24 ore per le nuove versioni è attiva; `pnpm-workspace.yaml` ammette come sole eccezioni Vitest 5.0.5 e i pacchetti `@vitest/mocker` e `@vitest/spy` 5.0.5, fissati prima del compimento dell'attesa, e consente gli script di build soltanto a `onnxruntime-node`. La build Docker esegue l'installazione congelata con i build script nativi previsti, senza patch locali alle dipendenze.
+Il `package.json` del satellite dichiara `"packageManager": "pnpm@12.11.2"` e ogni dipendenza, di esecuzione e di sviluppo, con la versione esatta risolta in `pnpm-lock.yaml`, senza intervalli di versione. Il job `Satellite checks` e la fase di build del `Dockerfile`, che parte da `node:24-bookworm-slim`, attivano quella versione con Corepack secondo «Profilo di installazione con pnpm e Corepack» e installano con `pnpm install --frozen-lockfile`. La regola di attesa di 24 ore per le nuove versioni è attiva; `pnpm-workspace.yaml` ammette come sole eccezioni Vitest 5.0.5 e i pacchetti `@vitest/mocker` e `@vitest/spy` 5.0.5, fissati prima del compimento dell'attesa, e non dichiara `allowBuilds`, perché nessuna dipendenza richiede script di installazione: i binari nativi di Decibri e di sherpa-onnx arrivano come pacchetti per piattaforma. La build Docker esegue l'installazione congelata senza patch locali alle dipendenze.
 
 #### Metadata
   * type: specification
@@ -436,11 +435,11 @@ L'esempio Compose del repository dichiara `stop_grace_period: 10s`, così che il
   * define: [Tempo massimo dell'arresto del processo](../Requirements/VoiceSatellite.md#tempo-massimo-dellarresto-del-processo)
 ---
 
-### Segmentazione dei turni con Silero ONNX
+### Segmentazione dei turni con sherpa-onnx
 
-La prima versione usa Silero VAD in formato ONNX nel processo Node.js del satellite per individuare i tratti di parlato durante un'interazione ammessa. Un adapter proprio del satellite esegue il modello con `onnxruntime-node` 1.30.0 e applica questo algoritmo: finestre di 512 campioni a 16 kHz (32 ms), valutate in sequenza; una finestra con probabilità almeno 0,18 (`positiveSpeechThreshold`) è parlato, una sotto 0,11 (`negativeSpeechThreshold`) è silenzio; il parlato è confermato dopo 4 finestre di parlato (`minSpeechFrames`) e termina dopo 20 finestre consecutive di silenzio (`redemptionFrames`, circa 640 ms). Alla conferma l'adapter apre la trasmissione della richiesta con la riserva audio; alla fine del parlato invia `input.end`. Un tratto che termina prima della conferma viene scartato senza inviare nulla, perché il protocollo non consente di annullare una richiesta aperta. Durante la riproduzione della risposta il satellite non ammette nuovi turni né interrompe l'audio in uscita.
+Durante un'interazione ammessa il satellite individua i tratti di parlato con il rilevatore dell'attività vocale di sherpa-onnx, la classe `Vad` di `sherpa-onnx-node` 1.13.8, e il modello Silero VAD `models/vad/silero_vad.onnx` della fonte «Modelli sherpa-onnx distribuiti con il satellite». Il rilevatore valuta in sequenza finestre di 512 campioni a 16 kHz (32 ms) con soglia 0,26 (`threshold`): il parlato è confermato quando la probabilità resta sopra la soglia per almeno 128 ms (`minSpeechDuration`); una volta confermato resta in corso, e termina quando, a partire da una finestra con probabilità non superiore a 0,11, la soglia ridotta di 0,15 come in sherpa-onnx, passano 640 ms (`minSilenceDuration`) senza finestre sopra la soglia. Oltre 55 s di parlato continuo (`maxSpeechDuration`) sherpa-onnx abbrevia la pausa richiesta e chiude il tratto alla prima pausa breve, così che la richiesta resti entro il limite audio del protocollo. Il satellite usa soltanto lo stato «parlato in corso» del rilevatore e scarta subito i tratti completati che il rilevatore accoda, perché l'audio viaggia già verso il backend.
 
-La distribuzione usa il file `models/silero_vad.onnx` incluso nel pacchetto Decibri del contratto «Adapter audio con Decibri», senza una seconda copia; ne registra origine, hash e licenza nel documento dei modelli. Durata, CPU e riconoscimento di risposte brevi e frasi con pause interne vanno verificati su Linux x86_64 e arm64. Fonte del modello: https://github.com/snakers4/silero-vad .
+Alla conferma l'adapter apre la trasmissione della richiesta con la riserva audio; alla fine del parlato invia `input.end`. Un tratto che termina prima della conferma viene scartato senza inviare nulla, perché il protocollo non consente di annullare una richiesta aperta. Durante la riproduzione della risposta il satellite non ammette nuovi turni né interrompe l'audio in uscita. Durata, CPU e riconoscimento di risposte brevi e frasi con pause interne vanno verificati su Linux x86_64 e arm64. Documentazione del modello: https://github.com/snakers4/silero-vad .
 
 #### Metadata
   * type: behavior
@@ -475,7 +474,7 @@ L'apertura dell'ascolto segue una sola regola, sia dopo la wake word sia dopo un
 
 Il satellite applica «Suite di test con Vitest» con questi valori.
 
-Il satellite è una sola unità: i suoi test risiedono in `src/` accanto ai file che verificano. Le cartelle `test/` dedicate sono `test/support/`, con il server di sessione simulato e le scadenze manuali condivisi dai test, e `test/repository/`, con i test dell'intero repository: regole di architettura con le loro fixture negative e il campione dell'estrazione degli import, assenza di codice del backend, mappatura esaustiva dei rifiuti del punto d'ingresso, file d'ambiente, dipendenze, contesto di build dell'immagine, workflow e hook pre-commit.
+Il satellite è una sola unità: i suoi test risiedono in `src/` accanto ai file che verificano. Le cartelle `test/` dedicate sono `test/support/`, con il server di sessione simulato, le scadenze manuali e il file audio di prova `alexa-it.wav` condivisi dai test, quest'ultimo sintetizzato con il modello Kokoro rilasciato con licenza Apache-2.0, e `test/repository/`, con i test dell'intero repository: regole di architettura con le loro fixture negative e il campione dell'estrazione degli import, assenza di codice del backend, mappatura esaustiva dei rifiuti del punto d'ingresso, file d'ambiente, dipendenze, contesto di build dell'immagine, workflow e hook pre-commit.
 
 La selezione `e2e` contiene `src/main.e2e.spec.ts`, che compila il satellite in una cartella temporanea e ne avvia il punto d'ingresso compilato con Node.js in un processo figlio. Il satellite non ha file `*.integration.spec.ts` e non dichiara lo script `test:integration`.
 
@@ -518,4 +517,19 @@ Trascrizione, sintesi, ammissione dei turni, `expectsReply` e motivi di rifiuto 
 
 #### Relations
   * define: [Uso delle sole interfacce pubbliche del backend nel satellite](../Requirements/VoiceSatellite.md#uso-delle-sole-interfacce-pubbliche-del-backend-nel-satellite)
+---
+
+### Wake word configurata e modello di keyword spotting
+
+La variabile `AMBROGIO_WAKE_WORD` contiene la wake word come testo: una o più parole separate da un solo spazio, ciascuna fatta di lettere ASCII con eventuali apostrofi interni, per al massimo 64 caratteri; il valore predefinito è `Alexa`. Il satellite converte il testo in maiuscolo e lo scompone nei token del modello di keyword spotting con l'algoritmo unigram di SentencePiece: antepone a ogni parola il segno di inizio parola `▁` e sceglie, fra le scomposizioni in pezzi del vocabolario di `bpe.model`, quella con la somma dei punteggi più alta. La sequenza di token risultante è la keyword consegnata a sherpa-onnx. Un testo che non rispetta la forma, o che contiene un carattere non rappresentabile con il vocabolario, è una configurazione invalida, rifiutata prima di costruire risorse audio. Ogni token prodotto deve essere presente in `tokens.txt`, perché sherpa-onnx termina il processo quando una keyword contiene un token sconosciuto.
+
+La directory `models/kws/` contiene il modello della fonte «Modelli sherpa-onnx distribuiti con il satellite». L'immagine container la include; un mount in sola lettura su `/app/models/kws` la sostituisce con un altro modello transducer di keyword spotting di sherpa-onnx con vocabolario SentencePiece. La directory deve contenere esattamente un file il cui nome inizia con `encoder` e termina con `.onnx`, uno che inizia con `decoder` e uno che inizia con `joiner`, oltre a `tokens.txt` e `bpe.model`, tutti leggibili. Una directory che non rispetta questa forma impedisce l'avvio con il messaggio della fase `Wake word model could not be loaded`. La provenienza e la licenza dei modelli montati sono responsabilità di chi li installa.
+
+Il modello distribuito è addestrato su parlato inglese: una parola italiana è riconosciuta soltanto se la sua scomposizione in token inglesi è vicina alla pronuncia. L'accuratezza del riconoscimento, attivazioni corrette e spurie comprese, dipende dalla parola, dal modello e dalla soglia scelti da chi installa; il satellite non la misura.
+
+#### Metadata
+  * type: specification
+
+#### Relations
+  * define: [Validazione della wake word configurata](../Requirements/VoiceSatellite.md#validazione-della-wake-word-configurata)
 ---

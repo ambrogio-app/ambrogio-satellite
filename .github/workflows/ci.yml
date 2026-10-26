@@ -23,8 +23,6 @@ jobs:
     env:
       BRANCH: ${{ github.head_ref || github.ref_name }}
       COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
-      ONNXRUNTIME_NODE_INSTALL: skip
-      ORT_DISABLE_TELEMETRY: '1'
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
