@@ -129,12 +129,6 @@ export class AmbrogioSession {
     const message = record(value);
     const type = message?.type;
     if (!message || typeof type !== 'string') return;
-    if (!type.startsWith('session.') && !type.startsWith('input.') && !type.startsWith('output.')
-      && !type.startsWith('turn.')) {
-      // Requests outside turns are an extension this satellite does not implement.
-      if (typeof message.id === 'string') this.write({ type: 'client.result', id: message.id, ok: false, reason: 'unsupported' });
-      return;
-    }
     if (!request) return;
     const ownTurn = request.turnId !== undefined && message.turnId === request.turnId;
     switch (type) {

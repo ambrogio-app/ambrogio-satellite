@@ -154,7 +154,7 @@ describe('ambrogio.v1 session and conversation channel', () => {
     ]);
   });
 
-  it('reports session.error for the request and answers extensions as unsupported', async () => {
+  it('reports session.error for the request and ignores server messages of an unknown type', async () => {
     const fake = await server({ onMessage(session, message) {
       if (message.type !== 'input.end') return;
       session.send({ type: 'player.play', id: 'action-1', title: 'canzone' });
@@ -170,9 +170,7 @@ describe('ambrogio.v1 session and conversation channel', () => {
     await until(() => log.length > 0, 'protocol error');
     expect(log).toEqual([['rejectedByProtocol', 'invalid_message']]);
     const session = fake.sessions[0]!;
-    await until(() => session.messages.some(message => message.type === 'client.result'), 'client.result');
-    expect(session.messages.filter(message => message.type === 'client.result'))
-      .toEqual([{ type: 'client.result', id: 'action-1', ok: false, reason: 'unsupported' }]);
+    expect(session.messages.filter(message => message.type === 'client.result')).toEqual([]);
   });
 
   it('ignores events of a forgotten request', async () => {
