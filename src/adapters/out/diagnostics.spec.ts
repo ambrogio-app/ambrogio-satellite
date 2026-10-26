@@ -93,3 +93,14 @@ test('an attenuation failure logs only the operation and the reason', () => {
   expect(calls).toEqual([{ level: 'warn', fields: { event: 'satellite_attenuation_failed', operation: 'restore',
     reason: 'timeout' } }]);
 });
+
+// Verification: Prova dell'evento dei tempi della richiesta
+test('the timing of a request is one info event with only its durations', () => {
+  const { log, calls } = capture();
+  log.requestTiming({ speechMs: 1_200, firstAudioMs: 2_900, playedMs: 4_100 });
+  log.requestTiming({ speechMs: 800, playedMs: 1_000 });
+  expect(calls).toEqual([
+    { level: 'info', fields: { event: 'satellite_request_timing', speechMs: 1_200, firstAudioMs: 2_900, playedMs: 4_100 } },
+    { level: 'info', fields: { event: 'satellite_request_timing', speechMs: 800, playedMs: 1_000 } },
+  ]);
+});

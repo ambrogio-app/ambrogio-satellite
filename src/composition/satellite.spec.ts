@@ -38,7 +38,7 @@ const config = {
 } as never;
 
 /** The event catalog given by the composition root. */
-const diagnostics = () => ({ info: f.info, failure: vi.fn(), wakeDetected: f.wakeDetectedLog, wakeRejected: f.wakeRejectedLog,
+const diagnostics = () => ({ info: f.info, failure: vi.fn(), wakeDetected: f.wakeDetectedLog, wakeRejected: f.wakeRejectedLog, requestTiming: vi.fn(),
   attenuationFailed: vi.fn(), startupFailed: vi.fn(), shutdownTimeout: vi.fn(), configurationRejected: vi.fn() });
 
 async function started() {

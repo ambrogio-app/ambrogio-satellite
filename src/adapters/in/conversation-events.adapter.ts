@@ -2,6 +2,7 @@ import type { VoiceSession } from '../../application/voice-session.use-case.js';
 import type { RequestEvents, TurnOutcome } from '../../adapters/out/ambrogio-session.js';
 import type { AudioReserve } from '../../adapters/out/audio-reserve.js';
 import type { ConversationChannel } from '../../adapters/out/conversation-channel.js';
+import type { Diagnostics } from '../../adapters/out/diagnostics.js';
 import type { ResponsePlayback } from '../../adapters/out/response-playback.js';
 import type { SherpaSpeechDetector, SpeechEvents } from '../../adapters/out/sherpa-speech-detector.js';
 
@@ -14,10 +15,27 @@ export function createConversationEventsAdapter(options: Readonly<{
   reserve: AudioReserve;
   playback: ResponsePlayback;
   pushWakeFrames(frames: Float32Array): void;
+  diagnostics: Pick<Diagnostics, 'requestTiming'>;
+  /** Monotonic clock in milliseconds; `performance.now` by default. */
+  now?: () => number;
 }>) {
   const { reserve, playback } = options;
+  const now = options.now ?? (() => performance.now());
   /** Bumped for every request, so late events of an abandoned one are ignored. */
   let request = 0;
+  /** Instants of the current request: opened, `input.end` sent, first reply audio received. */
+  let timing: { id: number; opened: number; ended?: number; firstAudio?: number } | undefined;
+
+  const elapsed = (from: number, to: number) => Math.max(0, Math.round(to - from));
+
+  function logTiming(id: number): void {
+    if (timing?.id !== id || timing.ended === undefined) return;
+    const { opened, ended, firstAudio } = timing;
+    timing = undefined;
+    options.diagnostics.requestTiming({ speechMs: elapsed(opened, ended),
+      ...(firstAudio === undefined ? {} : { firstAudioMs: elapsed(ended, firstAudio) }),
+      playedMs: elapsed(ended, now()) });
+  }
 
   const active = (id: number) => id === request && !options.isStopping();
 
@@ -29,7 +47,11 @@ export function createConversationEventsAdapter(options: Readonly<{
     return {
       accepted() { /* the channel keeps the conversation of the turn */ },
       outputStart(stream, content) { if (active(id)) playback.start(stream, content); },
-      outputAudio(stream, samples) { if (active(id)) playback.audio(stream, samples); },
+      outputAudio(stream, samples) {
+        if (!active(id)) return;
+        if (timing?.id === id) timing.firstAudio ??= now();
+        playback.audio(stream, samples);
+      },
       outputEnd(stream) { if (active(id)) playback.end(stream); },
       outcome(outcome: TurnOutcome) {
         if (!active(id)) return;
@@ -38,7 +60,9 @@ export function createConversationEventsAdapter(options: Readonly<{
         session?.dispatch({ kind: 'assistant_message',
           expectsReply: outcome.kind === 'completed' ? outcome.expectsReply : false });
         void playback.idle().then(() => {
-          if (active(id)) options.getSession()?.dispatch({ kind: 'response_played' });
+          if (!active(id)) return;
+          logTiming(id);
+          options.getSession()?.dispatch({ kind: 'response_played' });
         });
       },
       rejectedByProtocol(code) {
@@ -52,6 +76,7 @@ export function createConversationEventsAdapter(options: Readonly<{
       const channel = options.channel();
       if (options.isStopping() || !channel) return;
       const id = ++request;
+      timing = { id, opened: now() };
       try { channel.startRequest(reserve.take(), requestEvents(id)); }
       catch (error) { fail(error); return; }
       options.getSession()?.dispatch({ kind: 'speech_started' });
@@ -60,6 +85,7 @@ export function createConversationEventsAdapter(options: Readonly<{
       const channel = options.channel();
       if (options.isStopping() || !channel?.isTransmitting) return;
       channel.endRequest();
+      if (timing?.id === request) timing.ended = now();
       options.getSession()?.dispatch({ kind: 'speech_ended' });
     },
     failed(error) { fail(error); },

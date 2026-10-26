@@ -70,6 +70,7 @@ export async function createSatellite(config: SatelliteConfig, diagnostics: Diag
     reserve: new AudioReserve(AUDIO_RESERVE_SAMPLES),
     playback,
     pushWakeFrames: frames => { wake?.push(frames); },
+    diagnostics,
   });
   const microphone = new MicrophoneInput(config.audio.microphone);
   const attenuation = config.audio.attenuation

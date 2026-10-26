@@ -1089,6 +1089,23 @@ Origine: baseline Reqvire «Execution coordination in entrypoints», adottata; �
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
+### Registrazione dei tempi delle richieste vocali
+
+Quando ha riprodotto fino alla fine la risposta a una richiesta vocale, il satellite deve registrare un evento diagnostico informativo con la durata della richiesta e con i tempi di arrivo del primo audio e di fine della riproduzione misurati dalla fine della richiesta, senza audio, testi, configurazione o identificativi.
+
+#### Details
+L'evento, insieme all'ora dell'evento di attivazione locale e all'evento dei tempi del turno vocale del backend, rende misurabile il ritardo percepito fra la fine del parlato e la risposta. Ha livello `info` perché registra un esito riuscito e non un guasto.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * satisfiedBy: [conversation-events.adapter.ts](../../src/adapters/in/conversation-events.adapter.ts)
+  * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
+  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Registrazione delle attivazioni locali
 
 Quando riconosce la wake word, il satellite deve registrare un evento diagnostico informativo; quando scarta un rilevamento della wake word non confermato dall'attività vocale, deve registrare un evento diagnostico informativo distinto.

@@ -140,6 +140,23 @@ Il tipo locale è `type Result<T, E> = Readonly<{ ok: true; value: T }> | Readon
   * define: [Esiti previsti come valori tipizzati nel satellite](../Requirements/VoiceSatellite.md#esiti-previsti-come-valori-tipizzati-nel-satellite)
 ---
 
+### Evento diagnostico dei tempi della richiesta
+
+Per ogni richiesta vocale di cui il satellite ha ricevuto l'esito e ha riprodotto la risposta fino alla fine, l'adapter degli eventi della conversazione emette una sola riga Pino di livello `info` con `event: "satellite_request_timing"`. Oltre a `level`, `time` ed `event`, la riga contiene soltanto le durate seguenti, in millisecondi interi non negativi misurati con un orologio monotono:
+
+- `speechMs`: dall'apertura della richiesta, quando il rilevatore dell'attività vocale conferma il parlato, all'invio di `input.end`;
+- `firstAudioMs`: dall'invio di `input.end` alla ricezione del primo frame audio della risposta, presente soltanto se la risposta contiene audio;
+- `playedMs`: dall'invio di `input.end` alla fine della riproduzione della risposta.
+
+Il satellite invia `input.end` quando il rilevatore dell'attività vocale segnala la fine del parlato, dopo il silenzio minimo della segmentazione, oppure quando la richiesta raggiunge il limite di durata. La riga non contiene audio, testi, la wake word, configurazione o identificativi della sessione e della conversazione. Una richiesta abbandonata, interrotta dalla fine dell'interazione o conclusa da un guasto del satellite non produce la riga.
+
+#### Metadata
+  * type: input-output
+
+#### Relations
+  * define: [Registrazione dei tempi delle richieste vocali](../Requirements/VoiceSatellite.md#registrazione-dei-tempi-delle-richieste-vocali)
+---
+
 ### Evento diagnostico del mancato avvio del satellite
 
 Il runner del processo satellite è il confine definitivo dei guasti avvenuti prima che il satellite attenda la wake word: quando il caricamento dei modelli o l'attivazione falliscono, emette una sola riga JSON su `stdout` con livello `error`, `event: "satellite_startup_failed"`, il messaggio fisso `Satellite startup failed` e il campo `err`, poi scrive su `stderr` la propria riga invariata `Unable to start Ambrogio satellite.` e termina con codice di uscita `1` senza emettere `satellite_ready`. Il satellite non resta attivo e non emette altri log definitivi per lo stesso guasto.

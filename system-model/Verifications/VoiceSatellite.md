@@ -795,6 +795,23 @@ La prova passa se il job `Satellite checks` esegue `pnpm audit --audit-level hig
   * verify: [Audit delle dipendenze nella CI del satellite](../Requirements/VoiceSatellite.md#audit-delle-dipendenze-nella-ci-del-satellite)
 ---
 
+### Prova dell'evento dei tempi della richiesta
+
+Con canale, rilevatore dell'attività vocale e riproduzione simulati, un orologio controllato e un logger di prova, eseguire una richiesta con risposta in audio riprodotta fino alla fine, una richiesta con risposta soltanto testuale, una richiesta abbandonata prima dell'esito e una richiesta seguita da una nuova attivazione prima della fine della riproduzione; registrare le righe emesse.
+
+#### Details
+La prova passa se la richiesta con risposta in audio produce una sola riga di livello `info` con `event` uguale a `satellite_request_timing` e le sole chiavi `level`, `time`, `event`, `speechMs`, `firstAudioMs` e `playedMs`, con durate uguali agli intervalli dell'orologio controllato; se la richiesta con risposta soltanto testuale produce la riga senza `firstAudioMs`; se la richiesta abbandonata e quella sostituita non producono la riga. Fallisce se una riga contiene audio, testi o identificativi, o se una richiesta produce più di una riga.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [conversation-events.adapter.spec.ts](../../src/adapters/in/conversation-events.adapter.spec.ts)
+  * satisfiedBy: [diagnostics.spec.ts](../../src/adapters/out/diagnostics.spec.ts)
+  * verify: [Registrazione dei tempi delle richieste vocali](../Requirements/VoiceSatellite.md#registrazione-dei-tempi-delle-richieste-vocali)
+---
+
 ### Prova dell'evento di attivazione locale
 
 Acquisire le righe reali di Pino prodotte dal rilevamento e dallo scarto: livello `info`, `event` uguale a `satellite_wake_detected` o `satellite_wake_rejected`, con le sole chiavi `level`, `time` ed `event`. Con keyword spotter e rilevatore dell'attività vocale simulati, il riconoscitore segnala il rilevamento confermato e quello scartato; la composition root registra l'evento e inoltra alla sessione vocale soltanto l'attivazione confermata.
