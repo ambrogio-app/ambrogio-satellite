@@ -151,7 +151,7 @@ pnpm verify         # every check of the CI, in the same order
 
 Tests sit next to the file they verify as `*.spec.ts`; tests that start the compiled satellite end with `*.e2e.spec.ts`. Shared test helpers live in `test/support/`, and the tests of the whole repository in `test/repository/`.
 
-`pnpm test:backend` uses the backend in `../ambrogio-backend`, or in the folder named by `AMBROGIO_BACKEND_REPO`. Build the backend first (`pnpm install --frozen-lockfile && pnpm build` in its folder): the test starts it only through its public test entry point, `apps/server/dist/runtime/test-server.js`, and prints the backend commit it used.
+`pnpm test:backend` uses the backend in `../ambrogio-backend`, or in the folder named by `AMBROGIO_BACKEND_REPO`. Build the backend first (`pnpm install --frozen-lockfile && pnpm build` in its folder): the test starts it only through its public test entry point, `apps/server/dist/runtime/test-server.js`, and prints the backend commit it used. It also needs a PostgreSQL test server, where the backend creates and drops its own database: run `../ambrogio-model/scripts/test-postgres start` (Docker required) and export the `AMBROGIO_TEST_DATABASE_URL=...` line it prints; `pnpm verify` needs it too.
 
 Secrets never belong in this repository. CI scans the whole Git history with [gitleaks](https://github.com/gitleaks/gitleaks) 8.30.1 on every push and pull request, and image publication waits for that scan. Locally, a versioned pre-commit hook blocks commits that add secrets; install gitleaks 8.30.1 on your `PATH` and enable the hook once per clone:
 

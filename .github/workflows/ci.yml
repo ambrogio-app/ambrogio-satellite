@@ -20,9 +20,23 @@ jobs:
     name: Satellite checks
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # The PostgreSQL test server of the backend test entry: the integration proof passes its URL.
+    services:
+      postgres:
+        image: pgvector/pgvector:pg18
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready --username postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     env:
       BRANCH: ${{ github.head_ref || github.ref_name }}
       COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+      AMBROGIO_TEST_DATABASE_URL: postgres://postgres@127.0.0.1:5432/postgres
     steps:
       - name: Check out repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
