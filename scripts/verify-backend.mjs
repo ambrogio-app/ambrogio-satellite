@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { access, mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { access } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -19,6 +18,9 @@ try {
   throw new Error(`Backend test entry point not found at ${entryPoint}: check out ambrogio-backend side by side `
     + 'and build it, or set AMBROGIO_BACKEND_REPO.');
 }
+// The test entry creates and drops its own archive database on this PostgreSQL test server.
+const databaseUrl = process.env.AMBROGIO_TEST_DATABASE_URL;
+if (!databaseUrl) throw new Error('Missing environment variable AMBROGIO_TEST_DATABASE_URL: start the PostgreSQL test server with ../ambrogio-model/scripts/test-postgres start and export the line it prints');
 let backendCommit = 'unknown';
 try {
   backendCommit = execFileSync('git', ['-C', root, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
@@ -107,11 +109,10 @@ async function ask(channel, words, { activation = false } = {}) {
   return turn;
 }
 
-const directory = await mkdtemp(join(tmpdir(), 'ambrogio-satellite-backend-'));
 let server;
 const channels = [];
 try {
-  server = await startTestServer({ directory, language: 'it', reply, speech, sessionPingIntervalMs: 30_000 });
+  server = await startTestServer({ databaseUrl, language: 'it', reply, speech, sessionPingIntervalMs: 30_000 });
   const { sessionUrl } = server;
   const lost = [];
   const satelliteA = new ConversationChannel({ url: sessionUrl, identity: { clientId: 'satellite-a', name: 'Satellite A' },
@@ -174,5 +175,4 @@ try {
   releaseSlow();
   await Promise.allSettled(channels.map(channel => channel.close()));
   await server?.close();
-  await rm(directory, { recursive: true, force: true });
 }

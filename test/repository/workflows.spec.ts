@@ -136,7 +136,19 @@ describe('CI workflow', () => {
     expect(install).toMatch(/^ {8}working-directory: workspace\/ambrogio-satellite$/m);
     expect(install).toMatch(/run: pnpm install --frozen-lockfile$/m);
     expect(section(checks, 'env', 4)).toBe('    env:\n      BRANCH: ${{ github.head_ref || github.ref_name }}\n'
-      + "      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'");
+      + "      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'\n"
+      + '      AMBROGIO_TEST_DATABASE_URL: postgres://postgres@127.0.0.1:5432/postgres');
+  });
+
+  it('provides the PostgreSQL test server that the integration test passes to the backend test entry', () => {
+    const postgres = section(section(checks, 'services', 4), 'postgres', 6);
+    expect(postgres).toMatch(/^ {8}image: pgvector\/pgvector:pg18$/m);
+    expect(section(postgres, 'env', 8)).toMatch(/^ {10}POSTGRES_HOST_AUTH_METHOD: trust$/m);
+    expect(section(postgres, 'ports', 8)).toMatch(/^ {10}- 5432:5432$/m);
+    expect(postgres).toMatch(/--health-cmd "pg_isready/);
+    const script = contract('../../scripts/verify-backend.mjs');
+    expect(script).toMatch(/process\.env\.AMBROGIO_TEST_DATABASE_URL/);
+    expect(script).toMatch(/startTestServer\(\{ databaseUrl,/);
   });
 
   it('checks out the workspace side by side and checks its model without a Reqvire version of its own', () => {
