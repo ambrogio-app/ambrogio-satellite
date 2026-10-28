@@ -7,7 +7,9 @@
 
 # Ambrogio — voice satellite
 
-**Ambrogio** is an open source home assistant that you host yourself. This repository is its **voice satellite**: a small program that listens for a wake word, sends what you say to the Ambrogio backend and plays back the spoken answer. Put one in each room on any Linux machine that has a microphone and a speaker, such as a Raspberry Pi or a mini PC.
+**Ambrogio**: talk to it like Alexa, chat with it like ChatGPT — one self-hosted AI assistant for your whole homelab. Multi-agent by design: each agent you configure handles one job, such as the house, music, weather or your documents, using the services you already host.
+
+This repository is its **voice satellite**: a small program that listens for a wake word, sends what you say to the Ambrogio backend and plays back the spoken answer. Put one in each room on any Linux machine that has a microphone and a speaker, such as a Raspberry Pi or a mini PC.
 
 | Repository | Role |
 |---|---|
