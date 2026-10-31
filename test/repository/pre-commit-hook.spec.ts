@@ -1,6 +1,8 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { randomInt } from 'node:crypto';
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,7 +10,6 @@ import { afterEach, beforeEach, expect, test } from 'vitest';
 
 const hook = fileURLToPath(new URL('../../.githooks/pre-commit', import.meta.url));
 const pathEntries = (process.env.PATH ?? '').split(delimiter).filter(Boolean);
-const withoutGitleaks = pathEntries.filter(entry => !existsSync(join(entry, 'gitleaks'))).join(delimiter);
 
 let directory: string;
 let repository: string;
@@ -22,11 +23,32 @@ function fakeModelChecks(status: 0 | 1): void {
   const scripts = join(directory, 'ambrogio-model', 'scripts');
   mkdirSync(scripts, { recursive: true });
   const script = join(scripts, 'model-checks');
-  writeFileSync(script, ['#!/bin/sh', `echo run >> '${modelChecksLog}'`,
+  writeFileSync(script, ['#!/bin/sh', `echo "run $*" >> '${modelChecksLog}'`,
     ...(status === 0 ? [] : ["echo 'model-checks: fake violation' >&2"]), `exit ${status}`, ''].join('\n'));
   chmodSync(script, 0o755);
 }
-const modelChecksRuns = () => (existsSync(modelChecksLog) ? readFileSync(modelChecksLog, 'utf8').split('\n').filter(Boolean).length : 0);
+const modelChecksCalls = () => (existsSync(modelChecksLog) ? readFileSync(modelChecksLog, 'utf8').split('\n').filter(Boolean) : []);
+const modelChecksRuns = () => modelChecksCalls().length;
+
+/**
+ * A PATH with Git and without gitleaks: a folder holding only a link to Git, since Git and gitleaks may share a folder
+ * of the system PATH.
+ */
+function withoutGitleaksPath(): string {
+  const bin = join(directory, 'git-only');
+  mkdirSync(bin);
+  symlinkSync(execFileSync('sh', ['-c', 'command -v git'], { encoding: 'utf8' }).trim(), join(bin, 'git'));
+  return bin;
+}
+
+/** A `gitleaks` on PATH that reports another version, ahead of every other entry. */
+function otherGitleaksPath(): string {
+  const bin = join(directory, 'other-gitleaks');
+  mkdirSync(bin);
+  writeFileSync(join(bin, 'gitleaks'), '#!/bin/sh\necho 8.30.0\nexit 0\n');
+  chmodSync(join(bin, 'gitleaks'), 0o755);
+  return [bin, ...pathEntries].join(delimiter);
+}
 
 /** A temporary repository isolated from the user and system Git configuration. */
 function git(args: readonly string[], path = process.env.PATH ?? '') {
@@ -88,7 +110,14 @@ test('a commit without secrets and with a valid model passes the hook after the 
   expect(result.stderr).toContain('no leaks found');
   expect(result.status).toBe(0);
   expect(commits()).toBe(1);
-  expect(modelChecksRuns()).toBe(1);
+  // The model checks read the staged content: the root of the repository and the absolute path of its index.
+  const [call] = modelChecksCalls();
+  const [, flag, top, index] = call!.split(' ');
+  expect(flag).toBe('--staged');
+  expect(top).toBe(git(['rev-parse', '--show-toplevel']).stdout.trim());
+  expect(index!.startsWith('/')).toBe(true);
+  expect(index!.startsWith(join(top!, '.git'))).toBe(true);
+  expect(index!.split('/').at(-1)).toMatch(/^index/);
 });
 
 test('failing model checks block the commit', () => {
@@ -112,18 +141,44 @@ test('without ambrogio-model next to the repository the commit is blocked with a
   expect(commits()).toBe(0);
 });
 
-test('the versioned hook runs the model checks of the side-by-side ambrogio-model', () => {
-  expect(readFileSync(hook, 'utf8')).toContain('"$(git rev-parse --show-toplevel)/../ambrogio-model/scripts/model-checks"');
+test('the versioned hook runs the model checks of the side-by-side ambrogio-model on the staged content', () => {
+  const text = readFileSync(hook, 'utf8');
+  expect(text).toContain('top="$(git rev-parse --show-toplevel)"');
+  expect(text).toContain('checks="$top/../ambrogio-model/scripts/model-checks"');
+  expect(text).toMatch(/^exec "\$checks" --staged "\$top" "\$index"$/m);
 });
 
-test('without gitleaks on PATH the commit is blocked with install and enable instructions', () => {
-  expect(withoutGitleaks.split(delimiter).some(entry => existsSync(join(entry, 'git')))).toBe(true);
-  writeFileSync(join(repository, 'notes.txt'), 'No secrets here.\n');
-  expect(git(['add', 'notes.txt'], withoutGitleaks).status).toBe(0);
-  const result = git(['commit', '--quiet', '-m', 'Add notes'], withoutGitleaks);
+test('the versioned hook scans the staged changes without honouring gitleaks:allow comments', () => {
+  expect(readFileSync(hook, 'utf8')).toMatch(
+    /^gitleaks git --pre-commit --staged --redact --no-banner --ignore-gitleaks-allow \. \|\| exit 1$/m);
+});
+
+test('a gitleaks:allow comment does not let a staged credential through', () => {
+  fakeModelChecks(0);
+  const token = fakeToken();
+  writeFileSync(join(repository, 'settings.env'), `GITHUB_TOKEN=${token} # gitleaks:allow\n`);
+  expect(git(['add', 'settings.env']).status).toBe(0);
+  const result = git(['commit', '--quiet', '-m', 'Add settings']);
   expect(result.status).not.toBe(0);
-  expect(result.stderr).toContain('gitleaks is not on PATH');
-  expect(result.stderr).toContain('Install gitleaks 8.30.1');
-  expect(result.stderr).toContain('git config core.hooksPath .githooks');
+  expect(`${result.stdout}${result.stderr}`).not.toContain(token);
+  expect(`${result.stdout}${result.stderr}`).toMatch(/leaks found: [1-9]/);
   expect(commits()).toBe(0);
+  expect(modelChecksRuns()).toBe(0);
+});
+
+test.each([
+  ['without gitleaks on PATH', withoutGitleaksPath],
+  ['with another gitleaks version on PATH', otherGitleaksPath],
+])('%s the commit is blocked with the required version and where to install it', (_case, path) => {
+  fakeModelChecks(0);
+  const searchPath = path();
+  expect(searchPath.split(delimiter).some(entry => existsSync(join(entry, 'git')))).toBe(true);
+  writeFileSync(join(repository, 'notes.txt'), 'No secrets here.\n');
+  expect(git(['add', 'notes.txt'], searchPath).status).toBe(0);
+  const result = git(['commit', '--quiet', '-m', 'Add notes'], searchPath);
+  expect(result.status).not.toBe(0);
+  expect(result.stderr).toContain('pre-commit: gitleaks 8.30.1 is not on PATH; install gitleaks 8.30.1 '
+    + '(https://github.com/gitleaks/gitleaks/releases/tag/v8.30.1) and retry.');
+  expect(commits()).toBe(0);
+  expect(modelChecksRuns()).toBe(0);
 });

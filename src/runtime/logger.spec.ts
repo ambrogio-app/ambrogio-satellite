@@ -45,16 +45,90 @@ test('redacts sensitive fields at any depth, credential variable names included,
   expect(records()[1]).toMatchObject({ HA_TOKEN: '[redacted]', cookie: '[redacted]', event: 'y' });
 });
 
-test('redaction keeps errors by identity, survives cycles and runs no getter', () => {
-  const error = new Error('kept');
+test('redaction gives errors their view, survives cycles and runs no getter', () => {
+  const error = new Error('secret-kept');
   const cyclic: Record<string, unknown> = { err: error };
   cyclic.self = cyclic;
   Object.defineProperty(cyclic, 'trap', { enumerable: true, get() { throw new Error('must not run'); } });
   const copy = redactSensitive(cyclic);
   expect(copy === cyclic).toBe(false);
-  expect(copy.err === error).toBe(true);
+  expect(copy.err).toEqual({ type: 'Error', message: 'Unexpected satellite failure', stack: '[redacted]' });
+  expect(cyclic.err).toBe(error);
   expect(copy.self === copy).toBe(true);
   expect(Object.keys(copy)).toEqual(['err', 'self']);
+});
+
+test('redacts the own fields of class instances, shared and circular references, without mutating them', () => {
+  class Credentials {
+    readonly user = 'someone';
+    readonly password = 'secret-1';
+    get token() { throw new Error('must not run'); }
+    toJSON() { throw new Error('must not run'); }
+  }
+  const credentials = Object.freeze(new Credentials());
+  const shared = { apiKey: 'secret-2', kept: 1 };
+  const circular: Record<string, unknown> = { name: 'loop', secret: 'secret-3' };
+  circular.again = circular;
+  const fields = { event: 'x', account: credentials, first: shared, list: [shared, { nested: shared }], circular };
+  const { log, lines, records } = capture();
+  log.info(fields);
+  log.child({ bound: credentials, also: [shared] }).info({ event: 'y' });
+  expect(lines).toHaveLength(2);
+  expect(lines.join('')).not.toContain('secret-');
+  const [first, second] = records();
+  expect(first).toMatchObject({ account: { user: 'someone', password: '[redacted]' },
+    first: { apiKey: '[redacted]', kept: 1 },
+    list: [{ apiKey: '[redacted]', kept: 1 }, { nested: { apiKey: '[redacted]', kept: 1 } }],
+    circular: { name: 'loop', secret: '[redacted]' } });
+  expect(second).toMatchObject({ bound: { user: 'someone', password: '[redacted]' },
+    also: [{ apiKey: '[redacted]', kept: 1 }], event: 'y' });
+  expect(credentials.password).toBe('secret-1');
+  expect(shared).toEqual({ apiKey: 'secret-2', kept: 1 });
+  expect(circular.secret).toBe('secret-3');
+  expect(circular.again).toBe(circular);
+});
+
+test('every Error at any depth and key, in events and fixed fields, gets the controlled view', () => {
+  const external = Object.freeze(Object.assign(new Error('secret-external'), { code: 'secret-code' }));
+  const project = new ProjectError('Speaker could not be opened', { cause: external });
+  const constant = { type: 'Error', message: 'Unexpected satellite failure', stack: '[redacted]' };
+  const { log, lines, records } = capture();
+  log.warn({ event: 'x', problem: external, nested: { deeper: [project, { reason: external }] } });
+  log.child({ origin: external, context: { failure: project } }).info({ event: 'y' });
+  log.child({ err: external }).info({ event: 'z' });
+  expect(lines.join('')).not.toContain('secret');
+  const projectView = { type: 'ProjectError', message: 'Speaker could not be opened', stack: project.stack };
+  expect(records()[0]).toEqual({ level: 'warn', time: expect.any(Number), event: 'x', problem: constant,
+    nested: { deeper: [projectView, { reason: constant }] } });
+  expect(records()[1]).toEqual({ level: 'info', time: expect.any(Number), origin: constant,
+    context: { failure: projectView }, event: 'y' });
+  expect(records()[2]).toEqual({ level: 'info', time: expect.any(Number), err: constant, event: 'z' });
+  expect(project.cause).toBe(external);
+  expect(Object.keys(external)).toEqual(['code']);
+});
+
+test('an external AggregateError keeps the views of its errors in order, with a constant message', () => {
+  const project = new ProjectError('Microphone could not be closed');
+  const external = new Error('secret-inner');
+  const aggregate = new AggregateError([project, external, 'secret-value'], 'secret-aggregate');
+  const view = { type: 'AggregateError', message: 'Unexpected satellite failure', stack: '[redacted]', errors: [
+    { type: 'ProjectError', message: 'Microphone could not be closed', stack: project.stack },
+    { type: 'Error', message: 'Unexpected satellite failure', stack: '[redacted]' },
+    { type: 'Error', message: 'Unexpected satellite failure', stack: '[redacted]' },
+  ] };
+  expect(errorView(aggregate)).toEqual(view);
+  const { log, lines, records } = capture();
+  log.error({ event: 'a', err: aggregate });
+  log.error({ event: 'b', faults: { all: aggregate } });
+  expect(lines.join('')).not.toContain('secret');
+  expect(records()[0]!.err).toEqual(view);
+  expect(records()[1]!.faults).toEqual({ all: view });
+  expect(aggregate.errors).toEqual([project, external, 'secret-value']);
+  // An aggregate that contains itself still produces a finite view.
+  const looping = new AggregateError([], 'secret');
+  (looping.errors as unknown[]).push(looping);
+  expect(errorView(looping)).toEqual({ type: 'AggregateError', message: 'Unexpected satellite failure',
+    stack: '[redacted]', errors: [{ type: 'Error', message: 'Unexpected satellite failure', stack: '[redacted]' }] });
 });
 
 test('serializes project errors with type, message and stack and every other value with a constant view', () => {

@@ -102,13 +102,33 @@ test('the timeout reports several observed faults as one LifecycleError, and non
   }
 });
 
+// Verification: Prova del ciclo di arresto del satellite
 test('the deadline also bounds a construction that never ends after the interruption', async () => {
   const { signals, options, timer } = processOptions();
   const running = runSatelliteProcess(() => new Promise(() => { /* never */ }), options);
   signals.emit('SIGINT');
+  expect(timer.timer).toHaveBeenCalledExactlyOnceWith(5_000, expect.any(Function));
   timer.expire();
   expect(await running).toEqual({ exitCode: 1, force: true });
   expect(options.shutdownTimeout).toHaveBeenCalledExactlyOnceWith(5_000, undefined);
+  expect(options.ready).not.toHaveBeenCalled();
+});
+
+// Verification: Prova del ciclo di arresto del satellite
+test('the deadline also bounds an activation that never ends after the interruption', async () => {
+  const { signals, options, timer } = processOptions();
+  const built = satellite({ activate: () => new Promise<void>(() => { /* never */ }),
+    close: () => new Promise<void>(() => { /* never */ }) });
+  const running = runSatelliteProcess(async () => built, options);
+  await flush();
+  expect(built.activate).toHaveBeenCalledOnce();
+  signals.emit('SIGTERM');
+  signals.emit('SIGTERM');
+  expect(timer.timer).toHaveBeenCalledExactlyOnceWith(5_000, expect.any(Function));
+  timer.expire();
+  expect(await running).toEqual({ exitCode: 1, force: true });
+  expect(options.shutdownTimeout).toHaveBeenCalledOnce();
+  expect(options.ready).not.toHaveBeenCalled();
 });
 
 test('a failed construction is one startup event, one stderr line and exit 1, with no deadline', async () => {

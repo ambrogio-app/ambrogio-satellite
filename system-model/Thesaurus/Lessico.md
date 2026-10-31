@@ -25,7 +25,7 @@ Riconoscimento della wake word sul satellite che avvia il tentativo di aprire un
 
 ### Configurazione del satellite
 
-Dati scelti dall'installatore, come variabili d'ambiente del processo, per individuare il backend, i dispositivi audio e il modello di wake word usati dal processo satellite.
+Valori scelti da chi installa, come variabili d'ambiente del processo, per indicare il backend, l'identità del satellite nella sessione, i dispositivi audio, l'attenuazione locale, la wake word con la sua soglia di riconoscimento e l'intervallo di inattività della replica. Il modello di wake word non fa parte della configurazione: è una risorsa distribuita con il satellite, che chi installa sostituisce montando un altro modello.
 
 #### Metadata
   * type: concept
@@ -45,6 +45,7 @@ Periferica usata dal satellite per acquisire la voce oppure riprodurre l'audio v
 
 #### Relations
   * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
+  * related: [Satellite vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#satellite-vocale)
 ---
 
 ### Modello di wake word
@@ -56,6 +57,7 @@ Modello di keyword spotting, distribuito con il satellite o montato dall'install
 
 #### Relations
   * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
+  * related: [Satellite vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#satellite-vocale)
 ---
 
 ### Rilevamento dell'attività vocale
@@ -82,6 +84,7 @@ Porzione temporanea di audio conservata in memoria dal satellite durante il rico
 
 #### Relations
   * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
+  * related: [Turno vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#turno-vocale)
 ---
 
 ### Wake word
@@ -94,4 +97,6 @@ Espressione pronunciata dalla famiglia che permette di attivare il satellite qua
 #### Relations
   * derivedFrom: [Lessico del satellite vocale](#lessico-del-satellite-vocale)
   * related: [Modello di wake word](#modello-di-wake-word)
+  * related: [Satellite vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#satellite-vocale)
+  * related: [Interazione vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#interazione-vocale)
 ---

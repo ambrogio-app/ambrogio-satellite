@@ -63,4 +63,30 @@ describe('voice turn policy', () => {
     expect(advanceVoiceTurn(state, { kind: 'timeout' }))
       .toEqual({ state: { phase: 'closing_call' }, actions: ['clear_timeout', 'close_call'] });
   });
+
+  // Verification: Prova di un solo turno alla volta nel satellite
+  it('opens no new request in the conversation until the outcome has arrived and the response has been played', () => {
+    // Events that could start a request: a wake word, speech, and the signals that open listening.
+    const starters: VoiceTurnEvent[] = [{ kind: 'wake_detected' }, { kind: 'call_opened' },
+      { kind: 'ready_cue_played' }, { kind: 'speech_started' }, { kind: 'speech_ended' }];
+    const opensListening = (actions: readonly string[]) =>
+      actions.some(action => action === 'enable_speech' || action === 'open_call' || action === 'play_ready_cue');
+    const sent = replay(start);
+    expect(advanceVoiceTurn(replay([...start.slice(0, -1)]), { kind: 'speech_ended' }).actions).toContain('disable_speech');
+    for (const pending of [
+      sent,
+      replay([...start, { kind: 'assistant_message', expectsReply: true }]),
+      replay([...start, { kind: 'response_played' }]),
+    ]) {
+      for (const event of starters) {
+        const result = advanceVoiceTurn(pending, event);
+        expect(result.state, `${pending.phase} ${event.kind}`).toEqual(pending);
+        expect(opensListening(result.actions), `${pending.phase} ${event.kind}`).toBe(false);
+      }
+    }
+    // Outcome and played response together: only then a reply may open listening, after the ready cue.
+    const replied = replay([...start, { kind: 'assistant_message', expectsReply: true }, { kind: 'response_played' }]);
+    expect(replied.phase).toBe('signalling_listening');
+    expect(advanceVoiceTurn(replied, { kind: 'ready_cue_played' }).actions).toContain('enable_speech');
+  });
 });

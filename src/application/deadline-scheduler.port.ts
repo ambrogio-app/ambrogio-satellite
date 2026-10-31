@@ -5,5 +5,5 @@ export interface ScheduledDeadline {
 
 /** Schedules one future callback; cancellation before firing suppresses it. */
 export interface DeadlineScheduler {
-  schedule(delayMs: number, callback: () => void): ScheduledDeadline;
+  readonly schedule: (delayMs: number, callback: () => void) => ScheduledDeadline;
 }

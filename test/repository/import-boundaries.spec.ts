@@ -49,6 +49,12 @@ const negativeFixtures: Record<RuleName, Readonly<Record<string, string>>> = {
   'pino-only-in-logger': {
     'src/adapters/out/diagnostics.ts': "import pino from 'pino';\nexport const logger = pino();\n",
   },
+  'no-circular-imports': {
+    'src/adapters/out/first.ts': "import { second } from './second.js';\nexport const first = () => second;\n",
+    'src/adapters/out/second.ts': "import { first } from './first.js';\nexport const second = () => first;\n",
+    'src/domain/turn.ts': "import type { Phase } from './phase.js';\nexport type Turn = { phase: Phase };\n",
+    'src/domain/phase.ts': "import type { Turn } from './turn.js';\nexport type Phase = { turn?: Turn };\n",
+  },
   'no-backend-imports': {
     'src/composition/satellite.ts': "import { reply } from '@ambrogio/conversations/application';\nexport { reply };\n",
   },
@@ -97,6 +103,30 @@ describe('central architecture rules', () => {
     const violations = analyse(workspaceOf(negativeFixtures[rule], ['pino']), []);
     expect(violations.length).toBeGreaterThan(0);
     expect(violations.map(violation => violation.rule)).toEqual(violations.map(() => rule));
+  });
+
+  // Verification: Prova dell'assenza di cicli di import nel satellite
+  it('rejects a same-layer value cycle and a type-only cycle, naming the rule and the cycle path', () => {
+    const violations = analyse(workspaceOf(negativeFixtures['no-circular-imports']), []);
+    expect(violations.map(describeViolation)).toEqual([
+      '[no-circular-imports] src/adapters/out/first.ts -> ./second.js: forms an import cycle: '
+        + 'src/adapters/out/first.ts -> src/adapters/out/second.ts -> src/adapters/out/first.ts',
+      '[no-circular-imports] src/domain/phase.ts -> ./turn.js: forms an import cycle: '
+        + 'src/domain/phase.ts -> src/domain/turn.ts -> src/domain/phase.ts',
+    ]);
+  });
+
+  // Verification: Prova dell'assenza di cicli di import nel satellite
+  it('finds no import cycle in src and test, and reports a longer cycle once with its whole path', () => {
+    expect(analyse(workspace).filter(violation => violation.rule === 'no-circular-imports')).toEqual([]);
+    const longer = analyse(workspaceOf({
+      'test/support/a.ts': "import './b.js';\n",
+      'test/support/b.ts': "import type { C } from './c.js';\nexport type B = C;\n",
+      'test/support/c.ts': "export { a } from './a.js';\nexport type C = 1;\n",
+      'test/support/d.ts': "import './a.js';\n",
+    }), []);
+    expect(longer.map(describeViolation)).toEqual(['[no-circular-imports] test/support/a.ts -> ./b.js: forms an import cycle: '
+      + 'test/support/a.ts -> test/support/b.ts -> test/support/c.ts -> test/support/a.ts']);
   });
 
   it('lists every exception with an existing rule, an import, a reason, and a matching violation', () => {

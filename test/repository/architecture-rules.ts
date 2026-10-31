@@ -115,6 +115,65 @@ export const technicalFactories: readonly string[] = ['src/runtime/fatal-path.ts
 export const dependencyContainers: readonly string[] = ['awilix', 'inversify', 'tsyringe', 'typedi', 'injection-js',
   '@nestjs/core'];
 
+/**
+ * The import cycles among the analysed files, type-only imports included: one per strongly connected component,
+ * as the path of files that starts from its first file in alphabetical order and returns to it.
+ */
+export function importCycles({ files, imports }: Workspace): Array<readonly ImportEdge[]> {
+  const known = new Set(files);
+  const edges = new Map<string, ImportEdge[]>();
+  for (const edge of imports) {
+    if (edge.target === undefined || !known.has(edge.target)) continue;
+    edges.set(edge.from, [...(edges.get(edge.from) ?? []), edge]);
+  }
+  // Tarjan's algorithm: components of mutually reachable files.
+  const index = new Map<string, number>();
+  const low = new Map<string, number>();
+  const stack: string[] = [];
+  const onStack = new Set<string>();
+  const components: string[][] = [];
+  const visit = (file: string) => {
+    index.set(file, index.size);
+    low.set(file, index.get(file)!);
+    stack.push(file);
+    onStack.add(file);
+    for (const { target } of edges.get(file) ?? []) {
+      if (!index.has(target!)) { visit(target!); low.set(file, Math.min(low.get(file)!, low.get(target!)!)); }
+      else if (onStack.has(target!)) low.set(file, Math.min(low.get(file)!, index.get(target!)!));
+    }
+    if (low.get(file) !== index.get(file)) return;
+    const component: string[] = [];
+    let member: string;
+    do { member = stack.pop()!; onStack.delete(member); component.push(member); } while (member !== file);
+    components.push(component);
+  };
+  for (const file of files) if (!index.has(file)) visit(file);
+  return components
+    .filter(component => component.length > 1 || (edges.get(component[0]!) ?? []).some(edge => edge.target === component[0]))
+    .map(component => {
+      const members = new Set(component);
+      const start = [...component].sort()[0]!;
+      // Breadth-first search inside the component for the shortest way back to the start.
+      const previous = new Map<string, ImportEdge>();
+      const queue = [start];
+      for (let head = 0; head < queue.length; head++) {
+        for (const edge of edges.get(queue[head]!) ?? []) {
+          if (!members.has(edge.target!) || previous.has(edge.target!)) continue;
+          previous.set(edge.target!, edge);
+          if (edge.target === start) { queue.length = head + 1; break; }
+          queue.push(edge.target!);
+        }
+      }
+      const path: ImportEdge[] = [];
+      for (let edge = previous.get(start)!; ; edge = previous.get(edge.from)!) {
+        path.unshift(edge);
+        if (edge.from === start) break;
+      }
+      return path;
+    })
+    .sort((a, b) => a[0]!.from.localeCompare(b[0]!.from));
+}
+
 type Finding = Readonly<{ from: string; specifier: string; message: string }>;
 type Rule = (workspace: Workspace) => Finding[];
 
@@ -185,6 +244,12 @@ export const rules = {
   'no-dependency-container': ({ imports }) => imports
     .filter(edge => dependencyContainers.some(name => edge.specifier === name || edge.specifier.startsWith(`${name}/`)))
     .map(edge => ({ from: edge.from, specifier: edge.specifier, message: 'the composition is written by hand, without a container' })),
+
+  /** No import cycle among the files of `src` and `test`, type-only imports included («Nessun ciclo di import»). */
+  'no-circular-imports': workspace => importCycles(workspace).map(cycle => ({
+    from: cycle[0]!.from, specifier: cycle[0]!.specifier,
+    message: `forms an import cycle: ${[...cycle.map(edge => edge.from), cycle[0]!.from].join(' -> ')}`,
+  })),
 
   /** Only the base logger module imports Pino: the components receive the minimal logger interface. */
   'pino-only-in-logger': ({ imports }) => imports

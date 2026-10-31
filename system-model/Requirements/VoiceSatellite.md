@@ -20,27 +20,12 @@ Origine: baseline Reqvire «Declared runtime environment», adottata.
   * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
 
-### Arresto immediato del processo satellite
+### Arresto unico e ordinato del satellite
 
-Quando riceve SIGINT o SIGTERM, il satellite deve impedire nuove attivazioni e interrompere l'interazione e la riproduzione correnti senza attendere la risposta completa.
+Quando riceve `SIGINT` o `SIGTERM`, anche ripetuti o concorrenti, il satellite deve avviare un solo arresto, bloccare nuove attivazioni, interrompere riproduzione e interazione in corso senza attendere la risposta completa e poi chiudere, ciascuno una sola volta e in ordine inverso di acquisizione, l'acquisizione dal microfono, la sessione vocale, il canale conversazionale, il rilevatore di attività vocale e il modello della wake word, tentando le altre chiusure quando una fallisce. Un arresto richiesto durante la costruzione o l'attivazione deve interrompere l'avvio senza attivare il satellite, con il tempo massimo di arresto che decorre dal primo segnale come per un arresto a satellite attivo.
 
 #### Details
 Origine: baseline Reqvire «Interruption of active operations on shutdown», adottata; «New work refused on shutdown», adottata.
-
-#### Metadata
-  * type: requirement
-
-#### Contract References
-  * [Ciclo di arresto e rilascio delle risorse](../Contracts/VoiceSatellite.md#ciclo-di-arresto-e-rilascio-delle-risorse)
-
-#### Relations
-  * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
-  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
----
-
-### Arresto unico e ordinato del satellite
-
-Quando riceve `SIGINT` o `SIGTERM`, anche ripetuti o concorrenti, il satellite deve avviare un solo arresto, bloccare nuove attivazioni, interrompere riproduzione e interazione in corso e poi chiudere, ciascuno una sola volta e in ordine inverso di acquisizione, l'acquisizione dal microfono, la sessione vocale, il canale conversazionale, il rilevatore di attività vocale e il modello della wake word, tentando le altre chiusure quando una fallisce.
 
 #### Metadata
   * type: requirement
@@ -70,8 +55,11 @@ Mentre attende una nuova interazione, il satellite deve acquisire continuamente 
   * type: requirement
 
 #### Contract References
+  * [Modelli sherpa-onnx distribuiti con il satellite](../Contracts/ExternalContracts.md#modelli-sherpa-onnx-distribuiti-con-il-satellite)
   * [Adapter audio con Decibri](../Contracts/VoiceSatellite.md#adapter-audio-con-decibri)
   * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
+  * [Segmentazione dei turni con sherpa-onnx](../Contracts/VoiceSatellite.md#segmentazione-dei-turni-con-sherpa-onnx)
+  * [Wake word configurata e modello di keyword spotting](../Contracts/VoiceSatellite.md#wake-word-configurata-e-modello-di-keyword-spotting)
 
 #### Relations
   * derivedFrom: [Elaborazione vocale locale con sherpa-onnx](../../../ambrogio-model/system-model/Requirements/VoiceConversation.md#elaborazione-vocale-locale-con-sherpa-onnx)
@@ -155,7 +143,7 @@ Motivo: la regolazione locale con `amixer` è immediata e non dipende dalla rete
 
 ### Attesa della fine della risposta
 
-Mentre riproduce la risposta di Ambrogio, il satellite deve impedire interruzioni vocali e nuovi turni, e deve considerare conclusa la risposta soltanto quando ha ricevuto l'esito del turno e ha riprodotto tutti i campioni delle trasmissioni del turno chiuse da `output.end`. La riapertura della replica o il ritorno alla wake word avvengono soltanto dopo questa conclusione. Se l'esito non arriva entro 60 secondi dalla fine della richiesta, il satellite conclude l'interazione con il recupero locale.
+Mentre riproduce la risposta di Ambrogio, il satellite deve impedire interruzioni vocali e nuovi turni, deve riaprire la replica o tornare alla wake word soltanto dopo la conclusione della risposta definita in «Regole della replica vocale», e deve concludere l'interazione con il recupero locale quando l'esito del turno non arriva entro il limite di quelle regole.
 
 #### Details
 Origine: baseline Reqvire «Time limit with cancellation of remote work», adottata.
@@ -165,6 +153,7 @@ Origine: baseline Reqvire «Time limit with cancellation of remote work», adott
 
 #### Contract References
   * [Esiti del turno nel protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#esiti-del-turno-nel-protocollo-ambrogio-v1)
+  * [Trasmissione in uscita del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#trasmissione-in-uscita-del-protocollo-ambrogio-v1)
   * [Adapter audio con Decibri](../Contracts/VoiceSatellite.md#adapter-audio-con-decibri)
   * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
 
@@ -309,6 +298,7 @@ La conferma riduce le attivazioni causate da rumori che non sono parlato, come c
   * [Motore locale della wake word con sherpa-onnx](../Contracts/VoiceSatellite.md#motore-locale-della-wake-word-con-sherpa-onnx)
 
 #### Relations
+  * satisfiedBy: [sherpa-engine.ts](../../src/adapters/out/sherpa-engine.ts)
   * satisfiedBy: [sherpa-wake-word.ts](../../src/adapters/out/sherpa-wake-word.ts)
   * satisfiedBy: [configuration.ts](../../src/runtime/configuration.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
@@ -342,6 +332,7 @@ Origine: baseline Reqvire «Configuration module per component reading environme
   * derivedFrom: [Modulo di configurazione per componente dalle variabili d'ambiente](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#modulo-di-configurazione-per-componente-dalle-variabili-dambiente)
   * satisfiedBy: [startup-arguments.ts](../../src/adapters/in/startup-arguments.ts)
   * satisfiedBy: [main.ts](../../src/main.ts)
+  * satisfiedBy: [backend-url.ts](../../src/runtime/backend-url.ts)
   * satisfiedBy: [configuration.ts](../../src/runtime/configuration.ts)
   * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
 ---
@@ -385,6 +376,7 @@ Quando la famiglia pronuncia la wake word e la richiesta senza pausa, il satelli
   * type: requirement
 
 #### Relations
+  * satisfiedBy: [audio-reserve.ts](../../src/adapters/out/audio-reserve.ts)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
@@ -395,6 +387,9 @@ Quando gli adapter interagiscono con i casi d'uso del satellite, devono usare da
 
 #### Metadata
   * type: requirement
+
+#### Contract References
+  * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
 
 #### Relations
   * definedBy: [Contratto osservabile della sessione vocale](../Contracts/VoiceSatellite.md#contratto-osservabile-della-sessione-vocale)
@@ -414,6 +409,7 @@ Quando una modifica viene inviata al branch main o proposta tramite pull request
   * [Ingresso di prova del server conversazionale](../../../ambrogio-backend/system-model/Contracts/ServerFoundation.md#ingresso-di-prova-del-server-conversazionale)
   * [Audit delle dipendenze con pnpm](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#audit-delle-dipendenze-con-pnpm)
   * [Checkout affiancato dello spazio di lavoro](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#checkout-affiancato-dello-spazio-di-lavoro)
+  * [Comando di verifica completo con pnpm](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#comando-di-verifica-completo-con-pnpm)
   * [Controlli del modello dello spazio di lavoro](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#controlli-del-modello-dello-spazio-di-lavoro)
   * [Profilo di installazione con pnpm e Corepack](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#profilo-di-installazione-con-pnpm-e-corepack)
   * [Profilo di scansione dei segreti con gitleaks](../../../ambrogio-model/system-model/Contracts/ModelDrivenDevelopment.md#profilo-di-scansione-dei-segreti-con-gitleaks)
@@ -508,10 +504,13 @@ Durante un'interazione vocale attiva, il satellite deve riconoscere localmente l
   * type: requirement
 
 #### Contract References
+  * [Trasmissione in ingresso del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#trasmissione-in-ingresso-del-protocollo-ambrogio-v1)
+  * [Modelli sherpa-onnx distribuiti con il satellite](../Contracts/ExternalContracts.md#modelli-sherpa-onnx-distribuiti-con-il-satellite)
   * [Adapter audio con Decibri](../Contracts/VoiceSatellite.md#adapter-audio-con-decibri)
 
 #### Relations
   * derivedFrom: [Elaborazione vocale locale con sherpa-onnx](../../../ambrogio-model/system-model/Requirements/VoiceConversation.md#elaborazione-vocale-locale-con-sherpa-onnx)
+  * satisfiedBy: [sherpa-engine.ts](../../src/adapters/out/sherpa-engine.ts)
   * satisfiedBy: [sherpa-speech-detector.ts](../../src/adapters/out/sherpa-speech-detector.ts)
   * satisfiedBy: [satellite.ts](../../src/composition/satellite.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
@@ -611,13 +610,14 @@ Il satellite deve essere installabile ed eseguibile direttamente sul sistema hos
 
 ### Esiti previsti come valori tipizzati nel satellite
 
-Quando Domain, Application o una porta prevedono un esito negativo nel proprio contratto, il satellite deve rappresentarlo come valore tipizzato distinguibile dal successo.
+Quando Domain, Application, una porta, il modulo di configurazione o la lettura degli argomenti di avvio prevedono un esito negativo nel proprio contratto, il satellite deve restituirlo come valore con `ok` distinguibile dal successo, con varianti di rifiuto immutabili distinte da `kind`, riservando le eccezioni ai guasti inattesi.
 
 #### Metadata
   * type: requirement
 
 #### Relations
   * derivedFrom: [Esiti previsti come valori tipizzati](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#esiti-previsti-come-valori-tipizzati)
+  * satisfiedBy: [startup-arguments.ts](../../src/adapters/in/startup-arguments.ts)
   * satisfiedBy: [configuration.ts](../../src/runtime/configuration.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
@@ -689,7 +689,9 @@ Quando Application del satellite dichiara una porta a oggetto, deve dichiararne 
 #### Relations
   * definedBy: [Convenzione TypeScript di porte e dati](../Contracts/VoiceSatellite.md#convenzione-typescript-di-porte-e-dati)
   * derivedFrom: [Forma TypeScript dei contratti Application](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#forma-typescript-dei-contratti-application)
+  * satisfiedBy: [conversation-call.port.ts](../../src/application/conversation-call.port.ts)
   * satisfiedBy: [deadline-scheduler.port.ts](../../src/application/deadline-scheduler.port.ts)
+  * satisfiedBy: [local-attenuation.port.ts](../../src/application/local-attenuation.port.ts)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
@@ -699,7 +701,7 @@ Quando Application del satellite dichiara una porta a oggetto, deve dichiararne 
 Quando si verifica un guasto inatteso, il satellite deve propagarlo come eccezione fino al confine tecnico responsabile della gestione e della diagnostica.
 
 #### Details
-Origine: baseline Reqvire «Diagnostics of unexpected failures in technical components», adottata.
+Origine: baseline Reqvire «Propagation of unexpected failures as exceptions», adottata.
 
 #### Metadata
   * type: requirement
@@ -743,6 +745,9 @@ Quando apre la sessione conversazionale con il backend, il satellite deve presen
 
 #### Metadata
   * type: requirement
+
+#### Contract References
+  * [Sessione del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#sessione-del-protocollo-ambrogio-v1)
 
 #### Relations
   * satisfiedBy: [ambrogio-session.ts](../../src/adapters/out/ambrogio-session.ts)
@@ -791,7 +796,7 @@ Se la regolazione del controllo di attenuazione non riesce, il satellite deve pr
 #### Metadata
   * type: requirement
 
-#### Contract Bindings
+#### Contract References
   * [Attenuazione locale con softvol e amixer](../Contracts/VoiceSatellite.md#attenuazione-locale-con-softvol-e-amixer)
 
 #### Relations
@@ -808,6 +813,7 @@ Il satellite deve inviare messaggi e frame audio soltanto su una sessione conver
   * type: requirement
 
 #### Contract References
+  * [Sessione del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#sessione-del-protocollo-ambrogio-v1)
   * [Trasporto conversazionale ambrogio.v1](../Contracts/VoiceSatellite.md#trasporto-conversazionale-ambrogiov1)
 
 #### Relations
@@ -899,6 +905,75 @@ Origine: baseline Reqvire «Exhaustive rejection mapping with assertNever», ada
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
 
+### Messaggio pubblico parlato del turno rifiutato
+
+Quando il backend conclude un turno vocale con `turn.rejected`, il satellite deve riprodurre come esito del turno la trasmissione audio del messaggio pubblico del rifiuto e, dopo la riproduzione, tornare in attesa della wake word senza aprire una replica.
+
+#### Details
+Il rifiuto `audio_unavailable` non ha audio e segue «Tono di errore per voce non disponibile».
+
+#### Concept References
+  * [Turno vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#turno-vocale)
+  * [Risposta parlata](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#risposta-parlata)
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Esiti del turno nel protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#esiti-del-turno-nel-protocollo-ambrogio-v1)
+  * [Motivi di rifiuto del turno](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#motivi-di-rifiuto-del-turno)
+  * [Trasmissione in uscita del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#trasmissione-in-uscita-del-protocollo-ambrogio-v1)
+  * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
+
+#### Relations
+  * derivedFrom: [Presentazione del rifiuto del turno da parte del client](../../../ambrogio-backend/system-model/Requirements/ConversationProtocol.md#presentazione-del-rifiuto-del-turno-da-parte-del-client)
+  * satisfiedBy: [conversation-events.adapter.ts](../../src/adapters/in/conversation-events.adapter.ts)
+  * satisfiedBy: [response-playback.ts](../../src/adapters/out/response-playback.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Messaggio pubblico parlato dell'errore dopo l'ammissione
+
+Quando il backend conclude con `turn.failed` un turno vocale ammesso, il satellite deve riprodurre come esito del turno la trasmissione audio del messaggio pubblico dell'errore dopo le trasmissioni già ricevute per quel turno e, dopo la riproduzione, tornare in attesa della wake word senza aprire una replica.
+
+#### Details
+Il satellite non ritira l'audio già riprodotto: il messaggio pubblico dell'errore arriva in una nuova trasmissione e ne segue la riproduzione.
+
+#### Concept References
+  * [Turno vocale](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#turno-vocale)
+  * [Risposta parlata](../../../ambrogio-model/system-model/Thesaurus/Lessico.md#risposta-parlata)
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Esiti del turno nel protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#esiti-del-turno-nel-protocollo-ambrogio-v1)
+  * [Trasmissione in uscita del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#trasmissione-in-uscita-del-protocollo-ambrogio-v1)
+  * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
+
+#### Relations
+  * derivedFrom: [Presentazione dell'errore dopo l'ammissione da parte del client](../../../ambrogio-backend/system-model/Requirements/ConversationProtocol.md#presentazione-dellerrore-dopo-lammissione-da-parte-del-client)
+  * satisfiedBy: [conversation-events.adapter.ts](../../src/adapters/in/conversation-events.adapter.ts)
+  * satisfiedBy: [response-playback.ts](../../src/adapters/out/response-playback.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
+### Nessun ciclo di import nel satellite
+
+La suite di test del satellite deve fallire su ogni ciclo del grafo degli import dei file TypeScript di `src` e `test`, compresi gli import di soli tipi e i cicli fra file dello stesso layer o della stessa cartella, con la regola `no-circular-imports` del contratto «Regole di architettura del satellite».
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Regole di architettura del satellite](../Contracts/VoiceSatellite.md#regole-di-architettura-del-satellite)
+
+#### Relations
+  * derivedFrom: [Nessun ciclo di import](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#nessun-ciclo-di-import)
+  * satisfiedBy: [architecture-rules.ts](../../test/repository/architecture-rules.ts)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
+---
+
 ### Nomi dei file secondo il ruolo architetturale nel satellite
 
 I file di produzione del satellite devono seguire la «Convenzione dei nomi di casi d'uso, porte e adapter» di `ambrogio-model`.
@@ -946,6 +1021,8 @@ Quando la famiglia attiva il satellite con la wake word, il satellite deve inizi
   * type: requirement
 
 #### Contract References
+  * [Esiti del turno nel protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#esiti-del-turno-nel-protocollo-ambrogio-v1)
+  * [Trasmissione in ingresso del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#trasmissione-in-ingresso-del-protocollo-ambrogio-v1)
   * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
   * [Trasporto conversazionale ambrogio.v1](../Contracts/VoiceSatellite.md#trasporto-conversazionale-ambrogiov1)
 
@@ -1077,7 +1154,7 @@ Il punto d'ingresso `src/main.ts` del satellite deve coordinare l'esecuzione dei
 #### Details
 Il punto d'ingresso legge gli argomenti e la configurazione con i moduli del runtime, fa costruire il satellite alla composition root e ne affida attivazione e arresto al runner del processo, senza assemblare componenti in proprio.
 
-Origine: baseline Reqvire «Execution coordination in entrypoints», adottata; «Process mechanisms in the runtime directory», adottata.
+Origine: baseline Reqvire «Execution coordination in entrypoints», adottata; «Process mechanisms in the runtime directory», adattata: nessun pacchetto runtime condiviso: un'unica applicazione.
 
 #### Metadata
   * type: requirement
@@ -1098,6 +1175,10 @@ L'evento, insieme all'ora dell'evento di attivazione locale e all'evento dei tem
 
 #### Metadata
   * type: requirement
+
+#### Contract References
+  * [Trasmissione in ingresso del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#trasmissione-in-ingresso-del-protocollo-ambrogio-v1)
+  * [Trasmissione in uscita del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#trasmissione-in-uscita-del-protocollo-ambrogio-v1)
 
 #### Relations
   * satisfiedBy: [conversation-events.adapter.ts](../../src/adapters/in/conversation-events.adapter.ts)
@@ -1130,6 +1211,9 @@ Il satellite deve controllare a ogni esecuzione della suite di test le proprie r
 #### Metadata
   * type: requirement
 
+#### Contract References
+  * [Suite di test con Vitest](../../../ambrogio-model/system-model/Contracts/CodeArchitecture.md#suite-di-test-con-vitest)
+
 #### Relations
   * derivedFrom: [Regole di architettura centrali e bloccanti](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#regole-di-architettura-centrali-e-bloccanti)
   * satisfiedBy: [architecture-rules.ts](../../test/repository/architecture-rules.ts)
@@ -1150,6 +1234,7 @@ Quando termina la riproduzione di una risposta per cui il backend segnala di att
 
 #### Contract References
   * [Esiti del turno nel protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#esiti-del-turno-nel-protocollo-ambrogio-v1)
+  * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
 
 #### Relations
   * satisfiedBy: [voice-turn.ts](../../src/domain/voice-turn.ts)
@@ -1164,6 +1249,8 @@ Quando un'interazione termina per risposta conclusiva, inattività, esito mancan
   * type: requirement
 
 #### Contract References
+  * [Esiti del turno nel protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#esiti-del-turno-nel-protocollo-ambrogio-v1)
+  * [Trasmissione in uscita del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#trasmissione-in-uscita-del-protocollo-ambrogio-v1)
   * [Trasporto conversazionale ambrogio.v1](../Contracts/VoiceSatellite.md#trasporto-conversazionale-ambrogiov1)
 
 #### Relations
@@ -1172,9 +1259,23 @@ Quando un'interazione termina per risposta conclusiva, inattività, esito mancan
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Rifiuti previsti senza log di errore nel satellite
+
+Quando gestisce un rifiuto previsto degli argomenti di avvio o della configurazione, il satellite non deve emettere un log di livello `warn` o `error` per il solo verificarsi del rifiuto.
+
+#### Metadata
+  * type: requirement
+
+#### Relations
+  * derivedFrom: [Esiti previsti senza log di errore automatici](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#esiti-previsti-senza-log-di-errore-automatici)
+  * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
+  * satisfiedBy: [main.ts](../../src/main.ts)
+  * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
+---
+
 ### Rifiuto della configurazione invalida
 
-Quando la configurazione è invalida, il satellite deve impedirne l’avvio operativo e comunicare un errore comprensibile.
+Quando la configurazione o gli argomenti di avvio sono invalidi, il satellite deve impedirne l’avvio operativo e comunicare un errore comprensibile con un evento diagnostico informativo.
 
 #### Metadata
   * type: requirement
@@ -1184,6 +1285,7 @@ Quando la configurazione è invalida, il satellite deve impedirne l’avvio oper
 
 #### Relations
   * derivedFrom: [Validazione della configurazione prima delle risorse](../../../ambrogio-model/system-model/Requirements/HomelabInstallation.md#validazione-della-configurazione-prima-delle-risorse)
+  * satisfiedBy: [startup-arguments.ts](../../src/adapters/in/startup-arguments.ts)
   * satisfiedBy: [diagnostics.ts](../../src/adapters/out/diagnostics.ts)
   * satisfiedBy: [main.ts](../../src/main.ts)
   * specify: [Installazione nell'homelab](../../../ambrogio-model/system-model/Capabilities/Engineering.md#installazione-nellhomelab)
@@ -1220,7 +1322,7 @@ Il ripristino all'avvio corregge un'attenuazione rimasta attiva dopo un'interruz
 #### Metadata
   * type: requirement
 
-#### Contract Bindings
+#### Contract References
   * [Attenuazione locale con softvol e amixer](../Contracts/VoiceSatellite.md#attenuazione-locale-con-softvol-e-amixer)
 
 #### Relations
@@ -1235,6 +1337,11 @@ Quando ha segnalato il fallimento di un’interazione per backend irraggiungibil
 
 #### Metadata
   * type: requirement
+
+#### Contract References
+  * [Errori ed estensioni del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#errori-ed-estensioni-del-protocollo-ambrogio-v1)
+  * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
+  * [Tono locale di errore](../Contracts/VoiceSatellite.md#tono-locale-di-errore)
 
 #### Relations
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
@@ -1270,6 +1377,7 @@ Quando termina la riproduzione di una risposta per cui il backend segnala di non
   * type: requirement
 
 #### Contract References
+  * [Esiti del turno nel protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#esiti-del-turno-nel-protocollo-ambrogio-v1)
   * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
 
 #### Relations
@@ -1360,6 +1468,9 @@ Quando la configurazione indica `AMBROGIO_MICROPHONE` o `AMBROGIO_SPEAKER`, il s
 #### Metadata
   * type: requirement
 
+#### Contract References
+  * [Evento diagnostico del mancato avvio del satellite](../Contracts/VoiceSatellite.md#evento-diagnostico-del-mancato-avvio-del-satellite)
+
 #### Relations
   * satisfiedBy: [decibri-audio.ts](../../src/adapters/out/decibri-audio.ts)
   * satisfiedBy: [microphone-input.ts](../../src/adapters/out/microphone-input.ts)
@@ -1419,6 +1530,7 @@ Mentre il processo è attivo, il satellite deve mantenere una sola sessione conv
   * type: requirement
 
 #### Contract References
+  * [Sessione del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#sessione-del-protocollo-ambrogio-v1)
   * [Trasporto conversazionale ambrogio.v1](../Contracts/VoiceSatellite.md#trasporto-conversazionale-ambrogiov1)
 
 #### Relations
@@ -1455,6 +1567,9 @@ Il satellite deve essere eseguibile su Linux x86_64 e arm64 senza richiedere uno
   * [Esecuzione host e container](../Contracts/VoiceSatellite.md#esecuzione-host-e-container)
 
 #### Relations
+  * satisfiedBy: [publish-image.yml](../../.github/workflows/publish-image.yml)
+  * satisfiedBy: [Dockerfile](../../Dockerfile)
+  * satisfiedBy: [package.json](../../package.json)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
@@ -1484,14 +1599,8 @@ Una chiusura nativa che non restituisce mai il controllo non deve lasciare attiv
 
 Quando non riesce ad avviare un’interazione perché il backend non è raggiungibile, il satellite deve segnalare il fallimento riproducendo il tono di errore locale generato dal programma, senza messaggi parlati.
 
-#### Details
-Origine: baseline Reqvire «Error log at the public fallback», adottata.
-
 #### Metadata
   * type: requirement
-
-#### Contract References
-  * [Recupero locale da backend irraggiungibile](../Contracts/VoiceSatellite.md#recupero-locale-da-backend-irraggiungibile)
 
 #### Relations
   * satisfiedBy: [conversation-call.adapter.ts](../../src/adapters/out/conversation-call.adapter.ts)
@@ -1508,6 +1617,7 @@ Quando il backend risponde a un turno vocale soltanto in testo perché la voce n
 
 #### Contract References
   * [Motivi di rifiuto del turno](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#motivi-di-rifiuto-del-turno)
+  * [Trasmissione in uscita del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#trasmissione-in-uscita-del-protocollo-ambrogio-v1)
   * [Tono locale di errore](../Contracts/VoiceSatellite.md#tono-locale-di-errore)
 
 #### Relations
@@ -1516,18 +1626,39 @@ Quando il backend risponde a un turno vocale soltanto in testo perché la voce n
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
 
+### Un solo turno alla volta nel satellite
+
+Quando il satellite ha inviato una richiesta audio di una conversazione, non deve inviare altre richieste in quella conversazione, né con la wake word né come replica, finché non riceve l'esito del turno e finché la riproduzione della risposta non termina o non viene interrotta.
+
+#### Details
+Il satellite raffina la regola del protocollo per i client con il proprio ciclo locale: alla fine del parlato disattiva il rilevamento dell'attività vocale, ascolta la wake word soltanto in attesa di una nuova attivazione e riapre l'ascolto per una replica soltanto dopo l'esito del turno e la fine della riproduzione. Un'attivazione successiva al recupero locale apre una nuova conversazione, come stabilisce «Nuova conversazione a ogni attivazione».
+
+#### Metadata
+  * type: requirement
+
+#### Contract References
+  * [Esiti del turno nel protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#esiti-del-turno-nel-protocollo-ambrogio-v1)
+
+#### Relations
+  * derivedFrom: [Disabilitazione degli ingressi durante un turno](../../../ambrogio-backend/system-model/Requirements/FamilyConversation.md#disabilitazione-degli-ingressi-durante-un-turno)
+  * satisfiedBy: [conversation-events.adapter.ts](../../src/adapters/in/conversation-events.adapter.ts)
+  * satisfiedBy: [voice-turn.ts](../../src/domain/voice-turn.ts)
+  * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
+---
+
 ### Unicità della diagnosi definitiva
 
 Quando un guasto raggiunge il confine tecnico responsabile della sua gestione, il satellite deve emettere una sola diagnosi definitiva senza duplicarla nei componenti intermedi.
 
 #### Details
-Origine: baseline Reqvire «Propagation of unexpected failures as exceptions», adottata.
+Origine: baseline Reqvire «Diagnostics of unexpected failures in technical components», adottata; «Error log at the public fallback», adattata: il ripiego pubblico del satellite per un'interazione fallita è il tono di errore locale, e il log definitivo di livello `error` è `satellite_failure`.
 
 #### Metadata
   * type: requirement
 
 #### Relations
   * derivedFrom: [Diagnosi definitiva unica dei guasti inattesi](../../../ambrogio-model/system-model/Requirements/CodeArchitecture.md#diagnosi-definitiva-unica-dei-guasti-inattesi)
+  * satisfiedBy: [conversation-call.adapter.ts](../../src/adapters/out/conversation-call.adapter.ts)
   * satisfiedBy: [voice-session.use-case.ts](../../src/application/voice-session.use-case.ts)
   * specify: [Architettura del codice](../../../ambrogio-model/system-model/Capabilities/Engineering.md#architettura-del-codice)
 ---
@@ -1557,6 +1688,9 @@ Le prove di integrazione del satellite avviano il backend affiancato soltanto tr
   * [Trasmissione in uscita del protocollo Ambrogio v1](../../../ambrogio-backend/system-model/Contracts/ConversationProtocol.md#trasmissione-in-uscita-del-protocollo-ambrogio-v1)
   * [Occupazione della conversazione e ammissione dei turni](../../../ambrogio-backend/system-model/Contracts/FamilyConversation.md#occupazione-della-conversazione-e-ammissione-dei-turni)
   * [Ingresso di prova del server conversazionale](../../../ambrogio-backend/system-model/Contracts/ServerFoundation.md#ingresso-di-prova-del-server-conversazionale)
+  * [Attivazione e riserva audio](../Contracts/VoiceSatellite.md#attivazione-e-riserva-audio)
+  * [Configurazione del processo satellite](../Contracts/VoiceSatellite.md#configurazione-del-processo-satellite)
+  * [Identità del satellite nella sessione](../Contracts/VoiceSatellite.md#identità-del-satellite-nella-sessione)
   * [Regole della replica vocale](../Contracts/VoiceSatellite.md#regole-della-replica-vocale)
 
 #### Relations
@@ -1672,3 +1806,4 @@ Il keyword spotting di sherpa-onnx riconosce parole indicate come sequenze di to
   * satisfiedBy: [sherpa-wake-word.ts](../../src/adapters/out/sherpa-wake-word.ts)
   * specify: [Interazione vocale dal satellite](../Capabilities/VoiceSatellite.md#interazione-vocale-dal-satellite)
 ---
+
