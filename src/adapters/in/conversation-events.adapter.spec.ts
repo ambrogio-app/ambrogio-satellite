@@ -89,6 +89,7 @@ describe('conversation events adapter', () => {
     expect(busy.vad.push).toHaveBeenCalledOnce();
   });
 
+  // Verification: Prova di un solo turno alla volta nel satellite
   it('forwards transmissions to playback and reports the response only after it has been played', async () => {
     const { adapter, playback, session, request, releaseIdle } = fixture();
     adapter.speech.confirmed();
@@ -113,6 +114,47 @@ describe('conversation events adapter', () => {
     adapter.speech.confirmed();
     request().outcome({ kind });
     expect(kinds(session.dispatch).at(-1)).toEqual({ kind: 'assistant_message', expectsReply: false });
+  });
+
+  // Verification: Prova del messaggio pubblico dei turni rifiutati o falliti
+  it.each([
+    { kind: 'rejected' as const, accepted: false },
+    { kind: 'failed' as const, accepted: true },
+  ])('plays the public message of a $kind turn in order and returns to the wake word only after it', async ({ kind, accepted }) => {
+    const { adapter, playback, session, request, releaseIdle } = fixture();
+    adapter.speech.confirmed();
+    adapter.speech.ended();
+    const events = request();
+    if (accepted) {
+      events.accepted('c1');
+      // The reply already under way, then the public message of the failure.
+      events.outputStart(2, { type: 'audio', sampleRate: 22_050 });
+      events.outputAudio(2, Int16Array.from([1, 2]));
+      events.outputEnd(2);
+    }
+    events.outputStart(3, { type: 'audio', sampleRate: 22_050 });
+    events.outputAudio(3, Int16Array.from([3]));
+    events.outputAudio(3, Int16Array.from([4]));
+    events.outputEnd(3);
+    events.outcome({ kind });
+    // Every call to the playback, in the order it happened.
+    const calls = [
+      ...playback.start.mock.calls.map((args, index) => [playback.start.mock.invocationCallOrder[index]!, 'start', ...args]),
+      ...playback.audio.mock.calls.map((args, index) =>
+        [playback.audio.mock.invocationCallOrder[index]!, 'audio', args[0], [...(args[1] as Int16Array)]]),
+      ...playback.end.mock.calls.map((args, index) => [playback.end.mock.invocationCallOrder[index]!, 'end', ...args]),
+    ].sort((a, b) => (a[0] as number) - (b[0] as number)).map(([, ...call]) => call);
+    expect(calls).toEqual([
+      ...(accepted ? [['start', 2, { type: 'audio', sampleRate: 22_050 }], ['audio', 2, [1, 2]], ['end', 2]] : []),
+      ['start', 3, { type: 'audio', sampleRate: 22_050 }], ['audio', 3, [3]], ['audio', 3, [4]], ['end', 3],
+    ]);
+    expect(kinds(session.dispatch)).toEqual([{ kind: 'speech_started' }, { kind: 'speech_ended' },
+      { kind: 'assistant_message', expectsReply: false }]);
+    await new Promise(resolve => setTimeout(resolve, 5));
+    expect(kinds(session.dispatch).some(event => event.kind === 'response_played')).toBe(false);
+    releaseIdle();
+    await vi.waitFor(() => expect(kinds(session.dispatch).at(-1)).toEqual({ kind: 'response_played' }));
+    expect(session.fail).not.toHaveBeenCalled();
   });
 
   it('ignores events of an earlier request once a new one has started', () => {

@@ -91,7 +91,7 @@ La prova passa se la musica si abbassa prima del segnale di ascolto, resta abbas
 ### Dimostrazione della attivazione locale
 
 #### Details
-Su Linux x86_64 e arm64, con il modello di keyword spotting distribuito, la wake word predefinita «Alexa» e un microfono reale, pronunciare la wake word e verificare che sherpa-onnx la riconosca localmente senza servizio esterno e che prima della wake word non si apra alcuna chiamata backend. Pronunciare la wake word e la richiesta senza pausa e verificare che la riserva scorrevole di 1500 ms consegni l'inizio della richiesta dopo la connessione. Configurare un'altra parola di lettere ASCII e ripetere la prova. Durante l'attesa della wake word misurare il consumo di CPU e di memoria del processo. La prova passa se la wake word predefinita e quella configurata attivano il satellite senza servizi esterni, se nessuna chiamata backend precede la wake word, se l'inizio della richiesta arriva al backend e se l'elaborazione in attesa della wake word resta più veloce del tempo reale su entrambe le architetture; fallisce altrimenti. La prova non misura l'accuratezza del riconoscimento: attivazioni corrette e spurie dipendono dalla parola, dal modello e dalla soglia scelti da chi installa. Non automatizzabile: richiede la voce della persona al microfono reale su ciascuna architettura; il caricamento dei modelli e il riconoscimento su un file di prova sono coperti dalle prove automatiche.
+Su Linux x86_64 e arm64, con il modello di keyword spotting distribuito, la wake word predefinita «Alexa» e un microfono reale, pronunciare la wake word e verificare che sherpa-onnx la riconosca localmente senza servizio esterno e che prima della wake word non si apra alcuna chiamata backend. Pronunciare la wake word e la richiesta senza pausa e verificare che la richiesta trasmessa alla conferma del parlato cominci con la riserva scorrevole di 1500 ms e che l'inizio della richiesta arrivi al backend. Configurare un'altra parola di lettere ASCII e ripetere la prova. Durante l'attesa della wake word misurare il consumo di CPU e di memoria del processo. La prova passa se la wake word predefinita e quella configurata attivano il satellite senza servizi esterni, se nessuna chiamata backend precede la wake word, se l'inizio della richiesta arriva al backend e se l'elaborazione in attesa della wake word resta più veloce del tempo reale su entrambe le architetture; fallisce altrimenti. La prova non misura l'accuratezza del riconoscimento: attivazioni corrette e spurie dipendono dalla parola, dal modello e dalla soglia scelti da chi installa. Non automatizzabile: richiede la voce della persona al microfono reale su ciascuna architettura; il caricamento dei modelli e il riconoscimento su un file di prova sono coperti dalle prove automatiche.
 
 #### Metadata
   * type: demonstration-verification
@@ -132,6 +132,8 @@ Con `expectsReply` non booleano non aprire la replica. Provare un turno rifiutat
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Attesa della fine della risposta](../Requirements/VoiceSatellite.md#attesa-della-fine-della-risposta)
+  * verify: [Messaggio pubblico parlato del turno rifiutato](../Requirements/VoiceSatellite.md#messaggio-pubblico-parlato-del-turno-rifiutato)
+  * verify: [Messaggio pubblico parlato dell'errore dopo l'ammissione](../Requirements/VoiceSatellite.md#messaggio-pubblico-parlato-dellerrore-dopo-lammissione)
   * verify: [Replica richiesta dal backend](../Requirements/VoiceSatellite.md#replica-richiesta-dal-backend)
   * verify: [Riproduzione della risposta vocale](../Requirements/VoiceSatellite.md#riproduzione-della-risposta-vocale)
   * verify: [Ritorno alla wake word dopo la risposta](../Requirements/VoiceSatellite.md#ritorno-alla-wake-word-dopo-la-risposta)
@@ -187,7 +189,7 @@ Su Linux x86_64 e arm64, con audio acquisito e con file di prova, usare il model
 #### Details
 Partire dall'elenco completo dei file di produzione, dalle porte Application e dai punti di ingresso; non limitare la ricerca ai nomi che contengono già `.adapter`, `.port` o `.use-case`. Per ciascun componente interessato registrare percorso, responsabilità, eventuale porta dichiarata o implementata o caso d'uso invocato, classificazione e nome atteso.
 
-L'ispezione passa se tutti i casi d'uso hanno il suffisso `.use-case.ts`, tutti i file che dichiarano una porta Application hanno il suffisso `.port.ts`, tutti gli adapter di ingresso e di uscita hanno il suffisso `.adapter.ts` e i file di supporto non sono classificati come adapter soltanto per la cartella che li contiene. Considerare anche le implementazioni strutturali di porte a oggetto o callable; non affidarsi al solo `implements`. I ruoli ambigui devono essere risolti con motivazione documentata. L'ispezione fallisce se manca un suffisso richiesto o se un suffisso descrive un ruolo non realizzato.
+L'ispezione passa se tutti i casi d'uso hanno il suffisso `.use-case.ts`, tutti i file che dichiarano una porta Application hanno il suffisso `.port.ts`, tutti gli adapter di ingresso e di uscita hanno il suffisso `.adapter.ts` e i file di supporto non sono classificati come adapter soltanto per la cartella che li contiene; se ogni adapter realizza una porta o invoca un caso d'uso, un contratto richiesto da un adapter inbound all'applicazione è un file `.port.ts`, e nessuna porta è realizzata nella composition root. Considerare anche le implementazioni strutturali di porte a oggetto o callable; non affidarsi al solo `implements`. I ruoli ambigui devono essere risolti con motivazione documentata. L'ispezione fallisce se manca un suffisso richiesto, se un suffisso descrive un ruolo non realizzato, se un adapter non realizza una porta né invoca un caso d'uso o se la composition root realizza una porta.
 
 Per ogni rinomina controllare import, export pubblici, riferimenti nei test e collegamenti Reqvire. La compilazione e i test pertinenti devono continuare a passare. Non automatizzabile: classificare un file come caso d'uso, porta, adapter o supporto richiede di leggerne la responsabilità; il nome da solo non la determina. La presenza di una relazione `satisfiedBy` e il successo di `validate` o `lint` non sostituiscono questa ispezione.
 
@@ -290,7 +292,7 @@ Non automatizzabile: stabilire se un modulo è un meccanismo del processo e se i
 ### Ispezione della forma TypeScript dei contratti
 
 #### Details
-Inventariare tutte le dichiarazioni Application, incluse capacità restituite e callable. Passa se le porte a oggetto sono interface e dati, unioni e callable usano type o firme callable inline, senza cambiare operazioni o significato. Verificare anche le dichiarazioni generate, typecheck completo e core, build e suite esistente. Non aggiungere test che controllano soltanto la parola interface. Non automatizzabile: distinguere una porta a oggetto da dati o callable richiede di leggerne la responsabilità.
+Inventariare tutte le dichiarazioni Application, incluse capacità restituite e callable. Passa se le porte a oggetto sono interface con operazioni dichiarate come proprietà callable `readonly`, comprese `VoiceSessionPorts`, `DeadlineScheduler`, `ScheduledDeadline` e `LocalAttenuation`, e se dati, unioni e callable usano type o firme callable inline, senza cambiare operazioni o significato; fallisce se un'operazione di una porta a oggetto è dichiarata come metodo. Verificare anche le dichiarazioni generate, typecheck completo e core, build e suite esistente. Non aggiungere test che controllano soltanto la parola interface. Non automatizzabile: distinguere una porta a oggetto da dati o callable richiede di leggerne la responsabilità.
 
 #### Metadata
   * type: inspection-verification
@@ -329,7 +331,7 @@ Ispezionare costruzione del logger, call site, configurazione, dipendenze e avvi
 
 ### Ispezione della scansione dei segreti in CI
 
-Eseguire localmente `gitleaks git --redact --no-banner --exit-code 1 .` sulla storia del repository; sul commit pubblicato di una pull request o di un branch, aprire l'esecuzione del workflow `Secret scan` su GitHub Actions.
+Eseguire localmente `gitleaks git --redact --no-banner --ignore-gitleaks-allow --exit-code 1 .` sulla storia del repository; sul commit pubblicato di una pull request o di un branch, aprire l'esecuzione del workflow `Secret scan` su GitHub Actions.
 
 #### Details
 L'ispezione passa se la scansione locale termina senza ritrovamenti e l'esecuzione GitHub Actions ha analizzato l'intera storia con esito corrispondente ai ritrovamenti. Fallisce se la scansione locale trova un segreto, se l'esecuzione manca o se risulta riuscita con un ritrovamento. La configurazione dei workflow è controllata dalla «Prova della configurazione della scansione dei segreti». Non automatizzabile: attesta l'esito di un'esecuzione GitHub Actions, che i test del repository non osservano.
@@ -404,9 +406,11 @@ La prova passa se la copia non modificata compila senza errori e ciascuna varian
   * satisfiedBy: [rejection-mapping.spec.ts](../../test/repository/rejection-mapping.spec.ts)
   * verify: [Assenza di logger nei layer interni](../Requirements/VoiceSatellite.md#assenza-di-logger-nei-layer-interni)
   * verify: [Conservazione della causa dei guasti](../Requirements/VoiceSatellite.md#conservazione-della-causa-dei-guasti)
+  * verify: [Esiti previsti come valori tipizzati nel satellite](../Requirements/VoiceSatellite.md#esiti-previsti-come-valori-tipizzati-nel-satellite)
   * verify: [Gestione esaustiva dei rifiuti previsti](../Requirements/VoiceSatellite.md#gestione-esaustiva-dei-rifiuti-previsti)
   * verify: [Log tecnici JSON su stdout](../Requirements/VoiceSatellite.md#log-tecnici-json-su-stdout)
   * verify: [Mapping esaustivo dei rifiuti previsti nel satellite](../Requirements/VoiceSatellite.md#mapping-esaustivo-dei-rifiuti-previsti-nel-satellite)
+  * verify: [Rifiuti previsti senza log di errore nel satellite](../Requirements/VoiceSatellite.md#rifiuti-previsti-senza-log-di-errore-nel-satellite)
   * verify: [Unicità della diagnosi definitiva](../Requirements/VoiceSatellite.md#unicità-della-diagnosi-definitiva)
 ---
 
@@ -453,7 +457,7 @@ La prova passa se i file Domain importano soltanto Domain; se i file Application
 In una cartella temporanea che contiene un repository Git con una copia di `.githooks/pre-commit` attivata tramite `core.hooksPath` e, accanto, uno script finto `ambrogio-model/scripts/model-checks` che registra ogni esecuzione e riesce o fallisce: tentare un commit privo di segreti con lo script che riesce, poi con lo script che fallisce, poi senza `ambrogio-model` affiancato, e un commit con una credenziale fittizia; leggere l'hook versionato.
 
 #### Details
-La prova passa se il commit privo di segreti riesce dopo un'esecuzione dello script; se con lo script che fallisce il commit è rifiutato e l'output riporta il messaggio dello script; se senza `ambrogio-model` affiancato il commit è rifiutato con il messaggio di «Controlli del modello nell'hook pre-commit»; se il commit con la credenziale è rifiutato senza eseguire lo script; e se l'hook versionato esegue `../ambrogio-model/scripts/model-checks` rispetto alla radice del repository. Fallisce se un commit è creato nonostante un controllo fallito o l'assenza di `ambrogio-model`, se lo script non viene eseguito per un commit privo di segreti o se viene eseguito dopo una scansione fallita. Lo script finto sostituisce i controlli reali, che la CI esegue a parte sull'intero modello, perché Reqvire renderebbe lenta la suite.
+La prova passa se il commit privo di segreti riesce dopo un'esecuzione dello script; se con lo script che fallisce il commit è rifiutato e l'output riporta il messaggio dello script; se senza `ambrogio-model` affiancato il commit è rifiutato con il messaggio di «Controlli del modello nell'hook pre-commit»; se il commit con la credenziale è rifiutato senza eseguire lo script; se lo script riceve gli argomenti `--staged`, la radice del repository temporaneo e il percorso assoluto del suo file indice; e se l'hook versionato esegue `../ambrogio-model/scripts/model-checks` rispetto alla radice del repository. Fallisce se un commit è creato nonostante un controllo fallito o l'assenza di `ambrogio-model`, se lo script non viene eseguito per un commit privo di segreti o se viene eseguito dopo una scansione fallita. Lo script finto sostituisce i controlli reali, che la CI esegue a parte sull'intero modello, perché Reqvire renderebbe lenta la suite.
 
 #### Metadata
   * type: test-verification
@@ -521,9 +525,9 @@ La prova passa se con le variabili invalide il processo registra il rifiuto, imp
 #### Details
 Iniettare risorse controllate e fallimenti: durante ascolto, chiamata e riproduzione, l'arresto deve bloccare nuovi eventi e interrompere i dispositivi senza attendere una risposta. Chiamare la chiusura ripetutamente e in parallelo: una sola chiusura nativa per risorsa, in ordine inverso di acquisizione (microfono, sessione vocale, chiamata e canale, attività vocale, wake word), stesso esito. Far fallire una chiusura: tutte le altre devono essere tentate e il guasto, incapsulato in un errore del progetto che nomina la risorsa, deve conservare l'originale come causa; due guasti devono restare distinti in un `LifecycleError` nell'ordine osservato. Fallire l'avvio dopo acquisizioni parziali e interrompere un'acquisizione pendente: tutte le risorse ottenute devono essere rilasciate. Provare la chiusura del riconoscitore e del rilevatore durante l'elaborazione di un blocco, cancellazione del tono di errore e SIGINT/SIGTERM nel confine di processo.
 
-Nel confine di processo, con una scadenza controllata dalla prova, inviare SIGINT o SIGTERM a un satellite la cui chiusura non si risolve mai, poi a un avvio che non termina dopo l'interruzione, inviando un secondo segnale durante l'attesa; ripetere con un arresto che termina prima della scadenza. Con il timer predefinito basato su Node.js verificare che la scadenza non trattenga il processo. Ripetere la scadenza dopo che una chiusura è già fallita. Acquisire la riga reale di Pino dell'evento di scadenza e leggere l'esempio Compose del repository.
+Nel confine di processo, con una scadenza controllata dalla prova, inviare SIGINT o SIGTERM a un satellite la cui chiusura non si risolve mai, poi a una costruzione e a un'attivazione che non terminano dopo l'interruzione, inviando un secondo segnale durante l'attesa; ripetere con un arresto che termina prima della scadenza. Con il timer predefinito basato su Node.js verificare che la scadenza non trattenga il processo. Ripetere la scadenza dopo che una chiusura è già fallita. Acquisire la riga reale di Pino dell'evento di scadenza e leggere l'esempio Compose del repository.
 
-La prova passa se ogni condizione precedente è rispettata; se, alla scadenza di 5000 ms dal primo segnale, il confine di processo registra una sola volta `satellite_shutdown_timeout` e termina con codice 1; se il secondo segnale non riavvia la scadenza; se un arresto concluso prima annulla la scadenza senza registrare l'evento né forzare l'uscita; se il timer predefinito non mantiene attivo l'event loop; se la riga è di livello `error` con soltanto le chiavi `level`, `time`, `event` e `timeoutMs` uguale a 5000, più `err` con i guasti già osservati quando ve ne sono; se un arresto con una chiusura fallita produce una sola riga `satellite_process_failed` e codice 1; e se l'esempio Compose dichiara `stop_grace_period` di almeno 10 secondi. Fallisce se una risorsa resta aperta, se una chiusura è ripetuta, se l'errore originale si perde, se una chiusura che non si risolve lascia il processo attivo oltre la scadenza, se l'uscita forzata avviene dopo un arresto concluso o con codice diverso da 1, o se la riga contiene altre chiavi. I test automatici usano risorse simulate; non attestano periferiche reali.
+La prova passa se ogni condizione precedente è rispettata; se, alla scadenza di 5000 ms dal primo segnale, il confine di processo registra una sola volta `satellite_shutdown_timeout` e termina con codice 1; se un arresto richiesto durante la costruzione o l'attivazione arma la stessa scadenza di 5000 ms al primo segnale, non registra `satellite_ready` e, se l'avvio non termina, alla scadenza registra `satellite_shutdown_timeout` e termina con codice 1; se il secondo segnale non riavvia la scadenza; se un arresto concluso prima annulla la scadenza senza registrare l'evento né forzare l'uscita; se il timer predefinito non mantiene attivo l'event loop; se la riga è di livello `error` con soltanto le chiavi `level`, `time`, `event` e `timeoutMs` uguale a 5000, più `err` con i guasti già osservati quando ve ne sono; se un arresto con una chiusura fallita produce una sola riga `satellite_process_failed` e codice 1; e se l'esempio Compose dichiara `stop_grace_period` di almeno 10 secondi. Fallisce se una risorsa resta aperta, se una chiusura è ripetuta, se l'errore originale si perde, se una chiusura o un avvio interrotto che non si risolvono lasciano il processo attivo oltre la scadenza, se l'uscita forzata avviene dopo un arresto concluso o con codice diverso da 1, o se la riga contiene altre chiavi. I test automatici usano risorse simulate; non attestano periferiche reali.
 
 #### Metadata
   * type: test-verification
@@ -538,7 +542,6 @@ La prova passa se ogni condizione precedente è rispettata; se, alla scadenza di
   * satisfiedBy: [lifecycle.spec.ts](../../src/runtime/lifecycle.spec.ts)
   * satisfiedBy: [satellite-process.spec.ts](../../src/runtime/satellite-process.spec.ts)
   * satisfiedBy: [environment-files.spec.ts](../../test/repository/environment-files.spec.ts)
-  * verify: [Arresto immediato del processo satellite](../Requirements/VoiceSatellite.md#arresto-immediato-del-processo-satellite)
   * verify: [Arresto unico e ordinato del satellite](../Requirements/VoiceSatellite.md#arresto-unico-e-ordinato-del-satellite)
   * verify: [Rilascio completo delle risorse del satellite](../Requirements/VoiceSatellite.md#rilascio-completo-delle-risorse-del-satellite)
   * verify: [Tempo massimo dell'arresto del processo](../Requirements/VoiceSatellite.md#tempo-massimo-dellarresto-del-processo)
@@ -592,10 +595,10 @@ La prova passa se `.dockerignore` esclude `.git`, `node_modules` a ogni livello,
 
 ### Prova del logger minimo del satellite
 
-Creare il logger di base del satellite su un flusso di prova, derivarne due logger con campi diversi ed emettere eventi con campi sensibili annidati e nomi di variabili delle credenziali; costruire il catalogo degli eventi, la chiamata conversazionale e la riproduzione con un logger di prova che registra le chiamate. Eseguire la regola di architettura che limita Pino al modulo del logger.
+Creare il logger di base del satellite su un flusso di prova, derivarne due logger con campi diversi ed emettere eventi con campi sensibili annidati e nomi di variabili delle credenziali, anche dentro array, istanze di classi con getter e `toJSON` e oggetti condivisi o circolari, e derivare un logger con gli stessi campi fissi; costruire il catalogo degli eventi, la chiamata conversazionale e la riproduzione con un logger di prova che registra le chiamate. Eseguire la regola di architettura che limita Pino al modulo del logger.
 
 #### Details
-La prova passa se le righe dei logger derivati contengono ciascuna soltanto i propri campi fissi e il logger di base resta invariato; se i valori dei campi sensibili sono sostituiti da `[redacted]` a ogni profondità senza modificare gli oggetti originali; se gli eventi dei componenti arrivano al logger iniettato; e se nessun file di produzione fuori da `src/runtime/logger.ts` importa Pino. Fallisce se un componente usa un logger globale o un'istanza Pino propria, se un valore sensibile compare in una riga o se un logger derivato altera il logger di base.
+La prova passa se le righe dei logger derivati contengono ciascuna soltanto i propri campi fissi e il logger di base resta invariato; se i valori dei campi sensibili sono sostituiti da `[redacted]` a ogni profondità, negli oggetti semplici, negli array, nei campi propri enumerabili delle istanze di classi e in ogni occorrenza di un oggetto referenziato più volte o in modo circolare, nei campi di un evento e nei campi fissi di un logger derivato, senza eseguire getter o `toJSON`, senza interrompere la riga e senza modificare gli oggetti originali; se gli eventi dei componenti arrivano al logger iniettato; e se nessun file di produzione fuori da `src/runtime/logger.ts` importa Pino. Fallisce se un componente usa un logger globale o un'istanza Pino propria, se un valore sensibile compare in una riga o se un logger derivato altera il logger di base.
 
 #### Metadata
   * type: test-verification
@@ -606,6 +609,24 @@ La prova passa se le righe dei logger derivati contengono ciascuna soltanto i pr
   * satisfiedBy: [logger.spec.ts](../../src/runtime/logger.spec.ts)
   * satisfiedBy: [import-boundaries.spec.ts](../../test/repository/import-boundaries.spec.ts)
   * verify: [Logger minimo del satellite](../Requirements/VoiceSatellite.md#logger-minimo-del-satellite)
+---
+
+### Prova del messaggio pubblico dei turni rifiutati o falliti
+
+Con una sessione controllata, rispondere a un turno vocale con una trasmissione audio del messaggio pubblico seguita da `turn.rejected`, poi a un turno ammesso con una trasmissione della risposta, una seconda trasmissione audio del messaggio pubblico e `turn.failed`; con l'adapter degli eventi della conversazione e una riproduzione controllata, consegnare gli stessi eventi e completare la riproduzione.
+
+#### Details
+La prova passa se il canale consegna le trasmissioni e l'esito `rejected` o `failed` della richiesta corrente; se l'adapter inoltra alla riproduzione ogni trasmissione audio del turno nell'ordine ricevuto; se tratta l'esito come conclusivo, senza aprire una replica; e se segnala la risposta riprodotta soltanto dopo la fine della riproduzione del messaggio pubblico, così che il satellite torni in attesa della wake word. Fallisce se il messaggio pubblico non è riprodotto, se è riprodotto prima delle trasmissioni precedenti del turno, se il satellite apre una replica o se torna alla wake word prima della fine della riproduzione.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [conversation-events.adapter.spec.ts](../../src/adapters/in/conversation-events.adapter.spec.ts)
+  * satisfiedBy: [conversation-channel.spec.ts](../../src/adapters/out/conversation-channel.spec.ts)
+  * verify: [Messaggio pubblico parlato del turno rifiutato](../Requirements/VoiceSatellite.md#messaggio-pubblico-parlato-del-turno-rifiutato)
+  * verify: [Messaggio pubblico parlato dell'errore dopo l'ammissione](../Requirements/VoiceSatellite.md#messaggio-pubblico-parlato-dellerrore-dopo-lammissione)
 ---
 
 ### Prova del modello di keyword spotting montato
@@ -677,10 +698,10 @@ La prova passa se il passo che pubblica le immagini, dopo aver creato il manifes
 
 ### Prova del runner Vitest del satellite
 
-Esaminare `vitest.config.ts` e gli script `test` e `test:e2e` del `package.json`; avviarli e acquisire il report dei test eseguiti da ciascuno.
+Esaminare `vitest.config.ts` e gli script `test` e `test:e2e` del `package.json`; elencare con `vitest list --filesOnly --json` i file di test selezionati dai progetti `fast` ed `e2e` e confrontarli con i file `*.spec.ts` del repository che Git vede.
 
 #### Details
-La prova passa se gli script eseguono con Vitest rispettivamente i progetti `fast` ed `e2e` di «Suite di test del satellite», ciascuno produce un report dei test avviati, nessun file di test compare in entrambi i report e la somma dei file eseguiti è pari al numero dei file `*.spec.ts` del repository. Fallisce se la suite usa un runner diverso, se uno script non può essere avviato tramite Vitest, se un file gira in entrambe le selezioni o se un file di test non appartiene a nessuna.
+La prova passa se gli script eseguono con Vitest rispettivamente i progetti `fast` ed `e2e` di «Suite di test del satellite», ciascun progetto seleziona almeno un file, nessun file di test compare in entrambe le selezioni e l'unione delle due selezioni coincide con i file `*.spec.ts` del repository. Fallisce se la suite usa un runner diverso, se uno script non può essere avviato tramite Vitest, se un file gira in entrambe le selezioni o se un file di test non appartiene a nessuna.
 
 #### Metadata
   * type: test-verification
@@ -688,6 +709,7 @@ La prova passa se gli script eseguono con Vitest rispettivamente i progetti `fas
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * satisfiedBy: [package.json](../../package.json)
+  * satisfiedBy: [test-selections.spec.ts](../../test/repository/test-selections.spec.ts)
   * satisfiedBy: [vitest.config.ts](../../vitest.config.ts)
   * verify: [Vitest come runner del satellite](../Requirements/VoiceSatellite.md#vitest-come-runner-del-satellite)
 ---
@@ -742,12 +764,28 @@ La prova passa se l'assenza e il valore vuoto sono rifiutati con `condition: "mi
   * verify: [Ambiente di esecuzione dichiarato del satellite](../Requirements/VoiceSatellite.md#ambiente-di-esecuzione-dichiarato-del-satellite)
 ---
 
+### Prova dell'assenza di cicli di import nel satellite
+
+Eseguire la regola `no-circular-imports` di `test/repository/architecture-rules.ts` sui file TypeScript di `src` e `test` che Git vede, poi sulla sua fixture negativa, con un ciclo di import di valori fra due file dello stesso layer e un ciclo di soli tipi, e su una fixture con un ciclo di tre file e un file esterno che vi entra senza farne parte.
+
+#### Details
+La prova passa se il repository non riporta cicli; se la fixture negativa è rifiutata con il nome `no-circular-imports` e una violazione per ciascuno dei due cicli, ciascuna con il percorso del ciclo dal primo file in ordine alfabetico fino al ritorno a quel file; e se il ciclo di tre file è riportato una sola volta con tutto il suo percorso, senza il file esterno. Fallisce se un ciclo, anche di soli tipi o interno a un layer, non è riportato, se è riportato con un altro nome o senza il percorso, o se un file fuori dal ciclo vi compare.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [import-boundaries.spec.ts](../../test/repository/import-boundaries.spec.ts)
+  * verify: [Nessun ciclo di import nel satellite](../Requirements/VoiceSatellite.md#nessun-ciclo-di-import-nel-satellite)
+---
+
 ### Prova dell'assenza di import del backend nel satellite
 
 Leggere come testo tutti i file TypeScript di `src`, estrarne gli specificatori con la stessa lettura della «Prova dei confini interni» e risolverli.
 
 #### Details
-La prova passa se i file di `src` letti non sono vuoti e se ogni specificatore del codice di produzione è un modulo di Node.js, una dipendenza di runtime dichiarata nel `package.json` del satellite o un percorso relativo che resta in `src`; nessuno specificatore deve risolversi in un percorso del repository `ambrogio-backend` o fuori dal repository, né nominare un package del backend, e nessun package del backend deve comparire fra le dipendenze del satellite. Il controllo è la regola `no-backend-imports` di «Regole di architettura del satellite»; l'unico import calcolato a runtime ammesso è la sua eccezione registrata, il caricatore della configurazione in `src/adapters/out/config-file.ts`, che importa il modulo di configurazione dell'installazione. Fallisce se un file di produzione importa codice del backend, anche soltanto per i tipi, o se uno specificatore non può essere risolto.
+La prova passa se i file di `src` letti non sono vuoti e se ogni specificatore del codice di produzione è un modulo di Node.js, una dipendenza di runtime dichiarata nel `package.json` del satellite o un percorso relativo che resta in `src`; nessuno specificatore deve risolversi in un percorso del repository `ambrogio-backend` o fuori dal repository, né nominare un package del backend, e nessun package del backend deve comparire fra le dipendenze del satellite. Il controllo è la regola `no-backend-imports` di «Regole di architettura del satellite». Fallisce se un file di produzione importa codice del backend, anche soltanto per i tipi, o se uno specificatore non può essere risolto.
 
 #### Metadata
   * type: test-verification
@@ -842,15 +880,16 @@ La prova passa se ogni rifiuto produce una sola riga `info` con `event: "invalid
   * satisfiedBy: [diagnostics.spec.ts](../../src/adapters/out/diagnostics.spec.ts)
   * satisfiedBy: [main.e2e.spec.ts](../../src/main.e2e.spec.ts)
   * satisfiedBy: [main.spec.ts](../../src/main.spec.ts)
+  * verify: [Rifiuti previsti senza log di errore nel satellite](../Requirements/VoiceSatellite.md#rifiuti-previsti-senza-log-di-errore-nel-satellite)
   * verify: [Rifiuto della configurazione invalida](../Requirements/VoiceSatellite.md#rifiuto-della-configurazione-invalida)
 ---
 
 ### Prova dell'hook dei segreti
 
-In un repository Git temporaneo con `core.hooksPath` impostato a una copia di `.githooks`, eseguire `git commit` con gitleaks 8.30.1 nel `PATH`: mettere in staging un file con una credenziale fittizia nel formato di un fornitore noto, costruita durante la prova e mai salvata nel repository del satellite, poi un file privo di segreti; infine ripetere con un `PATH` che non contiene `gitleaks`. Il repository temporaneo viene rimosso al termine.
+In un repository Git temporaneo con `core.hooksPath` impostato a una copia di `.githooks`, eseguire `git commit` con gitleaks 8.30.1 nel `PATH`: mettere in staging un file con una credenziale fittizia nel formato di un fornitore noto, costruita durante la prova e mai salvata nel repository del satellite, poi la stessa credenziale con un commento `gitleaks:allow` sulla stessa riga, poi un file privo di segreti; infine ripetere con un `PATH` che non contiene `gitleaks` e con un `PATH` in cui `gitleaks version` stampa un'altra versione. Il repository temporaneo viene rimosso al termine.
 
 #### Details
-La prova passa se l'hook versionato è eseguibile; se il commit con la credenziale è rifiutato, la storia del repository temporaneo resta senza commit e il valore non compare nell'output; se il commit privo di segreti riesce; e se senza `gitleaks` il commit è rifiutato con il messaggio che indica l'installazione di gitleaks 8.30.1 e l'attivazione con `git config core.hooksPath .githooks`. Fallisce se la versione di gitleaks nel `PATH` non è 8.30.1, se la credenziale entra nella storia, se il valore compare nell'output, se il commit privo di segreti è rifiutato o se il commit senza `gitleaks` riesce.
+La prova passa se l'hook versionato è eseguibile; se il commit con la credenziale è rifiutato, la storia del repository temporaneo resta senza commit e il valore non compare nell'output; se anche la credenziale con il commento `gitleaks:allow` è rifiutata; se il commit privo di segreti riesce; se l'hook versionato esegue `gitleaks git --pre-commit --staged --redact --no-banner --ignore-gitleaks-allow .`; e se senza `gitleaks` o con un'altra versione il commit è rifiutato con il messaggio che nomina gitleaks 8.30.1 e la pagina della sua release, senza eseguire i controlli del modello. Fallisce se la versione di gitleaks nel `PATH` non è 8.30.1, se la credenziale entra nella storia, anche con il commento `gitleaks:allow`, se il valore compare nell'output, se il commit privo di segreti è rifiutato o se il commit senza `gitleaks` o con un'altra versione riesce.
 
 #### Metadata
   * type: test-verification
@@ -955,7 +994,7 @@ La prova passa se il workflow si attiva su `pull_request`, sui `push` al solo br
 Leggere come testo `.github/workflows/secret-scan.yml` e `.github/workflows/publish-image.yml` e confrontarli con il «Profilo di scansione dei segreti con gitleaks» di `ambrogio-model` e con i contratti «Profilo della scansione dei segreti del satellite» e «Profilo di pubblicazione Docker del satellite».
 
 #### Details
-La prova passa se la scansione si attiva su `push` senza filtri di branch o percorso, su `pull_request`, su `workflow_dispatch` e su `workflow_call`; se il checkout usa `fetch-depth: 0` e `persist-credentials: false`; se `GITLEAKS_VERSION` vale `8.30.1` e `GITLEAKS_SHA256` vale l'impronta del profilo comune; se il passo di installazione scarica `gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz` dalla release ufficiale ed esegue `sha256sum --check --strict` prima di `tar`; se il comando di scansione è `gitleaks git --redact --no-banner --exit-code 1 .`; se nessun passo usa `continue-on-error`; e se `publish-image.yml` richiama `./.github/workflows/ci.yml` e `./.github/workflows/secret-scan.yml` e il job `publish` dichiara `needs: [checks, secret-scan]`. Fallisce se un attivatore manca o è filtrato, se l'impronta è verificata dopo l'estrazione o non è verificata, se versione, impronta o comando differiscono dal profilo comune o se il job `publish` non dipende da entrambi i workflow.
+La prova passa se la scansione si attiva su `push` senza filtri di branch o percorso, su `pull_request`, su `workflow_dispatch` e su `workflow_call`; se il checkout usa `fetch-depth: 0` e `persist-credentials: false`; se `GITLEAKS_VERSION` vale `8.30.1` e `GITLEAKS_SHA256` vale l'impronta del profilo comune; se il passo di installazione scarica `gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz` dalla release ufficiale ed esegue `sha256sum --check --strict` prima di `tar`; se il comando di scansione è `gitleaks git --redact --no-banner --ignore-gitleaks-allow --exit-code 1 .`; se nessun passo usa `continue-on-error`; e se `publish-image.yml` richiama `./.github/workflows/ci.yml` e `./.github/workflows/secret-scan.yml` e il job `publish` dichiara `needs: [checks, secret-scan]`. Fallisce se un attivatore manca o è filtrato, se l'impronta è verificata dopo l'estrazione o non è verificata, se versione, impronta o comando differiscono dal profilo comune o se il job `publish` non dipende da entrambi i workflow.
 
 #### Metadata
   * type: test-verification
@@ -972,13 +1011,14 @@ La prova passa se la scansione si attiva su `push` senza filtri di branch o perc
 Costruire il satellite con risorse simulate e controllare che dopo la costruzione microfono, attenuazione e sessione con il backend non siano stati avviati; attivarlo, poi ripetere chiudendolo senza attivarlo. Eseguire il runner del processo con un satellite simulato e un arresto richiesto durante la costruzione.
 
 #### Details
-La prova passa se la costruzione carica i modelli e prepara la sessione senza ripristinare l'attenuazione, avviare il microfono o aprire il canale; se questi avvengono soltanto all'attivazione decisa dal runner, che registra `satellite_ready` dopo di essa; se la chiusura senza attivazione rilascia i modelli; e se un arresto richiesto durante la costruzione non attiva il satellite e termina con codice 0. Fallisce se la costruzione attiva un dispositivo o la sessione, o se l'attivazione avviene fuori dal runner.
+La prova passa se la costruzione carica i modelli e prepara la sessione senza ripristinare l'attenuazione, avviare il microfono o aprire il canale; se questi avvengono soltanto all'attivazione decisa dal runner, che registra `satellite_ready` dopo di essa; se con un backend irraggiungibile l'attivazione riesce e registra una sola riga `info` `satellite_session_unavailable`; se le righe reali di Pino di `satellite_ready` e `satellite_session_unavailable` contengono soltanto `level`, `time` ed `event`; se la chiusura senza attivazione rilascia i modelli; e se un arresto richiesto durante la costruzione non attiva il satellite e termina con codice 0. Fallisce se la costruzione attiva un dispositivo o la sessione, o se l'attivazione avviene fuori dal runner.
 
 #### Metadata
   * type: test-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [diagnostics.spec.ts](../../src/adapters/out/diagnostics.spec.ts)
   * satisfiedBy: [satellite.spec.ts](../../src/composition/satellite.spec.ts)
   * satisfiedBy: [satellite-process.spec.ts](../../src/runtime/satellite-process.spec.ts)
   * verify: [Costruzione del satellite separata dall'attivazione](../Requirements/VoiceSatellite.md#costruzione-del-satellite-separata-dallattivazione)
@@ -986,7 +1026,7 @@ La prova passa se la costruzione carica i modelli e prepara la sessione senza ri
 
 ### Prova della diagnostica Pino
 
-Acquisire le righe reali di Pino del logger di base: JSON, event stabili; per un `ProjectError` con causa esterna la vista contiene tipo, messaggio e stack senza la causa; per errori esterni, valori lanciati non Error, cause cicliche, getter e aggregati la vista è la descrizione costante, senza message, name, stack, code, cause o proprietà aggiuntive di origine; per un `LifecycleError` `faults` elenca nell'ordine le viste dei guasti raccolti. Controllare identità e immutabilità degli originali. Iniettare un guasto di interazione e uno di riproduzione del tono di errore: un evento distinto per ciascun guasto e tono di errore indipendente dalla diagnosi. Verificare avvio e rifiuti di configurazione senza log automatici di errore. Con il trasporto `ambrogio.v1`, verificare che nessun componente emetta su console messaggi ricevuti o errori grezzi fuori dal logger applicativo.
+Acquisire le righe reali di Pino del logger di base: JSON, event stabili; per un `ProjectError` con causa esterna la vista contiene tipo, messaggio e stack senza la causa; per errori esterni, valori lanciati non Error, cause cicliche e getter la vista è la descrizione costante, senza message, name, stack, code, cause o proprietà aggiuntive di origine; per un `AggregateError` esterno la vista ha tipo `AggregateError`, la descrizione costante, stack `[redacted]` ed `errors` con le viste dei suoi errori nell'ordine, finita anche quando l'aggregato contiene sé stesso; per un `LifecycleError` `faults` elenca nell'ordine le viste dei guasti raccolti; ogni `Error` presente nei campi di un evento o nei campi fissi di un logger derivato, a qualunque profondità e sotto qualunque chiave, riceve la stessa vista. Controllare identità e immutabilità degli originali. Iniettare un guasto di interazione e uno di riproduzione del tono di errore: un evento distinto per ciascun guasto e tono di errore indipendente dalla diagnosi. Verificare avvio e rifiuti di configurazione senza log automatici di errore. Con il trasporto `ambrogio.v1`, verificare che nessun componente emetta su console messaggi ricevuti o errori grezzi fuori dal logger applicativo.
 
 #### Metadata
   * type: test-verification
@@ -1023,6 +1063,23 @@ La prova passa se ogni caso produce una sola riga JSON di livello `error` con `e
   * verify: [Diagnostica del mancato avvio del satellite](../Requirements/VoiceSatellite.md#diagnostica-del-mancato-avvio-del-satellite)
 ---
 
+### Prova della riserva audio
+
+Con la riserva audio, inserire blocchi più corti e più lunghi della sua capacità e prelevarla due volte; convertire campioni fuori scala in PCM16. Con l'adapter degli eventi della conversazione e un canale controllato, consegnare frame del microfono, confermare il parlato, consegnare altri frame e chiudere il parlato.
+
+#### Details
+La prova passa se la riserva conserva soltanto i campioni più recenti entro la capacità, dal più vecchio, e si svuota quando viene prelevata; se la conversione in PCM16 limita i campioni al fondo scala; e se alla conferma del parlato la richiesta si apre con i campioni della riserva, seguiti dai frame successivi e chiusa alla fine del parlato. Fallisce se la riserva perde i campioni più recenti, li restituisce in un altro ordine, conserva campioni dopo il prelievo o se la richiesta non comincia con la riserva. La prova non misura se 1500 ms bastano per la frase continua, affidato alla «Dimostrazione della attivazione locale».
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [conversation-events.adapter.spec.ts](../../src/adapters/in/conversation-events.adapter.spec.ts)
+  * satisfiedBy: [audio-reserve.spec.ts](../../src/adapters/out/audio-reserve.spec.ts)
+  * verify: [Conservazione della richiesta continua](../Requirements/VoiceSatellite.md#conservazione-della-richiesta-continua)
+---
+
 ### Prova della selezione dei dispositivi audio
 
 Con Decibri sostituito da aperture controllate, aprire il microfono e lo speaker senza selettore, con un selettore che inizia con `alsa:` e con un selettore per nome; poi far fallire l'apertura del dispositivo selezionato. Con risorse controllate, far fallire l'avvio del microfono durante l'avvio del satellite e la riproduzione di una trasmissione sullo speaker.
@@ -1043,10 +1100,10 @@ La prova passa se senza selettore l'apertura non indica alcun dispositivo, così
 
 ### Prova della sessione e delle conversazioni del satellite
 
-Con un backend `ambrogio.v1` controllato, avviare il satellite e completare due attivazioni con la wake word e una replica senza wake word; chiudere la sessione lato backend mentre il satellite attende la wake word e durante un'interazione; ritardare `session.ready`. Ripetere lo scambio contro il backend affiancato nella cartella di lavoro, compilato e avviato soltanto tramite il suo «Ingresso di prova del server conversazionale», con componenti vocali deterministici al posto di trascrizione e sintesi; la prova contro il backend affiancato gira nella CI del satellite dopo il checkout affiancato, senza un commit fissato del backend.
+Con un backend `ambrogio.v1` controllato, avviare il satellite e completare due attivazioni con la wake word e una replica senza wake word; chiudere la sessione lato backend mentre il satellite attende la wake word e durante un'interazione; ritardare `session.ready` oltre 5 secondi. Ripetere lo scambio contro il backend affiancato nella cartella di lavoro, compilato e avviato soltanto tramite il suo «Ingresso di prova del server conversazionale», con componenti vocali deterministici al posto di trascrizione e sintesi; la prova contro il backend affiancato gira nella CI del satellite dopo il checkout affiancato, senza un commit fissato del backend.
 
 #### Details
-La prova passa se all'avvio esiste una sola sessione pronta, se ogni attivazione con la wake word apre una richiesta senza `conversationId` e la replica usa il `conversationId` di `turn.accepted`, se nessun messaggio o frame è inviato prima di `session.ready`, se la sessione chiusa durante l'attesa viene riaperta alla successiva attivazione senza avvisi e se la chiusura durante un'interazione produce il recupero locale senza riprendere la richiesta sulla nuova sessione. Contro il backend affiancato passa inoltre se il backend accetta la sessione, trascrive la richiesta, conserva attivazione e replica nella stessa conversazione e restituisce le trasmissioni audio e gli esiti dei contratti del protocollo. Fallisce se una richiesta, una trasmissione o un turno vengono ripresi su una sessione diversa da quella in cui sono iniziati, se il backend affiancato manca o non è compilato, o se la prova importa codice del backend diverso dal suo ingresso di prova.
+La prova passa se all'avvio esiste una sola sessione pronta, se ogni attivazione con la wake word apre una richiesta senza `conversationId` e la replica usa il `conversationId` di `turn.accepted`, se nessun messaggio o frame è inviato prima di `session.ready`, se senza `session.ready` entro 5 secondi la connessione è chiusa e l'apertura fallisce come sessione non disponibile, se la sessione chiusa durante l'attesa viene riaperta alla successiva attivazione senza avvisi e se la chiusura durante un'interazione produce il recupero locale senza riprendere la richiesta sulla nuova sessione. Contro il backend affiancato passa inoltre se il backend accetta la sessione, trascrive la richiesta, conserva attivazione e replica nella stessa conversazione e restituisce le trasmissioni audio e gli esiti dei contratti del protocollo. Fallisce se una richiesta, una trasmissione o un turno vengono ripresi su una sessione diversa da quella in cui sono iniziati, se il backend affiancato manca o non è compilato, o se la prova importa codice del backend diverso dal suo ingresso di prova.
 
 #### Metadata
   * type: test-verification
@@ -1111,6 +1168,23 @@ Con una porta controllata verificare scadenza della risposta e della replica ai 
   * verify: [Programmazione delle scadenze tramite porta Application](../Requirements/VoiceSatellite.md#programmazione-delle-scadenze-tramite-porta-application)
 ---
 
+### Prova di un solo turno alla volta nel satellite
+
+Con la politica del turno vocale, dopo l'invio di una richiesta consegnare wake word, apertura della chiamata, fine del segnale di ascolto, inizio e fine del parlato: prima di ogni esito, dopo un esito senza riproduzione conclusa e dopo la riproduzione senza esito; poi consegnare esito con replica attesa e fine della riproduzione. Con l'adapter degli eventi della conversazione e una riproduzione controllata, consegnare l'esito di un turno con trasmissioni audio e completare la riproduzione.
+
+#### Details
+La prova passa se alla fine del parlato il rilevamento dell'attività vocale è disattivato; se prima che esito e fine della riproduzione siano entrambi arrivati nessun evento cambia lo stato o produce un'azione che apre una chiamata, il segnale di ascolto o il rilevamento del parlato; se l'ascolto della replica si apre soltanto dopo entrambi e dopo il segnale di ascolto; e se l'adapter segnala la risposta riprodotta soltanto dopo la fine della riproduzione. Fallisce se una wake word o un parlato avviano una nuova richiesta mentre il turno è in corso o se l'ascolto della replica si apre prima della fine della riproduzione.
+
+#### Metadata
+  * type: test-verification
+
+#### Relations
+  * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [voice-turn.spec.ts](../../src/domain/voice-turn.spec.ts)
+  * satisfiedBy: [conversation-events.adapter.spec.ts](../../src/adapters/in/conversation-events.adapter.spec.ts)
+  * verify: [Un solo turno alla volta nel satellite](../Requirements/VoiceSatellite.md#un-solo-turno-alla-volta-nel-satellite)
+---
+
 ### Prova software delle immagini del satellite
 
 Su ciascuna immagine verificare architettura, import delle dipendenze native Decibri e `sherpa-onnx-node`, caricamento del keyword spotter e del rilevatore dell'attività vocale con i modelli distribuiti ed elaborazione del silenzio senza rilevamenti, e generazione del tono di errore. Eseguire il processo senza variabili `AMBROGIO_*` e poi con `AMBROGIO_ENV=production` e un `AMBROGIO_BACKEND_URL` invalido: uscita 2 e una sola riga JSON informativa con la variabile rifiutata, nessun avvio audio. Avviare ogni immagine con il solo `docker run`, senza Docker Compose. Verificare che l'immagine non imposti variabili `AMBROGIO_*` e non contenga file di configurazione o d'ambiente, e le etichette dell'immagine: `org.opencontainers.image.source` con l'URL del repository e `org.opencontainers.image.licenses` con `MIT`. Le prove devono funzionare senza rete né periferiche e fallire se manca un artefatto necessario; non sostituiscono le prove audio reali.
@@ -1128,13 +1202,15 @@ Su ciascuna immagine verificare architettura, import delle dipendenze native Dec
 
 ### Regressione del segnale di ascolto
 
-Alla wake word, la prova Domain e Application accerta che il tono parta quando la sessione è pronta, prima che il parlato sia ammesso. Con una risposta che attende replica, la stessa azione apre l'ascolto: il VAD resta inattivo e il timer non parte finché il bip non termina. Verificare che una risposta conclusiva non emetta il bip e che un arresto durante il segnale non riapra l'ascolto. La prova dell'adapter controlla durata, livello e uscita configurata del tono, cancellazione all'arresto e continuità dell'ascolto se la riproduzione locale fallisce.
+Alla wake word, la prova Domain e Application accerta che il tono parta quando la sessione è pronta, prima che il parlato sia ammesso. Con una risposta che attende replica, la stessa azione apre l'ascolto: il VAD resta inattivo e il timer non parte finché il bip non termina. Verificare che una risposta conclusiva non emetta il bip e che un arresto durante il segnale non riapra l'ascolto. La prova dell'adapter controlla durata e frequenza del tono, livello e uscita configurata, cancellazione all'arresto e continuità dell'ascolto con l'evento `satellite_ready_cue_failed` se la riproduzione locale fallisce.
 
 #### Metadata
   * type: test-verification
 
 #### Relations
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
+  * satisfiedBy: [conversation-call.adapter.error-tone.spec.ts](../../src/adapters/out/conversation-call.adapter.error-tone.spec.ts)
+  * satisfiedBy: [conversation-call.adapter.ready-cue.spec.ts](../../src/adapters/out/conversation-call.adapter.ready-cue.spec.ts)
   * satisfiedBy: [voice-session.use-case.spec.ts](../../src/application/voice-session.use-case.spec.ts)
   * verify: [Segnale acustico di disponibilità](../Requirements/VoiceSatellite.md#segnale-acustico-di-disponibilità)
 ---
@@ -1150,3 +1226,4 @@ Ispezionare trigger, formato versione, corrispondenza package.json, dipendenza d
   * derivedFrom: [Verifica del satellite vocale](#verifica-del-satellite-vocale)
   * verify: [Pubblicazione delle immagini Docker del satellite](../Requirements/VoiceSatellite.md#pubblicazione-delle-immagini-docker-del-satellite)
 ---
+

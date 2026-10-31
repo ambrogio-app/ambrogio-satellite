@@ -15,6 +15,8 @@ export type ServerSession = Readonly<{
 export async function startFakeSessionServer(options: Readonly<{
   onMessage?(session: ServerSession, message: Record<string, unknown>): void;
   rejectProtocol?: boolean;
+  /** Never answer `session.hello` with `session.ready`. */
+  withholdReady?: boolean;
 }> = {}) {
   const sessions: ServerSession[] = [];
   const server = createServer((_request, response) => { response.writeHead(404).end(); });
@@ -42,7 +44,7 @@ export async function startFakeSessionServer(options: Readonly<{
       }
       const message = JSON.parse(buffer.toString('utf8')) as Record<string, unknown>;
       session.messages.push(message);
-      if (message.type === 'session.hello') session.send({ type: 'session.ready', protocol: 'ambrogio.v1' });
+      if (message.type === 'session.hello' && !options.withholdReady) session.send({ type: 'session.ready', protocol: 'ambrogio.v1' });
       options.onMessage?.(session, message);
     });
   });

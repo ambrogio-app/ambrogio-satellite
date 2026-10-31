@@ -36,6 +36,14 @@ function recorder() {
   return { log, events };
 }
 
+/** Wait for a condition across event-loop turns, without timers, so that fake timers stay in control. */
+async function turns(check: () => boolean): Promise<void> {
+  for (let turn = 0; !check(); turn++) {
+    if (turn > 100_000) throw new Error('Condition not reached');
+    await new Promise(resolve => setImmediate(resolve));
+  }
+}
+
 const starts = (session: { messages: Array<Record<string, unknown>> }) =>
   session.messages.filter(message => message.type === 'input.start');
 
@@ -103,6 +111,7 @@ describe('ambrogio.v1 session and conversation channel', () => {
     expect(session.frames.reduce((total, frame) => total + frame.samples.length, 0)).toBe(MAX_REQUEST_SAMPLES);
   });
 
+  // Verification: Prova del messaggio pubblico dei turni rifiutati o falliti
   it('delivers output transmissions and every turn outcome of the current request', async () => {
     const outcomes: Array<Record<string, unknown>> = [
       { type: 'turn.completed', expectsReply: true },
@@ -117,6 +126,10 @@ describe('ambrogio.v1 session and conversation channel', () => {
         session.send({ type: 'output.start', requestId, stream: 9, content: { type: 'text' } });
         session.send({ type: 'output.chunk', stream: 9, text: 'Un altro turno è in corso.' });
         session.send({ type: 'output.end', stream: 9 });
+        session.send({ type: 'output.start', requestId, stream: 10, content: { type: 'audio', sampleRate: 22050 } });
+        session.sendAudio(10, [4, 5]);
+        session.sendAudio(10, [6]);
+        session.send({ type: 'output.end', stream: 10 });
         session.send({ type: 'turn.rejected', requestId, reason: 'occupied', message: 'Un altro turno è in corso.' });
         return;
       }
@@ -126,6 +139,12 @@ describe('ambrogio.v1 session and conversation channel', () => {
       session.sendAudio(5, [1, -2, 3]);
       session.sendAudio(77, [9]);
       session.send({ type: 'output.end', stream: 5 });
+      if (turn === 1) {
+        // The public message of the failure, a second audio transmission of the admitted turn.
+        session.send({ type: 'output.start', requestId, turnId, stream: 6, content: { type: 'audio', sampleRate: 22050 } });
+        session.sendAudio(6, [7, 8]);
+        session.send({ type: 'output.end', stream: 6 });
+      }
       session.send({ ...outcomes[turn]!, turnId });
     } });
     const opened = channel(fake.url);
@@ -145,11 +164,24 @@ describe('ambrogio.v1 session and conversation channel', () => {
       ['outputEnd', 5],
       ['outcome', { kind: 'completed', expectsReply: true }],
     ]);
-    expect(logs[1]!.at(-1)).toEqual(['outcome', { kind: 'failed' }]);
+    expect(logs[1]).toEqual([
+      ['accepted', 'c1'],
+      ['outputStart', 5, { type: 'audio', sampleRate: 22050 }],
+      ['outputAudio', 5, [1, -2, 3]],
+      ['outputEnd', 5],
+      ['outputStart', 6, { type: 'audio', sampleRate: 22050 }],
+      ['outputAudio', 6, [7, 8]],
+      ['outputEnd', 6],
+      ['outcome', { kind: 'failed' }],
+    ]);
     expect(logs[2]!.at(-1)).toEqual(['outcome', { kind: 'interrupted' }]);
     expect(logs[3]).toEqual([
       ['outputStart', 9, { type: 'text' }],
       ['outputEnd', 9],
+      ['outputStart', 10, { type: 'audio', sampleRate: 22050 }],
+      ['outputAudio', 10, [4, 5]],
+      ['outputAudio', 10, [6]],
+      ['outputEnd', 10],
       ['outcome', { kind: 'rejected' }],
     ]);
   });
@@ -225,6 +257,30 @@ describe('ambrogio.v1 session and conversation channel', () => {
     await closed.close();
     servers.splice(servers.indexOf(closed), 1);
     await expect(channel(url).ensure()).rejects.toThrow('unavailable');
+  });
+
+  // Verification: Prova della sessione e delle conversazioni del satellite
+  it('closes the socket and rejects the opening when session.ready does not arrive within 5 seconds', async () => {
+    const fake = await server({ withholdReady: true });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      let settled: 'resolved' | Error | undefined;
+      AmbrogioSession.open(fake.url, identity).then(() => { settled = 'resolved'; }, (error: Error) => { settled = error; });
+      await turns(() => fake.sessions[0]?.messages.some(message => message.type === 'session.hello') === true);
+      const socket = fake.sessions[0]!.socket;
+      await vi.advanceTimersByTimeAsync(4_999);
+      expect(settled).toBeUndefined();
+      expect(socket.readyState).toBe(socket.OPEN);
+      await vi.advanceTimersByTimeAsync(1);
+      await turns(() => settled !== undefined && socket.readyState === socket.CLOSED);
+      expect(settled).toBeInstanceOf(Error);
+      expect((settled as Error).message).toBe('Conversation session unavailable');
+      // Nothing but the hello was sent on the session that never became ready.
+      expect(fake.sessions[0]!.messages).toEqual([{ type: 'session.hello', clientId: 'satellite-cucina', name: 'Cucina' }]);
+      expect(fake.sessions[0]!.frames).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('does not reopen after close', async () => {

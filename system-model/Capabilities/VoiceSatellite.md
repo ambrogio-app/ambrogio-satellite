@@ -15,3 +15,4 @@ La famiglia conversa a voce con Ambrogio da un satellite Linux, attivandolo con 
 #### Relations
   * derivedFrom: [Conversazione a voce](../../../ambrogio-model/system-model/Capabilities/Product.md#conversazione-a-voce)
 ---
+

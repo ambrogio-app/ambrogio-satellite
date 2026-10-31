@@ -4,7 +4,7 @@
 
 Schema strutturale del sistema satellite. Il backend è un altro componente del prodotto: qui si rappresenta soltanto il suo ruolo al confine vocale, senza la sua struttura interna né la sua storia conversazionale. Le classi che corrispondono a termini condivisi del prodotto si mappano sui concetti del «Lessico Ambrogio» di `ambrogio-model`; le altre sui concetti del «Lessico del satellite vocale».
 
-Domande a cui il grafo deve poter rispondere: quale configurazione e quali dispositivi usa il satellite? Quali modelli distribuiti sono selezionabili? Quale attivazione apre un'interazione con il backend? Quali turni e risposte appartengono alla stessa interazione? Quale risposta segnala che attende una replica? Dove si trova la riserva audio temporanea?
+Domande a cui il grafo deve poter rispondere: quale configurazione e quali dispositivi usa il satellite? Con quale modello di wake word riconosce la wake word? Quale attivazione apre un'interazione vocale e su quale sessione conversazionale con il backend si svolge? Quali turni e risposte appartengono alla stessa interazione? Quale esito del turno segnala che il backend attende una replica? Dove si trova la riserva audio temporanea?
 
 #### Ontology
 ```turtle
@@ -40,7 +40,7 @@ sat:AudioOutputDevice a owl:Class ;
   rdfs:comment "Periferica che riproduce audio per la famiglia." .
 
 sat:SatelliteConfiguration a owl:Class ;
-  rdfs:comment "Selezione delle risorse e del backend usati dal processo satellite." ;
+  rdfs:comment "Valori scelti da chi installa per il backend, l'identità, i dispositivi audio, l'attenuazione, la wake word e l'intervallo di inattività del processo satellite; non comprende il modello di wake word." ;
   reqvire:mapsToConcept concept:ConfigurazioneDelSatellite .
 
 sat:WakeWordModel a owl:Class ;
@@ -56,12 +56,19 @@ sat:AudioBuffer a owl:Class ;
   reqvire:mapsToConcept concept:RiservaAudio .
 
 sat:VoiceInteraction a owl:Class ;
-  rdfs:comment "Sessione temporanea tra satellite e backend che comprende uno o più turni." ;
+  rdfs:comment "Sequenza di turni vocali del satellite dall'attivazione locale al ritorno in attesa della wake word, svolta sulla sessione conversazionale persistente con il backend." ;
   reqvire:mapsToConcept ambrogio:InterazioneVocale .
 
 sat:VoiceTurn a owl:Class ;
   rdfs:comment "Richiesta pronunciata durante un'interazione vocale." ;
   reqvire:mapsToConcept ambrogio:TurnoVocale .
+
+sat:ConversationSession a owl:Class ;
+  rdfs:comment "Sessione conversazionale persistente del protocollo ambrogio.v1 fra il satellite e il backend, che sopravvive alle singole interazioni vocali." ;
+  reqvire:mapsToConcept ambrogio:SessioneConversazionale .
+
+sat:TurnOutcome a owl:Class ;
+  rdfs:comment "Esito di un turno vocale comunicato dal backend: completato, fallito, rifiutato o interrotto." .
 
 sat:SpokenResponse a owl:Class ;
   rdfs:comment "Risposta vocale del backend riprodotta dal satellite per un turno." ;
@@ -91,8 +98,12 @@ sat:usesAudioBuffer a owl:ObjectProperty ;
   rdfs:domain sat:LocalActivation ;
   rdfs:range sat:AudioBuffer .
 
-sat:connectsToBackend a owl:ObjectProperty ;
+sat:usesSession a owl:ObjectProperty ;
   rdfs:domain sat:VoiceInteraction ;
+  rdfs:range sat:ConversationSession .
+
+sat:connectsToBackend a owl:ObjectProperty ;
+  rdfs:domain sat:ConversationSession ;
   rdfs:range sat:VoiceBackend .
 
 sat:hasTurn a owl:ObjectProperty ;
@@ -103,10 +114,14 @@ sat:hasSpokenResponse a owl:ObjectProperty ;
   rdfs:domain sat:VoiceTurn ;
   rdfs:range sat:SpokenResponse .
 
+sat:hasOutcome a owl:ObjectProperty ;
+  rdfs:domain sat:VoiceTurn ;
+  rdfs:range sat:TurnOutcome .
+
 sat:expectsReply a owl:DatatypeProperty ;
-  rdfs:domain sat:SpokenResponse ;
+  rdfs:domain sat:TurnOutcome ;
   rdfs:range xsd:boolean ;
-  rdfs:comment "Valore comunicato dal backend che indica se la risposta attende un ulteriore turno nella stessa interazione." ;
+  rdfs:comment "Valore comunicato dal backend nell'esito completato del turno che indica se attende un ulteriore turno nella stessa interazione." ;
   reqvire:mapsToConcept ambrogio:IndicazioneDiReplicaAttesa .
 
 sat:theSatellite a owl:NamedIndividual, sat:VoiceSatellite ;

@@ -322,7 +322,7 @@ describe('secret scan workflow', () => {
     expect(check).toBeGreaterThan(install.indexOf('curl -fsSL'));
     expect(install.indexOf('tar -xzf')).toBeGreaterThan(check);
     expect(step(scan, 'Scan the whole history')).toMatch(
-      /^ {8}run: gitleaks git --redact --no-banner --exit-code 1 \.$/m);
+      /^ {8}run: gitleaks git --redact --no-banner --ignore-gitleaks-allow --exit-code 1 \.$/m);
   });
 
   it('gates publication on both the CI and the secret scan of the same commit', () => {

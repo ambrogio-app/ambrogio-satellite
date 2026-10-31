@@ -1,4 +1,6 @@
 import { beforeEach, expect, test, vi } from 'vitest';
+import { createDiagnostics } from '../adapters/out/diagnostics.js';
+import { createBaseLogger } from '../runtime/logger.js';
 import { LifecycleError, ProjectError } from '../runtime/project-error.js';
 import { createSatellite } from './satellite.js';
 
@@ -101,6 +103,42 @@ test('starts even when the backend is unreachable and reports it as information'
   const satellite = await started();
   await vi.waitFor(() => expect(f.info).toHaveBeenCalledWith('satellite_session_unavailable'));
   await satellite.close();
+});
+
+/** The real diagnostics on the real Pino base logger, writing to memory. */
+function pinoDiagnostics() {
+  const lines: string[] = [];
+  const diagnostics = createDiagnostics(createBaseLogger({ write(line: string) { lines.push(line); } }));
+  return { diagnostics, records: () => lines.map(line => JSON.parse(line) as Record<string, unknown>) };
+}
+
+// Verification: Prova della costruzione separata dall'attivazione del satellite
+test('the real Pino lines of satellite_ready and satellite_session_unavailable hold only level, time and event', async () => {
+  f.ensure.mockRejectedValue(new Error('secret unreachable host'));
+  const { diagnostics, records } = pinoDiagnostics();
+  const satellite = await createSatellite(config, diagnostics);
+  await satellite.activate();
+  // The runner reports the satellite ready after the activation.
+  diagnostics.info('satellite_ready');
+  await vi.waitFor(() => expect(records()).toHaveLength(2));
+  expect(records()).toEqual(expect.arrayContaining([
+    { level: 'info', time: expect.any(Number), event: 'satellite_session_unavailable' },
+    { level: 'info', time: expect.any(Number), event: 'satellite_ready' },
+  ]));
+  await satellite.close();
+});
+
+// Verification: Prova del ciclo di arresto del satellite
+test('the real Pino line of satellite_shutdown_timeout holds only level, time, event, timeoutMs and the faults', () => {
+  const { diagnostics, records } = pinoDiagnostics();
+  diagnostics.shutdownTimeout(5_000);
+  const fault = new ProjectError('Microphone could not be closed', { cause: new Error('secret') });
+  diagnostics.shutdownTimeout(5_000, fault);
+  expect(records()).toEqual([
+    { level: 'error', time: expect.any(Number), event: 'satellite_shutdown_timeout', timeoutMs: 5_000 },
+    { level: 'error', time: expect.any(Number), event: 'satellite_shutdown_timeout', timeoutMs: 5_000,
+      err: { type: 'ProjectError', message: 'Microphone could not be closed', stack: fault.stack } },
+  ]);
 });
 
 test('closes once, in reverse order of acquisition, after cancelling playback', async () => {
